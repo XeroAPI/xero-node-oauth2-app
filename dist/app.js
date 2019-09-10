@@ -86,8 +86,10 @@ class App {
                 let accountUp = { name: "Updated Account" + +helper_1.default.getRandomNumber() };
                 let accounts = { accounts: [accountUp] };
                 let accountUpdateResponse = yield xero.accountingApi.updateAccount(xero.tenantIds[0], accountID, accounts);
-                let accountAttachmentsResponse = yield xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountID, "helo-heros.jpg", "hello");
-                /*
+                // NOT TESTED
+                //let accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0],accountID,"helo-heros.jpg","hello");
+                /* COULDN"T GET THIS TO WORK - hacked on AccountingApi.js to try
+                and upload attachments
                 async function main(data) {
                   let fileSize = fs.statSync(path.resolve(__dirname, "../public/images/helo-heros.jpg")).size;
                   let options = { headers: {"Content-Type" : "image/jpeg", "Content-length" : "" + fileSize} }
@@ -114,20 +116,20 @@ class App {
                 */
                 //let accountAttachmentsResponse = await xero.accountingApi.getAccountAttachments(xero.tenantIds[0],accountID);
                 //console.log(accountAttachmentsResponse.body.attachments[0].attachmentID);
-                //DELETE
-                //        let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountID);
-                // accountDeleteResponse.body.accounts[0].name
+                //DELETE - tested and works
+                /*
+                let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountID);
+                accountDeleteResponse.body.accounts[0].name
+                */
                 res.render('accounts', {
                     getAllCount: accountsGetResponse.body.accounts.length,
                     getOneName: accountGetResponse.body.accounts[0].name,
                     createName: accountCreateResponse.body.accounts[0].name,
                     updateName: accountUpdateResponse.body.accounts[0].name,
-                    deleteName: "foo"
+                    deleteName: "temp not passing"
                 });
             }
             catch (e) {
-                console.log("ERROR");
-                console.log(e);
                 res.status(500);
                 res.send(e);
             }
@@ -228,6 +230,42 @@ class App {
                 res.send(e);
             }
         }));
+        router.get('/employees', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getEmployees(xero.tenantIds[0]);
+                res.render('employees', { count: apiResponse.body.employees.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/expenseclaims', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getExpenseClaims(xero.tenantIds[0]);
+                res.render('expenseclaims', { count: apiResponse.body.expenseClaims.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/invoicereminders', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getInvoiceReminders(xero.tenantIds[0]);
+                res.render('invoicereminders', { count: apiResponse.body.invoiceReminders.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
         router.get('/invoices', (req, res) => __awaiter(this, void 0, void 0, function* () {
             try {
                 let accessToken = req.session.accessToken;
@@ -240,12 +278,169 @@ class App {
                 res.send(e);
             }
         }));
+        router.get('/items', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getItems(xero.tenantIds[0]);
+                res.render('items', { count: apiResponse.body.items.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/journals', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getJournals(xero.tenantIds[0]);
+                res.render('journals', { count: apiResponse.body.journals.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/manualjournals', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getManualJournals(xero.tenantIds[0]);
+                res.render('manualjournals', { count: apiResponse.body.manualJournals.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
         router.get('/organisations', (req, res) => __awaiter(this, void 0, void 0, function* () {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
                 let apiResponse = yield xero.accountingApi.getOrganisations(xero.tenantIds[0]);
                 res.render('organisations', { name: apiResponse.body.organisations[0].name });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/overpayments', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getOverpayments(xero.tenantIds[0]);
+                res.render('overpayments', { count: apiResponse.body.overpayments.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/payments', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getPayments(xero.tenantIds[0]);
+                res.render('payments', { count: apiResponse.body.payments.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/paymentservices', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getPaymentServices(xero.tenantIds[0]);
+                res.render('paymentservices', { count: apiResponse.body.paymentServices.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/prepayments', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getPrepayments(xero.tenantIds[0]);
+                res.render('prepayments', { count: apiResponse.body.prepayments.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/purchaseorders', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getPurchaseOrders(xero.tenantIds[0]);
+                res.render('purchaseorders', { count: apiResponse.body.purchaseOrders.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/receipts', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getReceipts(xero.tenantIds[0]);
+                res.render('receipts', { count: apiResponse.body.receipts.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/reports', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                //We need specific report API calls
+                //let apiResponse = await xero.accountingApi.getReports(xero.tenantIds[0]);
+                res.render('reports', { count: 0 });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/taxrates', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getTaxRates(xero.tenantIds[0]);
+                res.render('taxrates', { count: apiResponse.body.taxRates.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/trackingcategories', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getTrackingCategories(xero.tenantIds[0]);
+                res.render('trackingcategories', { count: apiResponse.body.trackingCategories.length });
+            }
+            catch (e) {
+                res.status(500);
+                res.send(e);
+            }
+        }));
+        router.get('/users', (req, res) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                let accessToken = req.session.accessToken;
+                yield xero.setTokenSet(accessToken);
+                let apiResponse = yield xero.accountingApi.getUsers(xero.tenantIds[0]);
+                res.render('users', { count: apiResponse.body.users.length });
             }
             catch (e) {
                 res.status(500);
