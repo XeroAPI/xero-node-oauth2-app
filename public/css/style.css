@@ -1,0 +1,133 @@
+/* ==========================================================================
+   #STYLES
+   ========================================================================== */
+
+
+/**
+ *
+ * [1]: Inheriting box sizing slightly better best-practice
+ * https://css-tricks.com/inheriting-box-sizing-probably-slightly-better-best-practice/
+ *
+ * [2]: WordPress System font-stack
+ */
+
+
+/* RESET
+   ========================================================================== */
+
+
+html {
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit; /* [1] */
+  margin: 0;
+  padding: 0;
+}
+
+
+
+/* FONTS
+   ========================================================================== */
+
+body {
+  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif; /* [2] */
+}
+
+
+
+/* Header
+   ========================================================================== */
+
+.header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+  background-color: #525286;
+  color: #FFFFFF;
+  margin-bottom: 50px;
+}
+
+
+
+/* Homepage Container
+   ========================================================================== */
+
+.container {
+  width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-gap: 20px;
+}
+
+
+
+/* Profile Card
+   ========================================================================== */
+
+.person {
+  text-align: center;
+}
+
+.person > * {
+  margin-bottom: 5px;
+}
+
+.person-image {
+  width: 100%;
+  height: 300px;
+}
+
+
+
+/* Profile Page
+   ========================================================================== */
+
+.profile {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+.profile-image {
+  height: 100%;
+  flex-grow: 1;
+  flex-basis: 50%;
+}
+
+.profile-details {
+  flex-basis: 30%;
+  flex-grow: 1;
+  padding: 50px;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.profile-details > * {
+  margin-bottom: 20px;
+}
+
+
+
+/* Buttons
+   ========================================================================== */
+
+.button {
+  height: 50px;
+  line-height: 50px;
+  width: 100%;
+  text-decoration: none;
+  text-align: center;
+  font-size: 20px
+}
+
+.button-twitter {
+  color: #FFFFFF;
+  background-color: #659AF1;
+  border-radius: 5px;
+}
