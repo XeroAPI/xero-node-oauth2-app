@@ -1,7 +1,7 @@
 # xero-node-oauth2-app
 NodeJS app with example and sample app to demo xero-node sdk
 
-Set your API keys in ```lib/app.ts```
+Set your API keys in lib/app.ts
 
 ```javascript
 const client_id = '_YOUR_CLIENT_ID'
