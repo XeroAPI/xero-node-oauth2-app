@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const bodyParser = require("body-parser");
 const xero_node_sdk_1 = require("xero-node-sdk");
+const fs = require("fs");
 const helper_1 = require("./helper");
 const mustacheExpress = require('mustache-express');
 const session = require('express-session');
@@ -20,10 +21,10 @@ const localVarRequest = require("request");
 //const client_id = '***REMOVED***'
 //const client_secret = '***REMOVED***'
 // oauth2 app only
-//const client_id = '***REMOVED***'
-//const client_secret = '***REMOVED***'
 const client_id = '***REMOVED***';
 const client_secret = '***REMOVED***';
+//const client_id = '***REMOVED***'
+//const client_secret = '***REMOVED***'
 const redirectUrl = 'http://localhost:5000/callback';
 const scopes = 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access';
 const xero = new xero_node_sdk_1.XeroClient({
@@ -60,7 +61,8 @@ class App {
         }));
         router.get('/callback', (req, res) => __awaiter(this, void 0, void 0, function* () {
             try {
-                yield xero.setAccessTokenFromRedirectUri(req.query);
+                let url = "http://localhost:5000/" + req.originalUrl;
+                yield xero.setAccessTokenFromRedirectUri(url);
                 let accessToken = yield xero.readTokenSet();
                 req.session.accessToken = accessToken;
                 res.render('callback', '');
@@ -79,43 +81,25 @@ class App {
                 //CREATE
                 let account = { name: "Foo" + helper_1.default.getRandomNumber(), code: "" + helper_1.default.getRandomNumber(), type: xero_node_sdk_1.AccountType.EXPENSE };
                 let accountCreateResponse = yield xero.accountingApi.createAccount(xero.tenantIds[0], account);
-                let accountID = accountCreateResponse.body.accounts[0].accountID;
+                let accountId = accountCreateResponse.body.accounts[0].accountID;
                 //GET ONE
-                let accountGetResponse = yield xero.accountingApi.getAccount(xero.tenantIds[0], accountID);
+                let accountGetResponse = yield xero.accountingApi.getAccount(xero.tenantIds[0], accountId);
                 //UPDATE
                 let accountUp = { name: "Updated Account" + +helper_1.default.getRandomNumber() };
                 let accounts = { accounts: [accountUp] };
-                let accountUpdateResponse = yield xero.accountingApi.updateAccount(xero.tenantIds[0], accountID, accounts);
-                // NOT TESTED
-                //let accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0],accountID,"helo-heros.jpg","hello");
-                /* COULDN"T GET THIS TO WORK - hacked on AccountingApi.js to try
-                and upload attachments
-                async function main(data) {
-                  let fileSize = fs.statSync(path.resolve(__dirname, "../public/images/helo-heros.jpg")).size;
-                  let options = { headers: {"Content-Type" : "image/jpeg", "Content-length" : "" + fileSize} }
-                  let accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0],accountID,"helo-heros.jpg",data.toString(),options);
-                  console.log("HELLO");
-                }
-        
-                var data = '';
-                var readStream = fs.createReadStream(path.resolve(__dirname, "../public/images/helo-heros.jpg"), 'utf8');
-        
-                readStream.on('data', function(chunk) {
-                    data += chunk;
-                }).on('end', function() {
-                    //console.log(data);
-                    main(data);
+                let accountUpdateResponse = yield xero.accountingApi.updateAccount(xero.tenantIds[0], accountId, accounts);
+                const filename = 'helo-heros.jpg';
+                //const pathToUpload = path.join('src', '__integration_tests__', filename);
+                const pathToUpload = path.resolve(__dirname, "../public/images/helo-heros.jpg");
+                const filesize = fs.statSync(pathToUpload).size;
+                const readStream = fs.createReadStream(pathToUpload);
+                let attachmentsResponse = yield xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
+                    headers: {
+                        'Content-Type': 'image/jpeg',
+                        'Content-Length': filesize.toString()
+                    }
                 });
-               
-                */
-                /*
-                await fs.readFile(path.resolve(__dirname, "../public/images/helo-heros.jpg"), 'utf8',function(err, data) {
-                  if (err) throw err;
-                  main(data);
-                });
-                */
-                //let accountAttachmentsResponse = await xero.accountingApi.getAccountAttachments(xero.tenantIds[0],accountID);
-                //console.log(accountAttachmentsResponse.body.attachments[0].attachmentID);
+                console.log(attachmentsResponse.body.attachments[0].attachmentID);
                 //DELETE - tested and works
                 /*
                 let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountID);

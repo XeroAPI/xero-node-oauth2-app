@@ -15,11 +15,11 @@ const localVarRequest = require("request");
 //const client_secret = '***REMOVED***'
 
 // oauth2 app only
-//const client_id = '***REMOVED***'
-//const client_secret = '***REMOVED***'
-
 const client_id = '***REMOVED***'
 const client_secret = '***REMOVED***'
+
+//const client_id = '***REMOVED***'
+//const client_secret = '***REMOVED***'
 
 const redirectUrl = 'http://localhost:5000/callback'
 const scopes = 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access'
@@ -66,7 +66,8 @@ class App {
 
     router.get('/callback', async (req: Request, res: Response) => {
       try {
-        await  xero.setAccessTokenFromRedirectUri(req.query);
+        let url = "http://localhost:5000/" + req.originalUrl;
+        await  xero.setAccessTokenFromRedirectUri(url);
         let accessToken =  await xero.readTokenSet();
         req.session.accessToken = accessToken;
         res.render('callback','');
@@ -86,48 +87,31 @@ class App {
         //CREATE
         let account: Account = {name: "Foo" + Helper.getRandomNumber(), code: "" + Helper.getRandomNumber(), type: AccountType.EXPENSE};      
         let accountCreateResponse = await xero.accountingApi.createAccount(xero.tenantIds[0],account);
-        let accountID = accountCreateResponse.body.accounts[0].accountID;
+        let accountId = accountCreateResponse.body.accounts[0].accountID;
         //GET ONE
-        let accountGetResponse = await xero.accountingApi.getAccount(xero.tenantIds[0],accountID);
+        let accountGetResponse = await xero.accountingApi.getAccount(xero.tenantIds[0],accountId);
         //UPDATE
         let accountUp: Account = {name: "Updated Account" + + Helper.getRandomNumber()};      
         let accounts: Accounts = {accounts:[accountUp]};
-        let accountUpdateResponse = await xero.accountingApi.updateAccount(xero.tenantIds[0],accountID,accounts);
+        let accountUpdateResponse = await xero.accountingApi.updateAccount(xero.tenantIds[0],accountId,accounts);
         
-        // NOT TESTED
-        //let accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0],accountID,"helo-heros.jpg","hello");
+
+        const filename = 'helo-heros.jpg';
+        //const pathToUpload = path.join('src', '__integration_tests__', filename);
         
-        /* COULDN"T GET THIS TO WORK - hacked on AccountingApi.js to try 
-        and upload attachments
-        async function main(data) {
-          let fileSize = fs.statSync(path.resolve(__dirname, "../public/images/helo-heros.jpg")).size;
-          let options = { headers: {"Content-Type" : "image/jpeg", "Content-length" : "" + fileSize} }
-          let accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0],accountID,"helo-heros.jpg",data.toString(),options);
-          console.log("HELLO");
-        }
+        const pathToUpload = path.resolve(__dirname, "../public/images/helo-heros.jpg");
+        const filesize = fs.statSync(pathToUpload).size;
+        const readStream = fs.createReadStream(pathToUpload);
 
-        var data = '';
-        var readStream = fs.createReadStream(path.resolve(__dirname, "../public/images/helo-heros.jpg"), 'utf8');
-
-        readStream.on('data', function(chunk) {
-            data += chunk;
-        }).on('end', function() {
-            //console.log(data);
-            main(data);
+        let attachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
+            headers: {
+                'Content-Type': 'image/jpeg',
+                'Content-Length': filesize.toString()
+            }
         });
-       
-        */
-
-        /*
-        await fs.readFile(path.resolve(__dirname, "../public/images/helo-heros.jpg"), 'utf8',function(err, data) {
-          if (err) throw err;
-          main(data);         
-        });
-        */
-
-        //let accountAttachmentsResponse = await xero.accountingApi.getAccountAttachments(xero.tenantIds[0],accountID);
-        //console.log(accountAttachmentsResponse.body.attachments[0].attachmentID);
         
+        console.log(attachmentsResponse.body.attachments[0].attachmentID);
+
 
         //DELETE - tested and works
         /*

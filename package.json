@@ -7,16 +7,16 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@types/node": "^8.10.34",
+    "@types/node": "^8.10.54",
     "bluebird": "^3.5.5",
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
     "express-session": "^1.16.2",
     "helper": "0.0.13",
-    "mustache": "^3.0.3",
+    "mustache": "^3.1.0",
     "mustache-express": "^1.2.8",
     "path": "^0.12.7",
-    "xero-node-sdk": "^4.0.0-alpha.3"
+    "xero-node-sdk": "^4.0.0-alpha.6"
   },
   "scripts": {
     "build": "tsc",
