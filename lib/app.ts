@@ -91,7 +91,7 @@ class App {
         //GET ONE
         let accountGetResponse = await xero.accountingApi.getAccount(xero.tenantIds[0],accountId);
         //UPDATE
-        let accountUp: Account = {name: "Updated Account" + + Helper.getRandomNumber()};      
+        let accountUp: Account = {name: "Sidney2 Account" + Helper.getRandomNumber()};      
         let accounts: Accounts = {accounts:[accountUp]};
         let accountUpdateResponse = await xero.accountingApi.updateAccount(xero.tenantIds[0],accountId,accounts);
         
@@ -106,11 +106,12 @@ class App {
         let attachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
             headers: {
                 'Content-Type': 'image/jpeg',
-                'Content-Length': filesize.toString()
+                'Content-Length': filesize.toString(),
+                'Accept': 'application/json'
             }
         });
         
-        console.log(attachmentsResponse.body.attachments[0].attachmentID);
+        //console.log(attachmentsResponse.body.attachments[0].attachmentID);
 
 
         //DELETE - tested and works

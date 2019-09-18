@@ -85,7 +85,7 @@ class App {
                 //GET ONE
                 let accountGetResponse = yield xero.accountingApi.getAccount(xero.tenantIds[0], accountId);
                 //UPDATE
-                let accountUp = { name: "Updated Account" + +helper_1.default.getRandomNumber() };
+                let accountUp = { name: "Sidney2 Account" + helper_1.default.getRandomNumber() };
                 let accounts = { accounts: [accountUp] };
                 let accountUpdateResponse = yield xero.accountingApi.updateAccount(xero.tenantIds[0], accountId, accounts);
                 const filename = 'helo-heros.jpg';
@@ -96,10 +96,11 @@ class App {
                 let attachmentsResponse = yield xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
                     headers: {
                         'Content-Type': 'image/jpeg',
-                        'Content-Length': filesize.toString()
+                        'Content-Length': filesize.toString(),
+                        'Accept': 'application/json'
                     }
                 });
-                console.log(attachmentsResponse.body.attachments[0].attachmentID);
+                //console.log(attachmentsResponse.body.attachments[0].attachmentID);
                 //DELETE - tested and works
                 /*
                 let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountID);
