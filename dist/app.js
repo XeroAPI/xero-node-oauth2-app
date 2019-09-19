@@ -18,11 +18,11 @@ const session = require('express-session');
 const path = require("path");
 const localVarRequest = require("request");
 // ORANGE
-//const client_id = '***REMOVED***'
-//const client_secret = '***REMOVED***'
-// oauth2 app only
 const client_id = '***REMOVED***';
 const client_secret = '***REMOVED***';
+// oauth2 app only
+// const client_id = '***REMOVED***'
+// const client_secret = '***REMOVED***'
 //const client_id = '***REMOVED***'
 //const client_secret = '***REMOVED***'
 const redirectUrl = 'http://localhost:5000/callback';

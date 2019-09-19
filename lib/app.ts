@@ -1,9 +1,10 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import { Request, Response } from "express";
-import { XeroClient, Accounts, Account, AccountType } from "xero-node-sdk";
+import { XeroClient, Accounts, Account, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers } from "xero-node-sdk";
 import * as fs from "fs";
 import Helper from './helper';
+import { type } from "os";
 const mustacheExpress = require('mustache-express');
 const session = require('express-session');
 const path = require("path");
@@ -11,12 +12,12 @@ const localVarRequest = require("request");
 
 
 // ORANGE
-//const client_id = '***REMOVED***'
-//const client_secret = '***REMOVED***'
-
-// oauth2 app only
 const client_id = '***REMOVED***'
 const client_secret = '***REMOVED***'
+
+// oauth2 app only
+// const client_id = '***REMOVED***'
+// const client_secret = '***REMOVED***'
 
 //const client_id = '***REMOVED***'
 //const client_secret = '***REMOVED***'
@@ -134,13 +135,28 @@ class App {
           res.send(e);
       }
     });
+ 
 
     router.get('/banktransactions', async (req: Request, res: Response) => {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        let apiResponse = await xero.accountingApi.getBankTransactions(xero.tenantIds[0]);
-        res.render('banktransactions', {count: apiResponse.body.bankTransactions.length});
+        //GET ALL
+        let bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(xero.tenantIds[0]);
+        //CREATE
+        let oldBankTransaction = bankTransactionsGetResponse.body.bankTransactions[0]
+        let newBankTransaction: BankTransaction = {type: BankTransaction.TypeEnum.SPEND, contact: oldBankTransaction.contact, lineItems: oldBankTransaction.lineItems, bankAccount: oldBankTransaction.bankAccount, date: '2019-09-19T00:00:00'};      
+        let bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(xero.tenantIds[0], newBankTransaction);
+        let bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
+        //GET ONE
+        let bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(xero.tenantIds[0],bankTransactionId);
+        //UPDATE
+        var bankTransactionUp = oldBankTransaction
+        bankTransactionUp.type = BankTransaction.TypeEnum.RECEIVE
+        let bankTransactions: BankTransactions = {bankTransactions:[bankTransactionUp]};
+        let bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(xero.tenantIds[0], oldBankTransaction.bankTransactionID, bankTransactions)
+        
+        res.render('banktransactions', {count: bankTransactionsGetResponse.body.bankTransactions.length});
      }
        catch (e) {
           res.status(500);
@@ -148,11 +164,19 @@ class App {
       }
     });
 
+
     router.get('/banktranfers', async (req: Request, res: Response) => {
+
+      //FIRST check if two bank accounts exist!!
+
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getBankTransfers(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('banktranfers', {count: apiResponse.body.bankTransfers.length});
      }
        catch (e) {
@@ -161,11 +185,17 @@ class App {
       }
     });
 
+
+
     router.get('/batchpayments', async (req: Request, res: Response) => {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getBatchPayments(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('batchpayments', {count: apiResponse.body.batchPayments.length});
      }
        catch (e) {
@@ -178,7 +208,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getBrandingThemes(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('brandingthemes', {count: apiResponse.body.brandingThemes.length});
      }
        catch (e) {
@@ -191,7 +225,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getContacts(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('contacts', {count: apiResponse.body.contacts.length});
      }
        catch (e) {
@@ -204,7 +242,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getContactGroups(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('contactgroups', {count: apiResponse.body.contactGroups.length});
      }
        catch (e) {
@@ -217,7 +259,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getCreditNotes(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('creditnotes', {count: apiResponse.body.creditNotes.length});
      }
        catch (e) {
@@ -230,7 +276,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getCurrencies(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('currencies', {count: apiResponse.body.currencies.length});
      } catch (e) {
           res.status(500);
@@ -242,7 +292,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getEmployees(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('employees', {count: apiResponse.body.employees.length});
      } catch (e) {
           res.status(500);
@@ -254,7 +308,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getExpenseClaims(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('expenseclaims', {count: apiResponse.body.expenseClaims.length});
      } catch (e) {
           res.status(500);
@@ -266,7 +324,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getInvoiceReminders(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('invoicereminders', {count: apiResponse.body.invoiceReminders.length});
      } catch (e) {
           res.status(500);
@@ -278,7 +340,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getInvoices(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('invoices', {count: apiResponse.body.invoices.length});
       } catch (e) {
           res.status(500);
@@ -290,7 +356,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getItems(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('items', {count: apiResponse.body.items.length});
      } catch (e) {
           res.status(500);
@@ -302,7 +372,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getJournals(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('journals', {count: apiResponse.body.journals.length});
      } catch (e) {
           res.status(500);
@@ -314,7 +388,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getManualJournals(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('manualjournals', {count: apiResponse.body.manualJournals.length});
      } catch (e) {
           res.status(500);
@@ -326,7 +404,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getOrganisations(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('organisations', {name: apiResponse.body.organisations[0].name});
       } catch (e) {
           res.status(500);
@@ -338,7 +420,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getOverpayments(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('overpayments', {count: apiResponse.body.overpayments.length});
      } catch (e) {
           res.status(500);
@@ -350,7 +436,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getPayments(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('payments', {count: apiResponse.body.payments.length});
      } catch (e) {
           res.status(500);
@@ -362,7 +452,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getPaymentServices(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('paymentservices', {count: apiResponse.body.paymentServices.length});
      } catch (e) {
           res.status(500);
@@ -374,7 +468,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getPrepayments(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('prepayments', {count: apiResponse.body.prepayments.length});
      } catch (e) {
           res.status(500);
@@ -386,7 +484,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getPurchaseOrders(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('purchaseorders', {count: apiResponse.body.purchaseOrders.length});
      } catch (e) {
           res.status(500);
@@ -398,7 +500,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getReceipts(xero.tenantIds[0]);
+        //CREATE
+        //GET ONE
+        //UPDATE  
         res.render('receipts', {count: apiResponse.body.receipts.length});
      } catch (e) {
           res.status(500);
@@ -410,7 +516,11 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         
+        //CREATE
+        //GET ONE
+        //UPDATE  
         //We need specific report API calls
         //let apiResponse = await xero.accountingApi.getReports(xero.tenantIds[0]);
         res.render('reports', {count: 0});
@@ -424,6 +534,7 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getTaxRates(xero.tenantIds[0]);
         res.render('taxrates', {count: apiResponse.body.taxRates.length});
      } catch (e) {
@@ -436,6 +547,7 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getTrackingCategories(xero.tenantIds[0]);
         res.render('trackingcategories', {count: apiResponse.body.trackingCategories.length});
      } catch (e) {
@@ -448,6 +560,7 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        //GET ALL
         let apiResponse = await xero.accountingApi.getUsers(xero.tenantIds[0]);
         res.render('users', {count: apiResponse.body.users.length});
      } catch (e) {
