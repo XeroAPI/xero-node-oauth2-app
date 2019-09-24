@@ -1,7 +1,7 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import { Request, Response } from "express";
-import { XeroClient, Accounts, Account, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers } from "xero-node-sdk";
+import { XeroClient, Accounts, Account, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, LineItem } from "xero-node-sdk";
 import * as fs from "fs";
 import Helper from './helper';
 import { type } from "os";
@@ -12,15 +12,15 @@ const localVarRequest = require("request");
 
 
 // ORANGE
-const client_id = '***REMOVED***'
-const client_secret = '***REMOVED***'
+//const client_id = '***REMOVED***'
+//const client_secret = '***REMOVED***'
 
 // oauth2 app only
 // const client_id = '***REMOVED***'
 // const client_secret = '***REMOVED***'
 
-//const client_id = '***REMOVED***'
-//const client_secret = '***REMOVED***'
+const client_id = '***REMOVED***'
+const client_secret = '***REMOVED***'
 
 const redirectUrl = 'http://localhost:5000/callback'
 const scopes = 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access'
@@ -83,50 +83,64 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        
         //GET ALL
         let accountsGetResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0]);
+        
         //CREATE
         let account: Account = {name: "Foo" + Helper.getRandomNumber(), code: "" + Helper.getRandomNumber(), type: AccountType.EXPENSE};      
         let accountCreateResponse = await xero.accountingApi.createAccount(xero.tenantIds[0],account);
         let accountId = accountCreateResponse.body.accounts[0].accountID;
+        
         //GET ONE
         let accountGetResponse = await xero.accountingApi.getAccount(xero.tenantIds[0],accountId);
+        
         //UPDATE
-        let accountUp: Account = {name: "Sidney2 Account" + Helper.getRandomNumber()};      
+        let accountUp: Account = {name: "Bar" + Helper.getRandomNumber()};      
         let accounts: Accounts = {accounts:[accountUp]};
         let accountUpdateResponse = await xero.accountingApi.updateAccount(xero.tenantIds[0],accountId,accounts);
         
-
+        // CREATE ATTACHMENT
         const filename = 'helo-heros.jpg';
-        //const pathToUpload = path.join('src', '__integration_tests__', filename);
-        
         const pathToUpload = path.resolve(__dirname, "../public/images/helo-heros.jpg");
         const filesize = fs.statSync(pathToUpload).size;
         const readStream = fs.createReadStream(pathToUpload);
 
-        let attachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
+        let accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
             headers: {
                 'Content-Type': 'image/jpeg',
                 'Content-Length': filesize.toString(),
                 'Accept': 'application/json'
             }
         });
-        
-        //console.log(attachmentsResponse.body.attachments[0].attachmentID);
 
+        //GET ATTACHMENTS
+        let accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(xero.tenantIds[0],accountId);
+        let attachmentId = accountAttachmentsResponse.body.attachments[0].attachmentID;
+        let attachmentMimeType = accountAttachmentsResponse.body.attachments[0].mimeType;
+        let attachmentFileName = accountAttachmentsResponse.body.attachments[0].fileName;
 
-        //DELETE - tested and works
-        /*
-        let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountID);
-        accountDeleteResponse.body.accounts[0].name
-        */
+        //GET ATTACHMENT BY ID
+        let accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(xero.tenantIds[0],accountId, attachmentId, attachmentMimeType);
+        console.log(accountAttachmentsGetByIdResponse.body.length);
+        // TODO: need to save Binary file returned by API
+
+        //GET ATTACHMENT BY FILENAME
+        let accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(xero.tenantIds[0],accountId, attachmentFileName, attachmentMimeType);
+        console.log(accountAttachmentsGetByFilenameResponse.body.length);
+        // TODO: need to save Binary file returned by API
+
+        //DELETE 
+        let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountId);
         
         res.render('accounts', {
-          getAllCount: accountsGetResponse.body.accounts.length,
+          accountsCount: accountsGetResponse.body.accounts.length,
           getOneName: accountGetResponse.body.accounts[0].name,
           createName: accountCreateResponse.body.accounts[0].name,
           updateName: accountUpdateResponse.body.accounts[0].name,
-          deleteName: "temp not passing"
+          createAttachmentId: accountAttachmentsResponse.body.attachments[0].attachmentID,
+          attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
+          deleteName: accountDeleteResponse.body.accounts[0].name
         });
           
      }
@@ -143,11 +157,25 @@ class App {
         await xero.setTokenSet(accessToken);
         //GET ALL
         let bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(xero.tenantIds[0]);
+        
         //CREATE
-        let oldBankTransaction = bankTransactionsGetResponse.body.bankTransactions[0]
-        let newBankTransaction: BankTransaction = {type: BankTransaction.TypeEnum.SPEND, contact: oldBankTransaction.contact, lineItems: oldBankTransaction.lineItems, bankAccount: oldBankTransaction.bankAccount, date: '2019-09-19T00:00:00'};      
+        let contactsResponse = await xero.accountingApi.getContacts(xero.tenantIds[0]);
+        let useContact: Contact = {contactID : contactsResponse.body.contacts[0].contactID};
+        
+        /*
+        let lineItem: LineItem = {description: 'consulting', quantity:1.0, unitAmount: 20.0};
+        let lineItems: Array<LineItem> = [lineItem]; 
+        let where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
+        let accountsResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0],null,where);
+        let useBankAccount: Account = {accountID : accountsResponse.body.accounts[0].accountID};
+        
+
+        let newBankTransaction: BankTransaction = {type: BankTransaction.TypeEnum.SPEND, contact: useContact, lineItems: lineItems, bankAccount: useBankAccount, date: '2019-09-19T00:00:00'};      
         let bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(xero.tenantIds[0], newBankTransaction);
-        let bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
+       */
+        //let bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
+
+/*
         //GET ONE
         let bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(xero.tenantIds[0],bankTransactionId);
         //UPDATE
@@ -155,7 +183,7 @@ class App {
         bankTransactionUp.type = BankTransaction.TypeEnum.RECEIVE
         let bankTransactions: BankTransactions = {bankTransactions:[bankTransactionUp]};
         let bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(xero.tenantIds[0], oldBankTransaction.bankTransactionID, bankTransactions)
-        
+*/
         res.render('banktransactions', {count: bankTransactionsGetResponse.body.bankTransactions.length});
      }
        catch (e) {
