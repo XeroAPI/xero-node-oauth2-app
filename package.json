@@ -7,7 +7,6 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@types/node": "^8.10.54",
     "bluebird": "^3.5.5",
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
@@ -16,7 +15,7 @@
     "mustache": "^3.1.0",
     "mustache-express": "^1.2.8",
     "path": "^0.12.7",
-    "xero-node": "^4.0.0-alpha.2"
+    "xero-node": "^4.0.0-alpha.3"
   },
   "scripts": {
     "build": "tsc",
@@ -34,6 +33,8 @@
   "author": "Sid",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^10.14.19",
+    "openid-client": "^3.6.1",
     "ts-node": "^8.4.1",
     "typescript": "^3.6.3"
   }
