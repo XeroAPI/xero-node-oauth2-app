@@ -123,12 +123,18 @@ class App {
         //GET ATTACHMENT BY ID
         let accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(xero.tenantIds[0],accountId, attachmentId, attachmentMimeType);
         console.log(accountAttachmentsGetByIdResponse.body.length);
-        // TODO: need to save Binary file returned by API
+        fs.writeFile(`id-${attachmentFileName}`, accountAttachmentsGetByIdResponse.body, err => {
+          if (err) throw err;
+          console.log('file written successfully');
+        });
 
         //GET ATTACHMENT BY FILENAME
         let accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(xero.tenantIds[0],accountId, attachmentFileName, attachmentMimeType);
         console.log(accountAttachmentsGetByFilenameResponse.body.length);
-        // TODO: need to save Binary file returned by API
+        fs.writeFile(`filename-${attachmentFileName}`, accountAttachmentsGetByFilenameResponse.body, err => {
+          if (err) throw err;
+          console.log('file written successfully');
+        });
 
         //DELETE
         let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountId);

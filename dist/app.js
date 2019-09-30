@@ -109,11 +109,19 @@ class App {
                 //GET ATTACHMENT BY ID
                 let accountAttachmentsGetByIdResponse = yield xero.accountingApi.getAccountAttachmentById(xero.tenantIds[0], accountId, attachmentId, attachmentMimeType);
                 console.log(accountAttachmentsGetByIdResponse.body.length);
-                // TODO: need to save Binary file returned by API
+                fs.writeFile(`id-${attachmentFileName}`, accountAttachmentsGetByIdResponse.body, err => {
+                    if (err)
+                        throw err;
+                    console.log('file written successfully');
+                });
                 //GET ATTACHMENT BY FILENAME
                 let accountAttachmentsGetByFilenameResponse = yield xero.accountingApi.getAccountAttachmentByFileName(xero.tenantIds[0], accountId, attachmentFileName, attachmentMimeType);
                 console.log(accountAttachmentsGetByFilenameResponse.body.length);
-                // TODO: need to save Binary file returned by API
+                fs.writeFile(`filename-${attachmentFileName}`, accountAttachmentsGetByFilenameResponse.body, err => {
+                    if (err)
+                        throw err;
+                    console.log('file written successfully');
+                });
                 //DELETE
                 let accountDeleteResponse = yield xero.accountingApi.deleteAccount(xero.tenantIds[0], accountId);
                 res.render('accounts', {
@@ -146,8 +154,8 @@ class App {
                 let where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
                 let accountsResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0],null,where);
                 let useBankAccount: Account = {accountID : accountsResponse.body.accounts[0].accountID};
-        
-        
+
+
                 let newBankTransaction: BankTransaction = {type: BankTransaction.TypeEnum.SPEND, contact: useContact, lineItems: lineItems, bankAccount: useBankAccount, date: '2019-09-19T00:00:00'};
                 let bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(xero.tenantIds[0], newBankTransaction);
                */
