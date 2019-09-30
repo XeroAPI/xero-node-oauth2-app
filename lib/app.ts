@@ -1,7 +1,7 @@
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import { Request, Response } from "express";
-import { XeroClient, Accounts, Account, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, LineItem } from "xero-node-sdk";
+import { XeroClient, Accounts, Account, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, LineItem } from "xero-node";
 import * as fs from "fs";
 import Helper from './helper';
 import { type } from "os";
@@ -39,7 +39,7 @@ class App {
     this.routes();
     this.app.engine('html',mustacheExpress());
     this.app.set('view engine', 'html');
-    this.app.set('views',__dirname + '/views');
+    this.app.set('views',path.resolve(__dirname,'..','dist','views'));
     this.app.use(express.static('public'));
   }
 
@@ -83,23 +83,23 @@ class App {
       try {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        
+
         //GET ALL
         let accountsGetResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0]);
-        
+
         //CREATE
-        let account: Account = {name: "Foo" + Helper.getRandomNumber(), code: "" + Helper.getRandomNumber(), type: AccountType.EXPENSE};      
+        let account: Account = {name: "Foo" + Helper.getRandomNumber(), code: "" + Helper.getRandomNumber(), type: AccountType.EXPENSE};
         let accountCreateResponse = await xero.accountingApi.createAccount(xero.tenantIds[0],account);
         let accountId = accountCreateResponse.body.accounts[0].accountID;
-        
+
         //GET ONE
         let accountGetResponse = await xero.accountingApi.getAccount(xero.tenantIds[0],accountId);
-        
+
         //UPDATE
-        let accountUp: Account = {name: "Bar" + Helper.getRandomNumber()};      
+        let accountUp: Account = {name: "Bar" + Helper.getRandomNumber()};
         let accounts: Accounts = {accounts:[accountUp]};
         let accountUpdateResponse = await xero.accountingApi.updateAccount(xero.tenantIds[0],accountId,accounts);
-        
+
         // CREATE ATTACHMENT
         const filename = 'helo-heros.jpg';
         const pathToUpload = path.resolve(__dirname, "../public/images/helo-heros.jpg");
@@ -130,9 +130,9 @@ class App {
         console.log(accountAttachmentsGetByFilenameResponse.body.length);
         // TODO: need to save Binary file returned by API
 
-        //DELETE 
+        //DELETE
         let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountId);
-        
+
         res.render('accounts', {
           accountsCount: accountsGetResponse.body.accounts.length,
           getOneName: accountGetResponse.body.accounts[0].name,
@@ -142,14 +142,14 @@ class App {
           attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
           deleteName: accountDeleteResponse.body.accounts[0].name
         });
-          
+
      }
-       catch (e) { 
+       catch (e) {
           res.status(500);
           res.send(e);
       }
     });
- 
+
 
     router.get('/banktransactions', async (req: Request, res: Response) => {
       try {
@@ -157,20 +157,20 @@ class App {
         await xero.setTokenSet(accessToken);
         //GET ALL
         let bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(xero.tenantIds[0]);
-        
+
         //CREATE
         let contactsResponse = await xero.accountingApi.getContacts(xero.tenantIds[0]);
         let useContact: Contact = {contactID : contactsResponse.body.contacts[0].contactID};
-        
+
         /*
         let lineItem: LineItem = {description: 'consulting', quantity:1.0, unitAmount: 20.0};
-        let lineItems: Array<LineItem> = [lineItem]; 
+        let lineItems: Array<LineItem> = [lineItem];
         let where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
         let accountsResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0],null,where);
         let useBankAccount: Account = {accountID : accountsResponse.body.accounts[0].accountID};
-        
 
-        let newBankTransaction: BankTransaction = {type: BankTransaction.TypeEnum.SPEND, contact: useContact, lineItems: lineItems, bankAccount: useBankAccount, date: '2019-09-19T00:00:00'};      
+
+        let newBankTransaction: BankTransaction = {type: BankTransaction.TypeEnum.SPEND, contact: useContact, lineItems: lineItems, bankAccount: useBankAccount, date: '2019-09-19T00:00:00'};
         let bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(xero.tenantIds[0], newBankTransaction);
        */
         //let bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
@@ -204,7 +204,7 @@ class App {
         let apiResponse = await xero.accountingApi.getBankTransfers(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('banktranfers', {count: apiResponse.body.bankTransfers.length});
      }
        catch (e) {
@@ -223,7 +223,7 @@ class App {
         let apiResponse = await xero.accountingApi.getBatchPayments(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('batchpayments', {count: apiResponse.body.batchPayments.length});
      }
        catch (e) {
@@ -240,7 +240,7 @@ class App {
         let apiResponse = await xero.accountingApi.getBrandingThemes(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('brandingthemes', {count: apiResponse.body.brandingThemes.length});
      }
        catch (e) {
@@ -257,7 +257,7 @@ class App {
         let apiResponse = await xero.accountingApi.getContacts(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('contacts', {count: apiResponse.body.contacts.length});
      }
        catch (e) {
@@ -274,7 +274,7 @@ class App {
         let apiResponse = await xero.accountingApi.getContactGroups(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('contactgroups', {count: apiResponse.body.contactGroups.length});
      }
        catch (e) {
@@ -291,7 +291,7 @@ class App {
         let apiResponse = await xero.accountingApi.getCreditNotes(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('creditnotes', {count: apiResponse.body.creditNotes.length});
      }
        catch (e) {
@@ -308,7 +308,7 @@ class App {
         let apiResponse = await xero.accountingApi.getCurrencies(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('currencies', {count: apiResponse.body.currencies.length});
      } catch (e) {
           res.status(500);
@@ -324,7 +324,7 @@ class App {
         let apiResponse = await xero.accountingApi.getEmployees(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('employees', {count: apiResponse.body.employees.length});
      } catch (e) {
           res.status(500);
@@ -340,7 +340,7 @@ class App {
         let apiResponse = await xero.accountingApi.getExpenseClaims(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('expenseclaims', {count: apiResponse.body.expenseClaims.length});
      } catch (e) {
           res.status(500);
@@ -356,7 +356,7 @@ class App {
         let apiResponse = await xero.accountingApi.getInvoiceReminders(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('invoicereminders', {count: apiResponse.body.invoiceReminders.length});
      } catch (e) {
           res.status(500);
@@ -372,7 +372,7 @@ class App {
         let apiResponse = await xero.accountingApi.getInvoices(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('invoices', {count: apiResponse.body.invoices.length});
       } catch (e) {
           res.status(500);
@@ -388,7 +388,7 @@ class App {
         let apiResponse = await xero.accountingApi.getItems(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('items', {count: apiResponse.body.items.length});
      } catch (e) {
           res.status(500);
@@ -404,7 +404,7 @@ class App {
         let apiResponse = await xero.accountingApi.getJournals(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('journals', {count: apiResponse.body.journals.length});
      } catch (e) {
           res.status(500);
@@ -420,7 +420,7 @@ class App {
         let apiResponse = await xero.accountingApi.getManualJournals(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('manualjournals', {count: apiResponse.body.manualJournals.length});
      } catch (e) {
           res.status(500);
@@ -436,7 +436,7 @@ class App {
         let apiResponse = await xero.accountingApi.getOrganisations(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('organisations', {name: apiResponse.body.organisations[0].name});
       } catch (e) {
           res.status(500);
@@ -452,7 +452,7 @@ class App {
         let apiResponse = await xero.accountingApi.getOverpayments(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('overpayments', {count: apiResponse.body.overpayments.length});
      } catch (e) {
           res.status(500);
@@ -468,7 +468,7 @@ class App {
         let apiResponse = await xero.accountingApi.getPayments(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('payments', {count: apiResponse.body.payments.length});
      } catch (e) {
           res.status(500);
@@ -484,7 +484,7 @@ class App {
         let apiResponse = await xero.accountingApi.getPaymentServices(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('paymentservices', {count: apiResponse.body.paymentServices.length});
      } catch (e) {
           res.status(500);
@@ -500,7 +500,7 @@ class App {
         let apiResponse = await xero.accountingApi.getPrepayments(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('prepayments', {count: apiResponse.body.prepayments.length});
      } catch (e) {
           res.status(500);
@@ -516,7 +516,7 @@ class App {
         let apiResponse = await xero.accountingApi.getPurchaseOrders(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('purchaseorders', {count: apiResponse.body.purchaseOrders.length});
      } catch (e) {
           res.status(500);
@@ -532,7 +532,7 @@ class App {
         let apiResponse = await xero.accountingApi.getReceipts(xero.tenantIds[0]);
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         res.render('receipts', {count: apiResponse.body.receipts.length});
      } catch (e) {
           res.status(500);
@@ -545,10 +545,10 @@ class App {
         let accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         //GET ALL
-        
+
         //CREATE
         //GET ONE
-        //UPDATE  
+        //UPDATE
         //We need specific report API calls
         //let apiResponse = await xero.accountingApi.getReports(xero.tenantIds[0]);
         res.render('reports', {count: 0});
@@ -606,7 +606,7 @@ class App {
 
     this.app.use('/', router)
 
-  }  
+  }
 }
 
 export default new App().app;
