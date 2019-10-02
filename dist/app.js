@@ -19,13 +19,13 @@ const session = require('express-session');
 const path = require("path");
 const localVarRequest = require("request");
 // ORANGE
-//const client_id = '***REMOVED***'
-//const client_secret = '***REMOVED***'
+//const client_id = '5DAB1D0488D8445296ED6A1508E48036'
+//const client_secret = '8PciRs68l5fjOSgJncN6boa9IRVkXvUWHDUPwNr6TJE3LTHn'
 // oauth2 app only
-// const client_id = '***REMOVED***'
-// const client_secret = '***REMOVED***'
-const client_id = '***REMOVED***';
-const client_secret = '***REMOVED***';
+// const client_id = 'DC5D140B37BF4790943C88AD872B68C0'
+// const client_secret = 'FzamI3-oXVD1wW5AQRqxj6hYC2dI8lRT_1saDAi8W5uysVQ6'
+const client_id = '5990051533C445F092702790B5EA8B82';
+const client_secret = 'VQ6FpqpAuO8Z9LXvWq8q4Y6oo1Rtes_FjDco4603c9vXeKEB';
 const redirectUrl = 'http://localhost:5000/callback';
 const scopes = 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access';
 const xero = new xero_node_1.XeroClient({
