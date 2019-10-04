@@ -16,7 +16,7 @@ Create an OAuth 2.0 app in Xero to get a _XERO_CLIENT_ID_ and _XERO_CLIENT_SECRE
 * Copy your client id and redirect URI into `lib/app.ts`
 ```js
 const client_id = '_YOUR_CLIENT_ID';
-const redirectUrl = 'http://localhost:5000';
+const redirectUrl = 'http://localhost:5000/callback';
 ```
 <!-- "create app" screenshot -->
 
