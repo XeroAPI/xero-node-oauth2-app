@@ -150,42 +150,58 @@ class App {
 
     router.get('/banktransactions', async (req: Request, res: Response) => {
       try {
-        let accessToken =  req.session.accessToken;
+        let accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
+
         //GET ALL
         let bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(xero.tenantIds[0]);
 
         //CREATE
         let contactsResponse = await xero.accountingApi.getContacts(xero.tenantIds[0]);
-        let useContact: Contact = {contactID : contactsResponse.body.contacts[0].contactID};
+        let useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
-        /*
-        let lineItem: LineItem = {description: 'consulting', quantity:1.0, unitAmount: 20.0};
-        let lineItems: Array<LineItem> = [lineItem];
+        let lineItems: Array<LineItem> = [{
+          description: 'consulting',
+          quantity: 1.0,
+          unitAmount: 20.0,
+          accountCode: '200'
+        }];
         let where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
-        let accountsResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0],null,where);
-        let useBankAccount: Account = {accountID : accountsResponse.body.accounts[0].accountID};
+        let accountsResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0], null, where);
+        let useBankAccount: Account = { accountID: accountsResponse.body.accounts[0].accountID }
 
-
-        let newBankTransaction: BankTransaction = {type: BankTransaction.TypeEnum.SPEND, contact: useContact, lineItems: lineItems, bankAccount: useBankAccount, date: '2019-09-19T00:00:00'};
+        let newBankTransaction: BankTransaction = {
+          type: BankTransaction.TypeEnum.SPEND,
+          contact: useContact,
+          lineItems: lineItems,
+          bankAccount: useBankAccount,
+          date: '2019-09-19T00:00:00',
+        };
         let bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(xero.tenantIds[0], newBankTransaction);
-       */
-        //let bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
 
-/*
         //GET ONE
-        let bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(xero.tenantIds[0],bankTransactionId);
-        //UPDATE
-        var bankTransactionUp = oldBankTransaction
-        bankTransactionUp.type = BankTransaction.TypeEnum.RECEIVE
-        let bankTransactions: BankTransactions = {bankTransactions:[bankTransactionUp]};
-        let bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(xero.tenantIds[0], oldBankTransaction.bankTransactionID, bankTransactions)
-*/
-        res.render('banktransactions', {count: bankTransactionsGetResponse.body.bankTransactions.length});
-     }
-       catch (e) {
-          res.status(500);
-          res.send(e);
+        let bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
+        let bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(xero.tenantIds[0], bankTransactionId);
+
+        //UPDATE status to deleted
+        var bankTransactionUp = Object.assign({}, bankTransactionGetResponse.body.bankTransactions[0]);
+        delete bankTransactionUp.updatedDateUTC;
+        delete bankTransactionUp.contact; // also has an updatedDateUTC
+        bankTransactionUp.status = BankTransaction.StatusEnum.DELETED;
+        let bankTransactions: BankTransactions = { bankTransactions: [bankTransactionUp] };
+        let bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(xero.tenantIds[0], bankTransactionId, bankTransactions)
+
+        res.render('banktransactions', {
+          bankTransactionsCount: bankTransactionsGetResponse.body.bankTransactions.length,
+          createID: bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID,
+          getOneStatus: bankTransactionGetResponse.body.bankTransactions[0].type,
+          updatedStatus: bankTransactionUpdateResponse.body.bankTransactions[0].status,
+        });
+      }
+      catch (e) {
+        console.error(e);
+        res.status(500);
+        res.send(e);
       }
     });
 
