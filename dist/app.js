@@ -18,14 +18,8 @@ const mustacheExpress = require('mustache-express');
 const session = require('express-session');
 const path = require("path");
 const localVarRequest = require("request");
-// ORANGE
-//const client_id = '5DAB1D0488D8445296ED6A1508E48036'
-//const client_secret = '8PciRs68l5fjOSgJncN6boa9IRVkXvUWHDUPwNr6TJE3LTHn'
-// oauth2 app only
-// const client_id = 'DC5D140B37BF4790943C88AD872B68C0'
-// const client_secret = 'FzamI3-oXVD1wW5AQRqxj6hYC2dI8lRT_1saDAi8W5uysVQ6'
-const client_id = '5990051533C445F092702790B5EA8B82';
-const client_secret = 'VQ6FpqpAuO8Z9LXvWq8q4Y6oo1Rtes_FjDco4603c9vXeKEB';
+const client_id = '***REMOVED***';
+const client_secret = '***REMOVED***';
 const redirectUrl = 'http://localhost:5000/callback';
 const scopes = 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access';
 const xero = new xero_node_1.XeroClient({
@@ -148,30 +142,42 @@ class App {
                 //CREATE
                 let contactsResponse = yield xero.accountingApi.getContacts(xero.tenantIds[0]);
                 let useContact = { contactID: contactsResponse.body.contacts[0].contactID };
-                /*
-                let lineItem: LineItem = {description: 'consulting', quantity:1.0, unitAmount: 20.0};
-                let lineItems: Array<LineItem> = [lineItem];
-                let where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
-                let accountsResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0],null,where);
-                let useBankAccount: Account = {accountID : accountsResponse.body.accounts[0].accountID};
-
-
-                let newBankTransaction: BankTransaction = {type: BankTransaction.TypeEnum.SPEND, contact: useContact, lineItems: lineItems, bankAccount: useBankAccount, date: '2019-09-19T00:00:00'};
-                let bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(xero.tenantIds[0], newBankTransaction);
-               */
-                //let bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
-                /*
-                        //GET ONE
-                        let bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(xero.tenantIds[0],bankTransactionId);
-                        //UPDATE
-                        var bankTransactionUp = oldBankTransaction
-                        bankTransactionUp.type = BankTransaction.TypeEnum.RECEIVE
-                        let bankTransactions: BankTransactions = {bankTransactions:[bankTransactionUp]};
-                        let bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(xero.tenantIds[0], oldBankTransaction.bankTransactionID, bankTransactions)
-                */
-                res.render('banktransactions', { count: bankTransactionsGetResponse.body.bankTransactions.length });
+                let lineItems = [{
+                        description: 'consulting',
+                        quantity: 1.0,
+                        unitAmount: 20.0,
+                        accountCode: '200'
+                    }];
+                let where = 'Status=="' + xero_node_1.Account.StatusEnum.ACTIVE + '" AND Type=="' + xero_node_1.Account.BankAccountTypeEnum.BANK + '"';
+                let accountsResponse = yield xero.accountingApi.getAccounts(xero.tenantIds[0], null, where);
+                let useBankAccount = { accountID: accountsResponse.body.accounts[0].accountID };
+                let newBankTransaction = {
+                    type: xero_node_1.BankTransaction.TypeEnum.SPEND,
+                    contact: useContact,
+                    lineItems: lineItems,
+                    bankAccount: useBankAccount,
+                    date: '2019-09-19T00:00:00',
+                };
+                let bankTransactionCreateResponse = yield xero.accountingApi.createBankTransaction(xero.tenantIds[0], newBankTransaction);
+                //GET ONE
+                let bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
+                let bankTransactionGetResponse = yield xero.accountingApi.getBankTransaction(xero.tenantIds[0], bankTransactionId);
+                //UPDATE status to deleted
+                var bankTransactionUp = Object.assign({}, bankTransactionGetResponse.body.bankTransactions[0]);
+                delete bankTransactionUp.updatedDateUTC;
+                delete bankTransactionUp.contact; // also has an updatedDateUTC
+                bankTransactionUp.status = xero_node_1.BankTransaction.StatusEnum.DELETED;
+                let bankTransactions = { bankTransactions: [bankTransactionUp] };
+                let bankTransactionUpdateResponse = yield xero.accountingApi.updateBankTransaction(xero.tenantIds[0], bankTransactionId, bankTransactions);
+                res.render('banktransactions', {
+                    bankTransactionsCount: bankTransactionsGetResponse.body.bankTransactions.length,
+                    createID: bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID,
+                    getOneStatus: bankTransactionGetResponse.body.bankTransactions[0].type,
+                    updatedStatus: bankTransactionUpdateResponse.body.bankTransactions[0].status,
+                });
             }
             catch (e) {
+                console.error(e);
                 res.status(500);
                 res.send(e);
             }
