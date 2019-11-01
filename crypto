@@ -1,0 +1,13 @@
+Welcome to Node.js v12.8.1.
+Type ".help" for more information.
+> Thrown:
+require 'crypto'
+        ^^^^^^^^
+
+SyntaxError: Unexpected string
+> > Thrown:
+
+^
+
+SyntaxError: Invalid or unexpected token
+> > 

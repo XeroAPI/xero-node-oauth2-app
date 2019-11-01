@@ -1,7 +1,7 @@
 {
-  "name": "mytest2",
+  "name": "xero-node-oauth2-app",
   "version": "1.0.0",
-  "description": "my typscript test",
+  "description": "App to demonstrate xero-node OAuth 2.0.",
   "main": "./lib/server.js",
   "directories": {
     "lib": "lib"
@@ -12,6 +12,7 @@
     "express": "^4.17.1",
     "express-session": "^1.16.2",
     "helper": "0.0.13",
+    "jose": "^1.10.2",
     "mustache": "^3.1.0",
     "mustache-express": "^1.2.8",
     "path": "^0.12.7",
@@ -30,11 +31,11 @@
   "keywords": [
     "hello"
   ],
-  "author": "Sid",
+  "author": "Xero Platform Team",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^10.14.19",
-    "openid-client": "^3.6.1",
+    "@types/node": "^12.12.5",
+    "openid-client": "^3.7.4",
     "ts-node": "^8.4.1",
     "typescript": "^3.6.3"
   }
