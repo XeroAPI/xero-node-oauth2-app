@@ -9,6 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const xero_node_1 = require("xero-node");
@@ -18,10 +19,10 @@ const mustacheExpress = require('mustache-express');
 const session = require('express-session');
 const path = require("path");
 const localVarRequest = require("request");
-// # TODO - remove to env var and document
-const client_id = '902DD32276574ED199639D9226A425B1';
-const client_secret = 'O195gT6XlW58RL812_iy6fcdt4G1TN8-w67pIR6KrJGyI49S';
-const redirectUrl = 'http://localhost:5000/callback';
+const mime = require('mime-types');
+const client_id = process.env.CLIENT_ID;
+const client_secret = process.env.CLIENT_SECRET;
+const redirectUrl = process.env.REDIRECT_URI;
 const scopes = 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access';
 const xero = new xero_node_1.XeroClient({
     clientId: client_id,
@@ -29,7 +30,6 @@ const xero = new xero_node_1.XeroClient({
     redirectUris: [redirectUrl],
     scopes: scopes.split(" ")
 });
-console.log("xero: ", xero);
 class App {
     constructor() {
         this.app = express();
@@ -86,17 +86,17 @@ class App {
                 let accounts = { accounts: [accountUp] };
                 let accountUpdateResponse = yield xero.accountingApi.updateAccount(xero.tenantIds[0], accountId, accounts);
                 // CREATE ATTACHMENT
-                const filename = 'helo-heros.jpg';
-                const pathToUpload = path.resolve(__dirname, "../public/images/helo-heros.jpg");
+                const filename = 'xero-dev.jpg';
+                const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
                 const filesize = fs.statSync(pathToUpload).size;
                 const readStream = fs.createReadStream(pathToUpload);
+                const contentType = mime.lookup(filename);
                 let accountAttachmentsResponse = yield xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
                     headers: {
-                        'Content-Type': 'image/jpeg',
-                        'Content-Length': filesize.toString(),
-                        'Accept': 'application/json'
+                        'Content-Type': contentType
                     }
                 });
+                console.log(accountAttachmentsResponse.body);
                 //GET ATTACHMENTS
                 let accountAttachmentsGetResponse = yield xero.accountingApi.getAccountAttachments(xero.tenantIds[0], accountId);
                 let attachmentId = accountAttachmentsResponse.body.attachments[0].attachmentID;
@@ -118,8 +118,9 @@ class App {
                         throw err;
                     console.log('file written successfully');
                 });
+                console.log(accountId);
                 //DELETE
-                let accountDeleteResponse = yield xero.accountingApi.deleteAccount(xero.tenantIds[0], accountId);
+                //let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountId);
                 res.render('accounts', {
                     accountsCount: accountsGetResponse.body.accounts.length,
                     getOneName: accountGetResponse.body.accounts[0].name,
@@ -127,8 +128,9 @@ class App {
                     updateName: accountUpdateResponse.body.accounts[0].name,
                     createAttachmentId: accountAttachmentsResponse.body.attachments[0].attachmentID,
                     attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
-                    deleteName: accountDeleteResponse.body.accounts[0].name
+                    deleteName: 'temp'
                 });
+                //accountDeleteResponse.body.accounts[0].name
             }
             catch (e) {
                 res.status(500);

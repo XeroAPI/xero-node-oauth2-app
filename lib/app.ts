@@ -1,20 +1,19 @@
+require('dotenv').config()
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import { Request, Response } from "express";
 import { XeroClient, Accounts, Account, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, LineItem } from "xero-node";
 import * as fs from "fs";
 import Helper from './helper';
-import { type } from "os";
 const mustacheExpress = require('mustache-express');
 const session = require('express-session');
 const path = require("path");
 const localVarRequest = require("request");
+const mime = require('mime-types')
 
-// # TODO - remove to env var and document
-const client_id = '902DD32276574ED199639D9226A425B1'
-const client_secret = 'O195gT6XlW58RL812_iy6fcdt4G1TN8-w67pIR6KrJGyI49S'
-
-const redirectUrl = 'http://localhost:5000/callback'
+const client_id = process.env.CLIENT_ID
+const client_secret = process.env.CLIENT_SECRET
+const redirectUrl = process.env.REDIRECT_URI
 const scopes = 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access'
 
 const xero = new XeroClient({
@@ -97,14 +96,15 @@ class App {
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
         const filesize = fs.statSync(pathToUpload).size;
         const readStream = fs.createReadStream(pathToUpload);
-
+        const contentType = mime.lookup(filename);
+  
         let accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
           headers: {
-            'Content-Type': 'image/jpeg',
-            'Content-Length': filesize.toString(),
-            'Accept': 'application/json'
+            'Content-Type': contentType
           }
         });
+
+        console.log(accountAttachmentsResponse.body);
 
         //GET ATTACHMENTS
         let accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(xero.tenantIds[0],accountId);
@@ -128,8 +128,9 @@ class App {
           console.log('file written successfully');
         });
 
+        console.log(accountId);
         //DELETE
-        let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountId);
+        //let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountId);
 
         res.render('accounts', {
           accountsCount: accountsGetResponse.body.accounts.length,
@@ -138,8 +139,9 @@ class App {
           updateName: accountUpdateResponse.body.accounts[0].name,
           createAttachmentId: accountAttachmentsResponse.body.attachments[0].attachmentID,
           attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
-          deleteName: accountDeleteResponse.body.accounts[0].name
+          deleteName: 'temp'
         });
+        //accountDeleteResponse.body.accounts[0].name
 
      }
        catch (e) {
