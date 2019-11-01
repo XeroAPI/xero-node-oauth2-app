@@ -13,6 +13,7 @@
     "express-session": "^1.16.2",
     "helper": "0.0.13",
     "jose": "^1.10.2",
+    "mime-types": "^2.1.24",
     "mustache": "^3.1.0",
     "mustache-express": "^1.2.8",
     "path": "^0.12.7",
