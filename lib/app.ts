@@ -10,8 +10,9 @@ const session = require('express-session');
 const path = require("path");
 const localVarRequest = require("request");
 
-const client_id = 'YOUR_CLIENT_ID'
-const client_secret = 'YOUR_CLIENT_SECRET'
+// # TODO - remove to env var and document
+const client_id = '902DD32276574ED199639D9226A425B1'
+const client_secret = 'O195gT6XlW58RL812_iy6fcdt4G1TN8-w67pIR6KrJGyI49S'
 
 const redirectUrl = 'http://localhost:5000/callback'
 const scopes = 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access'
@@ -92,17 +93,17 @@ class App {
         let accountUpdateResponse = await xero.accountingApi.updateAccount(xero.tenantIds[0],accountId,accounts);
 
         // CREATE ATTACHMENT
-        const filename = 'helo-heros.jpg';
-        const pathToUpload = path.resolve(__dirname, "../public/images/helo-heros.jpg");
+        const filename = 'xero-dev.jpg';
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
         const filesize = fs.statSync(pathToUpload).size;
         const readStream = fs.createReadStream(pathToUpload);
 
         let accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
-            headers: {
-                'Content-Type': 'image/jpeg',
-                'Content-Length': filesize.toString(),
-                'Accept': 'application/json'
-            }
+          headers: {
+            'Content-Type': 'image/jpeg',
+            'Content-Length': filesize.toString(),
+            'Accept': 'application/json'
+          }
         });
 
         //GET ATTACHMENTS

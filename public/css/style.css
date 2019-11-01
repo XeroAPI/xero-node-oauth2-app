@@ -1,133 +1,92 @@
-/* ==========================================================================
-   #STYLES
-   ========================================================================== */
-
-
-/**
- *
- * [1]: Inheriting box sizing slightly better best-practice
- * https://css-tricks.com/inheriting-box-sizing-probably-slightly-better-best-practice/
- *
- * [2]: WordPress System font-stack
- */
-
-
-/* RESET
-   ========================================================================== */
-
-
-html {
+* {
   box-sizing: border-box;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
-
-*, *::before, *::after {
-  box-sizing: inherit; /* [1] */
-  margin: 0;
-  padding: 0;
-}
-
-
-
-/* FONTS
-   ========================================================================== */
-
 body {
-  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif; /* [2] */
-}
-
-
-
-/* Header
-   ========================================================================== */
-
-.header {
-  width: 100%;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 80px;
-  background-color: #525286;
-  color: #FFFFFF;
-  margin-bottom: 50px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  min-height: 100vh;
+  margin: 0;
 }
-
-
-
-/* Homepage Container
-   ========================================================================== */
-
-.container {
-  width: 960px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-gap: 20px;
-}
-
-
-
-/* Profile Card
-   ========================================================================== */
-
-.person {
-  text-align: center;
-}
-
-.person > * {
-  margin-bottom: 5px;
-}
-
-.person-image {
-  width: 100%;
-  height: 300px;
-}
-
-
-
-/* Profile Page
-   ========================================================================== */
-
-.profile {
-  display: flex;
-  height: 100vh;
+textarea {
+  font-size: 16px;
   width: 100%;
 }
-
-.profile-image {
-  height: 100%;
-  flex-grow: 1;
-  flex-basis: 50%;
+hr {
+  margin-bottom: 15px;
+}
+h3 {
+  margin-top: 0px;
+}
+button {
+  text-shadow: 0 0.125rem 0.1875rem rgba(0,0,0,.1);
+  color: #FFF;
+  background-color: #21A623;
+  margin: 10px;
+  padding: 15px;
+  border-radius: 5px;;
+  font-size: 16px;
+  letter-spacing: 1px;;
+  cursor: pointer;
 }
 
-.profile-details {
-  flex-basis: 30%;
-  flex-grow: 1;
-  padding: 50px;
-  display: flex;
-  justify-content: center;
-  flex-direction: column;
+.btn-success {
+  background: #00a3d3;
 }
 
-.profile-details > * {
-  margin-bottom: 20px;
+.series-font {
+  box-sizing: border-box;
+  font-family: 'Courier New';
+  letter-spacing: 3px;
+  font-weight: 600;
+  margin: 10px;
 }
-
-
-
-/* Buttons
-   ========================================================================== */
-
-.button {
-  height: 50px;
-  line-height: 50px;
-  width: 100%;
+.body-wrapper {
+  margin: 20px;
+  box-shadow: 3px 3px 3px 2px #ccc;
+  padding: 20px;
+  float: left;
+}
+.left-banner {
+  background-color: #32465A;
+  flex: 1;
+}
+.menu-items, .menu-items a {
+  color: white;
   text-decoration: none;
-  text-align: center;
-  font-size: 20px
 }
-
-.button-twitter {
-  color: #FFFFFF;
-  background-color: #659AF1;
-  border-radius: 5px;
+.menu-items li:hover {
+  text-decoration: underline;
+}
+.menu-items li {
+  margin-bottom: 15px;
+  list-style: none;
+}
+.menu-items .active {
+  text-decoration: underline;
+  font-weight: bold;
+}
+.menu-items h1 {
+  margin-left: -20px;
+  margin-top: 45px;
+}
+.core-content {
+  display: flex;
+  flex-direction: column;
+  flex: 5;
+}
+.auth-notification {
+  color: red;
+  font-size: 20px;
+  padding: 20px;
+  float: left;
+  width: 100%;
+}
+header {
+  background: #00a3d3;
+  height: 85px;
+}
+header, nav {
+  padding: 1.5em;
 }

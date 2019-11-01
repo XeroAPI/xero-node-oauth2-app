@@ -18,8 +18,9 @@ const mustacheExpress = require('mustache-express');
 const session = require('express-session');
 const path = require("path");
 const localVarRequest = require("request");
-const client_id = 'YOUR_CLIENT_ID';
-const client_secret = 'YOUR_CLIENT_SECRET';
+// # TODO - remove to env var and document
+const client_id = '902DD32276574ED199639D9226A425B1';
+const client_secret = 'O195gT6XlW58RL812_iy6fcdt4G1TN8-w67pIR6KrJGyI49S';
 const redirectUrl = 'http://localhost:5000/callback';
 const scopes = 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access';
 const xero = new xero_node_1.XeroClient({
@@ -28,6 +29,7 @@ const xero = new xero_node_1.XeroClient({
     redirectUris: [redirectUrl],
     scopes: scopes.split(" ")
 });
+console.log("xero: ", xero);
 class App {
     constructor() {
         this.app = express();
