@@ -1,0 +1,23 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Accounts</title>
+  <meta name="description" content="callback template">
+  <meta name="author" content="XeroAPI">
+</head>
+
+<body>
+  <h1>xero-node-oauth2-app</h1>
+  <p>Read all Accounts - count: <%= accountsCount %></p>
+  <p>Create Account - name : <%= createName %></p>
+  <p>Read one Account - name : <%= getOneName %></p>
+  <p>Updated Account - updateName : <%= updateName %></p>
+  <p>Created Attachment - attachmentId : <%= createAttachmentId %></p>
+  <p>Read Attachments - count : <%= attachmentsCount %></p>
+  <p>Delete Account - name : <%= deleteName %></p>
+  <%- include('nav') -%>
+</body>
+</html>

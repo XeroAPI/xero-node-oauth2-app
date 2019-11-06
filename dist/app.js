@@ -8,17 +8,25 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 require('dotenv').config();
-const express = require("express");
-const bodyParser = require("body-parser");
+const express_1 = __importDefault(require("express"));
+const bodyParser = __importStar(require("body-parser"));
 const xero_node_1 = require("xero-node");
-const fs = require("fs");
-const helper_1 = require("./helper");
-const mustacheExpress = require('mustache-express');
+const fs = __importStar(require("fs"));
+const helper_1 = __importDefault(require("./helper"));
 const session = require('express-session');
 const path = require("path");
-const localVarRequest = require("request");
 const mime = require('mime-types');
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
@@ -32,20 +40,18 @@ const xero = new xero_node_1.XeroClient({
 });
 class App {
     constructor() {
-        this.app = express();
+        this.app = express_1.default();
         this.config();
         this.routes();
-        this.app.engine('html', mustacheExpress());
-        this.app.set('view engine', 'html');
-        this.app.set('views', path.resolve(__dirname, '..', 'dist', 'views'));
-        this.app.use(express.static('public'));
+        this.app.set('view engine', 'ejs');
+        this.app.use(express_1.default.static(__dirname + '/public'));
     }
     config() {
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({ extended: false }));
     }
     routes() {
-        const router = express.Router();
+        const router = express_1.default.Router();
         router.get('/', (req, res) => __awaiter(this, void 0, void 0, function* () {
             try {
                 let consentUrl = yield xero.buildConsentUrl();
@@ -62,7 +68,7 @@ class App {
                 yield xero.setAccessTokenFromRedirectUri(url);
                 let accessToken = yield xero.readTokenSet();
                 req.session.accessToken = accessToken;
-                res.render('callback', '');
+                res.render('callback');
             }
             catch (e) {
                 res.status(500);
