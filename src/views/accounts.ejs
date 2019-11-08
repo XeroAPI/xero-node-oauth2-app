@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <h1>xero-node-oauth2-app</h1>
+          <p>Read all Accounts - count: <%= accountsCount %></p>
+          <p>Create Account - name : <%= createName %></p>
+          <p>Read one Account - name : <%= getOneName %></p>
+          <p>Updated Account - updateName : <%= updateName %></p>
+          <p>Created Attachment - attachmentId : <%= createAttachmentId %></p>
+          <p>Read Attachments - count : <%= attachmentsCount %></p>
+          <p>Delete Account - name : <%= deleteName %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

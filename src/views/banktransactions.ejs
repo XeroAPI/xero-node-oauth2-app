@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <p>Read all BankTransactions - count: <%= bankTransactionsCount %></p>
+          <p>Create BankTransaction - ID : <%= createID %></p>
+          <p>Read one BankTransaction - status : <%= getOneStatus %></p>
+          <p>Updated BankTransaction - status : <%= updatedStatus %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

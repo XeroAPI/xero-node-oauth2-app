@@ -29,14 +29,16 @@ class App {
     this.config();
     this.routes();
 
+    this.app.set( "views", path.join( __dirname, "views" ) );
     this.app.set('view engine', 'ejs');
-    this.app.use(express.static(__dirname + '/public'));
+    this.app.use(express.static( path.join( __dirname, "public" )));
   }
 
   private config(): void {
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
   }
+
 
   private routes(): void {
     const router = express.Router();
@@ -45,7 +47,7 @@ class App {
 
       try {
         let consentUrl = await xero.buildConsentUrl();
-        res.render('index', {url: consentUrl});
+        res.render('index', { url: consentUrl });
       }
        catch (e) {
         res.status(res.statusCode);
@@ -97,7 +99,7 @@ class App {
         // CREATE ATTACHMENT
         const filename = 'xero-dev.jpg';
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
-        const filesize = fs.statSync(pathToUpload).size;
+        // const filesize = fs.statSync(pathToUpload).size;
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
   
