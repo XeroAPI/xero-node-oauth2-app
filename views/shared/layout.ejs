@@ -1,0 +1,11 @@
+<header>
+  <a href='/connect'>
+    <img src='https://developer.xero.com/static/images/documentation/ConnectToXero2019/connect-blue.svg'>
+  </a>
+  <% if (org) { %>
+    <span class='org'>☺️ <%= org %></span>
+  <% } %>
+  <% if (!org) { %>
+    <span class='disconnected'>Not Connected</span>
+  <% } %>
+</header>

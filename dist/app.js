@@ -58,7 +58,7 @@ class App {
                 res.render('index', { url: consentUrl });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -67,11 +67,15 @@ class App {
                 let url = "http://localhost:5000/" + req.originalUrl;
                 yield xero.setAccessTokenFromRedirectUri(url);
                 let accessToken = yield xero.readTokenSet();
+                let xset = yield xero.setTokenSet(accessToken);
+                console.log('await xero.setTokenSet: ', xset);
                 req.session.accessToken = accessToken;
-                res.render('callback');
+                res.render('callback', {
+                    org: xset
+                });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -79,15 +83,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let accountsGetResponse = yield xero.accountingApi.getAccounts(xero.tenantIds[0]);
-                //CREATE
+                // CREATE
                 let account = { name: "Foo" + helper_1.default.getRandomNumber(), code: "" + helper_1.default.getRandomNumber(), type: xero_node_1.AccountType.EXPENSE };
                 let accountCreateResponse = yield xero.accountingApi.createAccount(xero.tenantIds[0], account);
                 let accountId = accountCreateResponse.body.accounts[0].accountID;
-                //GET ONE
+                // GET ONE
                 let accountGetResponse = yield xero.accountingApi.getAccount(xero.tenantIds[0], accountId);
-                //UPDATE
+                // UPDATE
                 let accountUp = { name: "Bar" + helper_1.default.getRandomNumber() };
                 let accounts = { accounts: [accountUp] };
                 let accountUpdateResponse = yield xero.accountingApi.updateAccount(xero.tenantIds[0], accountId, accounts);
@@ -103,12 +107,12 @@ class App {
                     }
                 });
                 console.log(accountAttachmentsResponse.body);
-                //GET ATTACHMENTS
+                // GET ATTACHMENTS
                 let accountAttachmentsGetResponse = yield xero.accountingApi.getAccountAttachments(xero.tenantIds[0], accountId);
                 let attachmentId = accountAttachmentsResponse.body.attachments[0].attachmentID;
                 let attachmentMimeType = accountAttachmentsResponse.body.attachments[0].mimeType;
                 let attachmentFileName = accountAttachmentsResponse.body.attachments[0].fileName;
-                //GET ATTACHMENT BY ID
+                // GET ATTACHMENT BY ID
                 let accountAttachmentsGetByIdResponse = yield xero.accountingApi.getAccountAttachmentById(xero.tenantIds[0], accountId, attachmentId, attachmentMimeType);
                 console.log(accountAttachmentsGetByIdResponse.body.length);
                 fs.writeFile(`id-${attachmentFileName}`, accountAttachmentsGetByIdResponse.body, err => {
@@ -116,7 +120,7 @@ class App {
                         throw err;
                     console.log('file written successfully');
                 });
-                //GET ATTACHMENT BY FILENAME
+                // GET ATTACHMENT BY FILENAME
                 let accountAttachmentsGetByFilenameResponse = yield xero.accountingApi.getAccountAttachmentByFileName(xero.tenantIds[0], accountId, attachmentFileName, attachmentMimeType);
                 console.log(accountAttachmentsGetByFilenameResponse.body.length);
                 fs.writeFile(`filename-${attachmentFileName}`, accountAttachmentsGetByFilenameResponse.body, err => {
@@ -125,8 +129,8 @@ class App {
                     console.log('file written successfully');
                 });
                 console.log(accountId);
-                //DELETE
-                //let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountId);
+                // DELETE
+                // let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountId);
                 res.render('accounts', {
                     accountsCount: accountsGetResponse.body.accounts.length,
                     getOneName: accountGetResponse.body.accounts[0].name,
@@ -136,10 +140,10 @@ class App {
                     attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
                     deleteName: 'temp'
                 });
-                //accountDeleteResponse.body.accounts[0].name
+                // accountDeleteResponse.body.accounts[0].name
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -147,9 +151,9 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let bankTransactionsGetResponse = yield xero.accountingApi.getBankTransactions(xero.tenantIds[0]);
-                //CREATE
+                // CREATE
                 let contactsResponse = yield xero.accountingApi.getContacts(xero.tenantIds[0]);
                 let useContact = { contactID: contactsResponse.body.contacts[0].contactID };
                 let lineItems = [{
@@ -169,10 +173,10 @@ class App {
                     date: '2019-09-19T00:00:00',
                 };
                 let bankTransactionCreateResponse = yield xero.accountingApi.createBankTransaction(xero.tenantIds[0], newBankTransaction);
-                //GET ONE
+                // GET ONE
                 let bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
                 let bankTransactionGetResponse = yield xero.accountingApi.getBankTransaction(xero.tenantIds[0], bankTransactionId);
-                //UPDATE status to deleted
+                // UPDATE status to deleted
                 var bankTransactionUp = Object.assign({}, bankTransactionGetResponse.body.bankTransactions[0]);
                 delete bankTransactionUp.updatedDateUTC;
                 delete bankTransactionUp.contact; // also has an updatedDateUTC
@@ -188,24 +192,24 @@ class App {
             }
             catch (e) {
                 console.error(e);
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
         router.get('/banktranfers', (req, res) => __awaiter(this, void 0, void 0, function* () {
-            //FIRST check if two bank accounts exist!!
+            // FIRST check if two bank accounts exist!!
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getBankTransfers(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('banktranfers', { count: apiResponse.body.bankTransfers.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -213,15 +217,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getBatchPayments(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('batchpayments', { count: apiResponse.body.batchPayments.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -229,15 +233,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getBrandingThemes(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('brandingthemes', { count: apiResponse.body.brandingThemes.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -245,15 +249,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getContacts(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('contacts', { count: apiResponse.body.contacts.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -261,15 +265,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getContactGroups(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('contactgroups', { count: apiResponse.body.contactGroups.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -277,15 +281,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getCreditNotes(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('creditnotes', { count: apiResponse.body.creditNotes.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -293,15 +297,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getCurrencies(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('currencies', { count: apiResponse.body.currencies.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -309,15 +313,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getEmployees(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('employees', { count: apiResponse.body.employees.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -325,15 +329,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getExpenseClaims(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('expenseclaims', { count: apiResponse.body.expenseClaims.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -341,15 +345,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getInvoiceReminders(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('invoicereminders', { count: apiResponse.body.invoiceReminders.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -357,15 +361,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getInvoices(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('invoices', { count: apiResponse.body.invoices.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -373,15 +377,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getItems(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('items', { count: apiResponse.body.items.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -389,15 +393,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getJournals(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('journals', { count: apiResponse.body.journals.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -405,15 +409,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getManualJournals(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('manualjournals', { count: apiResponse.body.manualJournals.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -421,15 +425,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getOrganisations(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('organisations', { name: apiResponse.body.organisations[0].name });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -437,15 +441,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getOverpayments(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('overpayments', { count: apiResponse.body.overpayments.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -453,15 +457,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getPayments(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('payments', { count: apiResponse.body.payments.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -469,15 +473,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getPaymentServices(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('paymentservices', { count: apiResponse.body.paymentServices.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -485,15 +489,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getPrepayments(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('prepayments', { count: apiResponse.body.prepayments.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -501,15 +505,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getPurchaseOrders(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('purchaseorders', { count: apiResponse.body.purchaseOrders.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -517,15 +521,15 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getReceipts(xero.tenantIds[0]);
-                //CREATE
-                //GET ONE
-                //UPDATE
+                // CREATE
+                // GET ONE
+                // UPDATE
                 res.render('receipts', { count: apiResponse.body.receipts.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -533,16 +537,16 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
-                //CREATE
-                //GET ONE
-                //UPDATE
-                //We need specific report API calls
-                //let apiResponse = await xero.accountingApi.getReports(xero.tenantIds[0]);
+                // GET ALL
+                // CREATE
+                // GET ONE
+                // UPDATE
+                // We need specific report API calls
+                // let apiResponse = await xero.accountingApi.getReports(xero.tenantIds[0]);
                 res.render('reports', { count: 0 });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -550,12 +554,13 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getTaxRates(xero.tenantIds[0]);
+                console.log(apiResponse.body);
                 res.render('taxrates', { count: apiResponse.body.taxRates.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -563,12 +568,12 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getTrackingCategories(xero.tenantIds[0]);
                 res.render('trackingcategories', { count: apiResponse.body.trackingCategories.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));
@@ -576,12 +581,12 @@ class App {
             try {
                 let accessToken = req.session.accessToken;
                 yield xero.setTokenSet(accessToken);
-                //GET ALL
+                // GET ALL
                 let apiResponse = yield xero.accountingApi.getUsers(xero.tenantIds[0]);
                 res.render('users', { count: apiResponse.body.users.length });
             }
             catch (e) {
-                res.status(500);
+                res.status(res.statusCode);
                 res.send(e);
             }
         }));

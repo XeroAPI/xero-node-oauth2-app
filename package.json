@@ -6,17 +6,19 @@
   "license": "MIT",
   "main": "dist/server.js",
   "scripts": {
-    "start": "tsc && node dist/server.js"
+    "compile": "ts-node dist/server.js",
+    "start": "./node_modules/nodemon/bin/nodemon.js -e ts  --exec \"npm run compile\""
   },
   "devDependencies": {
-    "@types/node": "^12.12.5",
+    "@types/ejs": "^2.6.3",
     "@types/express": "^4.17.2",
     "@types/express-session": "^1.15.15",
-    "@types/ejs": "^2.6.3",
+    "@types/node": "^12.12.6",
+    "nodemon": "^1.19.4",
     "openid-client": "^3.7.4",
     "ts-node": "^8.4.1",
     "tslint": "^5.20.1",
-    "typescript": "^3.6.3"
+    "typescript": "^3.7.2"
   },
   "dependencies": {
     "body-parser": "^1.19.0",

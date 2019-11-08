@@ -29,7 +29,7 @@ REDIRECT_URI=...
 
 ```sh
 npm install
-npm run prod
+npm dev
 ```
 
 

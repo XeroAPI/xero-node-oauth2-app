@@ -56,10 +56,16 @@ class App {
     router.get('/callback', async (req: Request, res: Response) => {
       try {
         let url = "http://localhost:5000/" + req.originalUrl;
-        await  xero.setAccessTokenFromRedirectUri(url);
-        let accessToken =  await xero.readTokenSet();
+        await xero.setAccessTokenFromRedirectUri(url);
+        let accessToken = await xero.readTokenSet();
+
+        let xset = await xero.setTokenSet(accessToken)
+        console.log('await xero.setTokenSet: ', xset)
+
         req.session.accessToken = accessToken
-        res.render('callback');
+        res.render('callback', {
+          org: xset
+        });
       }
        catch (e) {
         res.status(res.statusCode);
