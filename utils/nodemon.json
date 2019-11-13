@@ -2,5 +2,5 @@
   "watch": ["src"],
   "ext": "ts",
   "ignore": ["src/public"],
-  "exec": "ENV_FILE=development ts-node ./src/server.ts"
+  "exec": "ts-node ./src/server.ts"
 }

@@ -8,7 +8,7 @@
   "scripts": {
     "build": "node ./utils/build.js",
     "lint": "tslint --project \"tsconfig.json\"",
-    "start": "ENV_FILE=production node -r module-alias/register ./dist/start.js",
+    "start": "node -r module-alias/register ./dist/start.js",
     "start-dev": "nodemon --config \"./utils/nodemon.json\""
   },
   "devDependencies": {
