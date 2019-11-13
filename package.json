@@ -6,7 +6,10 @@
   "license": "MIT",
   "main": "dist/server.js",
   "scripts": {
-    "start": "nodemon"
+    "build": "node ./utils/build.js",
+    "lint": "tslint --project \"tsconfig.json\"",
+    "start": "ENV_FILE=production node -r module-alias/register ./dist/start.js",
+    "start-dev": "nodemon --config \"./utils/nodemon.json\""
   },
   "devDependencies": {
     "@types/ejs": "^2.6.3",
