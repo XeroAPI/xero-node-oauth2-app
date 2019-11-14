@@ -7,14 +7,16 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <h1>xero-node-oauth2-app</h1>
-          <p>Read all Accounts - count: <%= accountsCount %></p>
-          <p>Create Account - name : <%= createName %></p>
-          <p>Read one Account - name : <%= getOneName %></p>
-          <p>Updated Account - updateName : <%= updateName %></p>
-          <p>Created Attachment - attachmentId : <%= createAttachmentId %></p>
-          <p>Read Attachments - count : <%= attachmentsCount %></p>
-          <p>Delete Account - name : <%= deleteName %></p>
+          <a href='https://developer.xero.com/documentation/api/accounts' target='_blank'>
+            <h4>https://developer.xero.com/documentation/api/accounts</h4>
+          </a>
+          <p><strong>Read all Accounts - count:</strong> <%= accountsCount %></p>
+          <p><strong>Create Account - name :</strong> <%= createName %></p>
+          <p><strong>Read one Account - name :</strong> <%= getOneName %></p>
+          <p><strong>Updated Account - updateName :</strong> <%= updateName %></p>
+          <p><strong>Created Attachment - attachmentId :</strong> <%= createAttachmentId %></p>
+          <p><strong>Read Attachments - count :</strong> <%= attachmentsCount %></p>
+          <p><strong>Delete Account - name :</strong> <%= deleteName %></p>
         </div>
       </div>
     </div>

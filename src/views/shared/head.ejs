@@ -1,4 +1,7 @@
 <title>Xero // Node API tutorial</title>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
 <head>
   <style>
     * {
@@ -33,11 +36,15 @@
       letter-spacing: 1px;;
       cursor: pointer;
     }
-    
     .btn-success {
       background: #00a3d3;
     }
-    
+    h1, h2,h3, h4 {
+      margin-bottom: 5px;
+    }
+    pre {
+      margin: 0;
+    }
     .series-font {
       box-sizing: border-box;
       font-family: 'Courier New';
@@ -54,6 +61,7 @@
     .left-banner {
       background-color: #32465A;
       flex: 1;
+      padding-top: 65px;
     }
     .menu-items, .menu-items a {
       color: white;
@@ -78,6 +86,7 @@
       display: flex;
       flex-direction: column;
       flex: 5;
+      max-width: 80%;
     }
     .auth-notification {
       color: red;
@@ -158,10 +167,7 @@
     
     /* Extra fun  */
     #authenticated {
-      color: green;
-      -webkit-animation: fadeinout 3s linear forwards;
-      animation: fadeinout 3s linear forwards;
-      margin-left: 25px;
+      margin: 25px;
     }
     @-webkit-keyframes fadeinout {
       0%,100% { opacity: 0; height: 20px; }

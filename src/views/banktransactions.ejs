@@ -7,10 +7,13 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Read all BankTransactions - count: <%= bankTransactionsCount %></p>
-          <p>Create BankTransaction - ID : <%= createID %></p>
-          <p>Read one BankTransaction - status : <%= getOneStatus %></p>
-          <p>Updated BankTransaction - status : <%= updatedStatus %></p>
+          <a href='https://developer.xero.com/documentation/api/accounts' target='_blank'>
+            <h4>https://developer.xero.com/documentation/api/accounts</h4>
+          </a>
+          <p><strong>all BankTransactions - count:</strong><%= bankTransactionsCount %></p>
+          <p><strong>Create BankTransaction - ID :</strong><%= createID %></p>
+          <p><strong>one BankTransaction - status :</strong><%= getOneStatus %></p>
+          <p><strong>Updated BankTransaction - status :</strong><%= updatedStatus %></p>
         </div>
       </div>
     </div>

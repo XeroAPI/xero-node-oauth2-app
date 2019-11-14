@@ -5,6 +5,8 @@ import { Request, Response } from "express";
 import * as fs from "fs";
 import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, LineItem, XeroClient } from "xero-node";
 import Helper from "./helper";
+import jwtDecode from 'jwt-decode';
+
 const session = require("express-session");
 const path = require("path");
 const mime = require("mime-types");
@@ -14,12 +16,51 @@ const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
 const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access";
 
+
+interface XeroJwt {
+  nbf: number
+  exp: number
+  iss: string,
+  aud: string
+  iat: number
+  at_hash: string
+  sid: string
+  sub: string
+  auth_time: number
+  idp: string
+  xero_userid: string
+  global_session_id: string
+  preferred_username: string
+  email: string
+  given_name: string
+  family_name: string
+  amr: string[]
+}
+
+interface XeroAccessToken {
+  nbf: number
+  exp: number
+  iss: string
+  aud: string
+  client_id: string
+  sub: string
+  auth_time: number
+  idp: string
+  xero_userid: string
+  global_session_id: string
+  jti: string
+  scope: string[]
+  amr: string[]
+}
+
 const xero = new XeroClient({
         clientId: client_id,
         clientSecret: client_secret,
         redirectUris: [redirectUrl],
         scopes: scopes.split(" "),
       });
+
+const consentUrl = xero.buildConsentUrl();
 
 class App {
   public app: express.Application;
@@ -37,6 +78,21 @@ class App {
   private config(): void {
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
+    
+    // global session variables
+    this.app.use(function(req, res, next) {
+      res.locals.consentUrl = consentUrl
+      next();
+    });
+  }
+
+  // helpers
+  authenticationData(req, _res) {
+    console.log(req.session)
+    return {
+      decodedIdToken: req.session.decodedIdToken,
+      decodedAccessToken: req.session.decodedAccessToken,
+    }
   }
 
   private routes(): void {
@@ -46,10 +102,17 @@ class App {
 
       try {
         const consentUrl = await xero.buildConsentUrl();
-        res.render("index", { url: consentUrl });
+        const authData = this.authenticationData(req, res)
+        res.render("home", { 
+          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          authenticated: authData
+        });
       } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -59,16 +122,23 @@ class App {
         await xero.setAccessTokenFromRedirectUri(url);
         const accessToken = await xero.readTokenSet();
 
-        const xset = await xero.setTokenSet(accessToken);
-        console.log("await xero.setTokenSet: ", xset);
+        const decodedIdToken: XeroJwt = jwtDecode(accessToken.id_token);
+        req.session.decodedIdToken = decodedIdToken
+
+        const decodedAccessToken: XeroAccessToken = jwtDecode(accessToken.access_token)
+        req.session.decodedAccessToken = decodedAccessToken
 
         req.session.accessToken = accessToken;
         res.render("callback", {
-          org: xset,
+          authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
+        console.log(e)
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -147,7 +217,10 @@ class App {
 
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -203,7 +276,10 @@ class App {
       } catch (e) {
         console.error(e);
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -222,7 +298,10 @@ class App {
         res.render("banktranfers", {count: apiResponse.body.bankTransfers.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -238,7 +317,10 @@ class App {
         res.render("batchpayments", {count: apiResponse.body.batchPayments.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -254,7 +336,10 @@ class App {
         res.render("brandingthemes", {count: apiResponse.body.brandingThemes.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -270,7 +355,10 @@ class App {
         res.render("contacts", {count: apiResponse.body.contacts.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -286,7 +374,10 @@ class App {
         res.render("contactgroups", {count: apiResponse.body.contactGroups.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -302,7 +393,10 @@ class App {
         res.render("creditnotes", {count: apiResponse.body.creditNotes.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -318,7 +412,10 @@ class App {
         res.render("currencies", {count: apiResponse.body.currencies.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -334,7 +431,10 @@ class App {
         res.render("employees", {count: apiResponse.body.employees.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -350,7 +450,10 @@ class App {
         res.render("expenseclaims", {count: apiResponse.body.expenseClaims.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -366,7 +469,10 @@ class App {
         res.render("invoicereminders", {count: apiResponse.body.invoiceReminders.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -382,7 +488,10 @@ class App {
         res.render("invoices", {count: apiResponse.body.invoices.length});
       } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -398,7 +507,10 @@ class App {
         res.render("items", {count: apiResponse.body.items.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -414,7 +526,10 @@ class App {
         res.render("journals", {count: apiResponse.body.journals.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -430,7 +545,10 @@ class App {
         res.render("manualjournals", {count: apiResponse.body.manualJournals.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -446,7 +564,10 @@ class App {
         res.render("organisations", {name: apiResponse.body.organisations[0].name});
       } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -462,7 +583,10 @@ class App {
         res.render("overpayments", {count: apiResponse.body.overpayments.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -478,7 +602,10 @@ class App {
         res.render("payments", {count: apiResponse.body.payments.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -494,7 +621,10 @@ class App {
         res.render("paymentservices", {count: apiResponse.body.paymentServices.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -510,7 +640,10 @@ class App {
         res.render("prepayments", {count: apiResponse.body.prepayments.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -526,7 +659,10 @@ class App {
         res.render("purchaseorders", {count: apiResponse.body.purchaseOrders.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -542,7 +678,10 @@ class App {
         res.render("receipts", {count: apiResponse.body.receipts.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -560,7 +699,10 @@ class App {
         res.render("reports", {count: 0});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -575,7 +717,10 @@ class App {
         res.render("taxrates", {count: apiResponse.body.taxRates.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -588,7 +733,10 @@ class App {
         res.render("trackingcategories", {count: apiResponse.body.trackingCategories.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
@@ -601,7 +749,10 @@ class App {
         res.render("users", {count: apiResponse.body.users.length});
      } catch (e) {
         res.status(res.statusCode);
-        res.send(e);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 

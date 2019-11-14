@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <%- include('head') -%>
+  <body>
+    <%- include('nav') -%>
+    <div class='core-content'>
+      <%- include('header') -%>
+      <div class='body-wrapper'>
+        <h1>Error:</h1>
+        <pre>
+          <code class='language-javascript'>
+            <% if(error && error.response) { %>
+              <%- JSON.stringify(error, null, 2).replace(/[{}]/g, '') %>
+            <% } else{ %>
+              <%= error %>
+            <% } %>
+          </code>
+        </pre>
+      </div>
+    </div>
+  </body>
+</html>
