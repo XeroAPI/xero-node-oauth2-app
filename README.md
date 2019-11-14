@@ -31,9 +31,3 @@ REDIRECT_URI=...
 npm install
 npm start-dev
 ```
-
-
-# TODO
-
-modemon ?
-watch & rebuild tscon .ts changes
