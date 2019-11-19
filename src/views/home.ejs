@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <% if (authenticated.decodedIdToken && authenticated.decodedAccessToken) { %>
+            <h2 id='authenticated'>You are authenticated!</h2>
+            <hr>
+            <h4>Id Token Data:</h2>
+            <pre>
+              <code class='language-javascript'>
+                <%- JSON.stringify(authenticated.decodedIdToken, null, 2).replace(/[{}]/g, '') %>
+              </code>
+            </pre>
+            <hr>
+            <h4>Access Token Data:</h2>
+            <pre>
+              <code class='language-javascript'>
+                <%- JSON.stringify(authenticated.decodedAccessToken, null, 2).replace(/[{}]/g, '') %>
+              </code>
+            </pre>
+          <%} else { %>
+            <h2>Please authenticated to explore the tutorial</h2>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

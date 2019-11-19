@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <a href='https://developer.xero.com/documentation/api/accounts' target='_blank'>
+            <h4>https://developer.xero.com/documentation/api/accounts</h4>
+          </a>
+          <p><strong>all BankTransactions - count:</strong><%= bankTransactionsCount %></p>
+          <p><strong>Create BankTransaction - ID :</strong><%= createID %></p>
+          <p><strong>one BankTransaction - status :</strong><%= getOneStatus %></p>
+          <p><strong>Updated BankTransaction - status :</strong><%= updatedStatus %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

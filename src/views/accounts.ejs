@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <a href='https://developer.xero.com/documentation/api/accounts' target='_blank'>
+            <h4>https://developer.xero.com/documentation/api/accounts</h4>
+          </a>
+          <p><strong>Read all Accounts - count:</strong> <%= accountsCount %></p>
+          <p><strong>Create Account - name :</strong> <%= createName %></p>
+          <p><strong>Read one Account - name :</strong> <%= getOneName %></p>
+          <p><strong>Updated Account - updateName :</strong> <%= updateName %></p>
+          <p><strong>Created Attachment - attachmentId :</strong> <%= createAttachmentId %></p>
+          <p><strong>Read Attachments - count :</strong> <%= attachmentsCount %></p>
+          <p><strong>Delete Account - name :</strong> <%= deleteName %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

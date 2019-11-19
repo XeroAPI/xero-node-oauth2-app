@@ -1,0 +1,187 @@
+<title>Xero // Node API tutorial</title>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+<head>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    body {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      min-height: 100vh;
+      margin: 0;
+    }
+    textarea {
+      font-size: 16px;
+      width: 100%;
+    }
+    hr {
+      margin-bottom: 15px;
+    }
+    h3 {
+      margin-top: 0px;
+    }
+    button {
+      text-shadow: 0 0.125rem 0.1875rem rgba(0,0,0,.1);
+      color: #FFF;
+      background-color: #21A623;
+      margin: 10px;
+      padding: 15px;
+      border-radius: 5px;;
+      font-size: 16px;
+      letter-spacing: 1px;;
+      cursor: pointer;
+    }
+    .btn-success {
+      background: #00a3d3;
+    }
+    h1, h2,h3, h4 {
+      margin-bottom: 5px;
+    }
+    pre {
+      margin: 0;
+    }
+    .series-font {
+      box-sizing: border-box;
+      font-family: 'Courier New';
+      letter-spacing: 3px;
+      font-weight: 600;
+      margin: 10px;
+    }
+    .body-wrapper {
+      margin: 20px;
+      box-shadow: 3px 3px 3px 2px #ccc;
+      padding: 20px;
+      float: left;
+    }
+    .left-banner {
+      background-color: #32465A;
+      flex: 1;
+      padding-top: 65px;
+    }
+    .menu-items, .menu-items a {
+      color: white;
+      text-decoration: none;
+    }
+    .menu-items li:hover {
+      text-decoration: underline;
+    }
+    .menu-items li {
+      margin-bottom: 15px;
+      list-style: none;
+    }
+    .menu-items .active {
+      text-decoration: underline;
+      font-weight: bold;
+    }
+    .menu-items h1 {
+      margin-left: -20px;
+      margin-top: 45px;
+    }
+    .core-content {
+      display: flex;
+      flex-direction: column;
+      flex: 5;
+      max-width: 80%;
+    }
+    .auth-notification {
+      color: red;
+      font-size: 20px;
+      padding: 20px;
+      float: left;
+      width: 100%;
+    }
+    header {
+      background: #00a3d3;
+      height: 85px;
+    }
+    header, nav {
+      padding: 1.5em;
+    }
+    .orgName, .disconnected {
+      font-size: 20px;
+      margin: 17px;
+      position: absolute;
+      top: 16px;
+    }
+    .orgName {
+      color: #fff;
+      text-shadow: 1px 1px 1px #000;
+    }
+    .disconnected {
+      color: red;
+    }
+    
+    @media only screen and (max-width: 600px) {
+      .menu-items, .core-content {
+        position: relative;
+        display: block;
+        float: left;
+        width: 100%;
+        flex: none;
+        height: auto;
+      }
+    }
+    .xero-love {
+      font-size: 30px;
+      letter-spacing: 10px;
+      top: 8px;
+      position: relative;
+    }
+    .xero-love img {
+      width: 30px;
+      margin-left: 13px;
+      margin-right: 9px;
+    }
+    /* tutorial content */
+    .container:after {
+      clear: both;
+    }
+    .container > div {
+      min-height: 200px;
+      float: left;
+      width: 50%;
+      word-break: break-all;
+    }
+    .left, .right {
+      padding: 15px;
+    }
+    .form-group {
+      text-align: center;
+      float: left;
+      width: 100%;
+    }
+    .form-response h2 {
+      color: green
+    }
+    .summary-item {
+      position: relative;
+      float: left;
+      width: 50%;
+      padding: 20px;
+    }
+    
+    /* Extra fun  */
+    #authenticated {
+      margin: 25px;
+    }
+    @-webkit-keyframes fadeinout {
+      0%,100% { opacity: 0; height: 20px; }
+      50% { opacity: 1; }
+    }
+    @keyframes fadeinout {
+      0%,100% { opacity: 0; height: 20px; }
+      50% { opacity: 1; }
+    }
+    @media all and (max-width: 500px) {
+      .container > div {
+        float: none;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
