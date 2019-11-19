@@ -6,7 +6,7 @@
   "license": "MIT",
   "main": "dist/server.js",
   "scripts": {
-    "build": "node ./utils/build.js",
+    "build-ts": "node ./utils/build.js",
     "postinstall": "npm run build-ts",
     "lint": "tslint --project \"tsconfig.json\"",
     "start-dev": "nodemon --config \"./utils/nodemon.json\""
