@@ -1,7 +1,6 @@
-
 import app from "./app";
 
-const port = 5000;
-app.listen(port, function() {
-  console.log("Express server running at http://localhost:" + port);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, function() {
+  console.log("Express server running at http://localhost:" + PORT);
 });

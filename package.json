@@ -6,10 +6,13 @@
   "license": "MIT",
   "main": "dist/server.js",
   "scripts": {
-    "build": "node ./utils/build.js",
+    "build-ts": "tsc",
+    "postinstall": "npm run build-ts",
     "lint": "tslint --project \"tsconfig.json\"",
-    "start": "node -r module-alias/register ./dist/start.js",
-    "start-dev": "nodemon --config \"./utils/nodemon.json\""
+    "start": "nodemon --config \"./utils/nodemon.json\""
+  },
+  "engines": {
+    "node": "12.12.0"
   },
   "devDependencies": {
     "@types/ejs": "^2.6.3",

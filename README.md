@@ -29,5 +29,5 @@ REDIRECT_URI=...
 
 ```sh
 npm install
-npm start-dev
+npm run start-dev
 ```
