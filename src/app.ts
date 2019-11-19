@@ -16,7 +16,6 @@ const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
 const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access";
 
-
 interface XeroJwt {
   nbf: number
   exp: number
@@ -61,6 +60,7 @@ const xero = new XeroClient({
       });
 
 const consentUrl = xero.buildConsentUrl();
+const allTenants = []
 
 class App {
   public app: express.Application;
@@ -82,13 +82,13 @@ class App {
     // global session variables
     this.app.use(function(req, res, next) {
       res.locals.consentUrl = consentUrl
+      res.locals.allTenants = allTenants
       next();
     });
   }
 
   // helpers
   authenticationData(req, _res) {
-    console.log(req.session)
     return {
       decodedIdToken: req.session.decodedIdToken,
       decodedAccessToken: req.session.decodedAccessToken,
@@ -99,6 +99,10 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
+
+
+      asdfasdf'asdfas'
+
 
       try {
         const consentUrl = await xero.buildConsentUrl();
@@ -128,6 +132,9 @@ class App {
         const decodedAccessToken: XeroAccessToken = jwtDecode(accessToken.access_token)
         req.session.decodedAccessToken = decodedAccessToken
 
+        res.locals.allTenants = xero.tenantIds
+        res.locals.activeTenant = xero.tenantIds[0]
+
         req.session.accessToken = accessToken;
         res.render("callback", {
           authenticated: this.authenticationData(req, res)
@@ -148,20 +155,20 @@ class App {
         await xero.setTokenSet(accessToken);
 
         // GET ALL
-        const accountsGetResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0]);
+        const accountsGetResponse = await xero.accountingApi.getAccounts(res.locals.activeTenant);
 
         // CREATE
         const account: Account = {name: "Foo" + Helper.getRandomNumber(), code: "" + Helper.getRandomNumber(), type: AccountType.EXPENSE};
-        const accountCreateResponse = await xero.accountingApi.createAccount(xero.tenantIds[0],account);
+        const accountCreateResponse = await xero.accountingApi.createAccount(res.locals.activeTenant,account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
         // GET ONE
-        const accountGetResponse = await xero.accountingApi.getAccount(xero.tenantIds[0],accountId);
+        const accountGetResponse = await xero.accountingApi.getAccount(res.locals.activeTenant,accountId);
 
         // UPDATE
         const accountUp: Account = {name: "Bar" + Helper.getRandomNumber()};
         const accounts: Accounts = {accounts:[accountUp]};
-        const accountUpdateResponse = await xero.accountingApi.updateAccount(xero.tenantIds[0],accountId,accounts);
+        const accountUpdateResponse = await xero.accountingApi.updateAccount(res.locals.activeTenant,accountId,accounts);
 
         // CREATE ATTACHMENT
         const filename = "xero-dev.jpg";
@@ -170,7 +177,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
+        const accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(res.locals.activeTenant, accountId, filename, readStream, {
           headers: {
             "Content-Type": contentType,
           },
@@ -179,13 +186,13 @@ class App {
         console.log(accountAttachmentsResponse.body);
 
         // GET ATTACHMENTS
-        const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(xero.tenantIds[0],accountId);
+        const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(res.locals.activeTenant,accountId);
         const attachmentId = accountAttachmentsResponse.body.attachments[0].attachmentID;
         const attachmentMimeType = accountAttachmentsResponse.body.attachments[0].mimeType;
         const attachmentFileName = accountAttachmentsResponse.body.attachments[0].fileName;
 
         // GET ATTACHMENT BY ID
-        const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(xero.tenantIds[0],accountId, attachmentId, attachmentMimeType);
+        const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(res.locals.activeTenant,accountId, attachmentId, attachmentMimeType);
         console.log(accountAttachmentsGetByIdResponse.body.length);
         fs.writeFile(`id-${attachmentFileName}`, accountAttachmentsGetByIdResponse.body, (err) => {
           if (err) { throw err; }
@@ -193,7 +200,7 @@ class App {
         });
 
         // GET ATTACHMENT BY FILENAME
-        const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(xero.tenantIds[0],accountId, attachmentFileName, attachmentMimeType);
+        const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(res.locals.activeTenant,accountId, attachmentFileName, attachmentMimeType);
         console.log(accountAttachmentsGetByFilenameResponse.body.length);
         fs.writeFile(`filename-${attachmentFileName}`, accountAttachmentsGetByFilenameResponse.body, (err) => {
           if (err) { throw err; }
@@ -202,7 +209,7 @@ class App {
 
         console.log(accountId);
         // DELETE
-        // let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountId);
+        // let accountDeleteResponse = await xero.accountingApi.deleteAccount(res.locals.activeTenant,accountId);
 
         res.render("accounts", {
           accountsCount: accountsGetResponse.body.accounts.length,
@@ -230,11 +237,20 @@ class App {
         await xero.setTokenSet(accessToken);
 
         // GET ALL
-        const bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(xero.tenantIds[0]);
+        const bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(res.locals.activeTenant);
 
         // CREATE
-        const contactsResponse = await xero.accountingApi.getContacts(xero.tenantIds[0]);
+
+        const contactsResponse = await xero.accountingApi.getContacts(res.locals.activeTenant);
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
+
+        // Fetch Accounts
+        const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
+        console.log('where: ',where)
+
+        const accountsResponse = await xero.accountingApi.getAccounts(res.locals.activeTenant, null, where);
+
+        console.log('accountsResponse:',accountsResponse)
 
         const lineItems: LineItem[] = [{
           description: "consulting",
@@ -242,9 +258,10 @@ class App {
           unitAmount: 20.0,
           accountCode: "200",
         }];
-        const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
-        const accountsResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0], null, where);
+        console.log('lineItems: ', lineItems)
+
         const useBankAccount: Account = { accountID: accountsResponse.body.accounts[0].accountID };
+        console.log('useBankAccount: ', useBankAccount)
 
         const newBankTransaction: BankTransaction = {
           type: BankTransaction.TypeEnum.SPEND,
@@ -253,11 +270,12 @@ class App {
           bankAccount: useBankAccount,
           date: "2019-09-19T00:00:00",
         };
-        const bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(xero.tenantIds[0], newBankTransaction);
+        console.log('newBankTransaction: ',newBankTransaction)
+        const bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(res.locals.activeTenant, newBankTransaction);
 
         // GET ONE
         const bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
-        const bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(xero.tenantIds[0], bankTransactionId);
+        const bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(res.locals.activeTenant, bankTransactionId);
 
         // UPDATE status to deleted
         const bankTransactionUp = Object.assign({}, bankTransactionGetResponse.body.bankTransactions[0]);
@@ -265,7 +283,7 @@ class App {
         delete bankTransactionUp.contact; // also has an updatedDateUTC
         bankTransactionUp.status = BankTransaction.StatusEnum.DELETED;
         const bankTransactions: BankTransactions = { bankTransactions: [bankTransactionUp] };
-        const bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(xero.tenantIds[0], bankTransactionId, bankTransactions);
+        const bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(res.locals.activeTenant, bankTransactionId, bankTransactions);
 
         res.render("banktransactions", {
           bankTransactionsCount: bankTransactionsGetResponse.body.bankTransactions.length,
@@ -274,7 +292,6 @@ class App {
           updatedStatus: bankTransactionUpdateResponse.body.bankTransactions[0].status,
         });
       } catch (e) {
-        console.error(e);
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -291,8 +308,10 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getBankTransfers(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getBankTransfers(res.locals.activeTenant);
         // CREATE
+
+        // BankTransfer
         // GET ONE
         // UPDATE
         res.render("banktranfers", {count: apiResponse.body.bankTransfers.length});
@@ -310,7 +329,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getBatchPayments(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getBatchPayments(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -329,7 +348,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getBrandingThemes(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getBrandingThemes(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -348,7 +367,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getContacts(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getContacts(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -367,7 +386,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getContactGroups(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getContactGroups(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -386,7 +405,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getCreditNotes(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getCreditNotes(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -405,7 +424,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getCurrencies(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getCurrencies(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -424,7 +443,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getEmployees(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getEmployees(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -443,7 +462,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getExpenseClaims(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getExpenseClaims(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -462,7 +481,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getInvoiceReminders(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getInvoiceReminders(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -481,7 +500,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getInvoices(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getInvoices(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -500,7 +519,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getItems(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getItems(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -519,7 +538,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getJournals(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getJournals(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -538,7 +557,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getManualJournals(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getManualJournals(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -557,7 +576,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getOrganisations(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getOrganisations(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -576,7 +595,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getOverpayments(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getOverpayments(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -595,7 +614,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getPayments(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getPayments(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -614,7 +633,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getPaymentServices(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getPaymentServices(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -633,7 +652,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getPrepayments(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getPrepayments(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -652,7 +671,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getPurchaseOrders(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getPurchaseOrders(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -671,7 +690,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getReceipts(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getReceipts(res.locals.activeTenant);
         // CREATE
         // GET ONE
         // UPDATE
@@ -695,7 +714,7 @@ class App {
         // GET ONE
         // UPDATE
         // We need specific report API calls
-        // let apiResponse = await xero.accountingApi.getReports(xero.tenantIds[0]);
+        // let apiResponse = await xero.accountingApi.getReports(res.locals.activeTenant);
         res.render("reports", {count: 0});
      } catch (e) {
         res.status(res.statusCode);
@@ -711,7 +730,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getTaxRates(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getTaxRates(res.locals.activeTenant);
         console.log(apiResponse.body);
 
         res.render("taxrates", {count: apiResponse.body.taxRates.length});
@@ -729,7 +748,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getTrackingCategories(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getTrackingCategories(res.locals.activeTenant);
         res.render("trackingcategories", {count: apiResponse.body.trackingCategories.length});
      } catch (e) {
         res.status(res.statusCode);
@@ -745,7 +764,7 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getUsers(xero.tenantIds[0]);
+        const apiResponse = await xero.accountingApi.getUsers(res.locals.activeTenant);
         res.render("users", {count: apiResponse.body.users.length});
      } catch (e) {
         res.status(res.statusCode);
