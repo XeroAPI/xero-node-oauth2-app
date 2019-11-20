@@ -132,7 +132,7 @@ class App {
         req.session.decodedAccessToken = decodedAccessToken
         req.session.accessToken = accessToken;
         req.session.allTenants = xero.tenantIds
-        req.session.activeTenant = req.session.activeTenant
+        req.session.activeTenant = xero.tenantIds[0]
 
         const authData = this.authenticationData(req, res)
 
@@ -298,6 +298,7 @@ class App {
         const bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(req.session.activeTenant,  bankTransactionId, bankTransactions);
 
         res.render("banktransactions", {
+          authenticated: this.authenticationData(req, res),
           bankTransactionsCount: bankTransactionsGetResponse.body.bankTransactions.length,
           createID: bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID,
           getOneStatus: bankTransactionGetResponse.body.bankTransactions[0].type,
@@ -325,7 +326,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("banktranfers", {count: apiResponse.body.bankTransfers.length});
+        res.render("banktranfers", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.bankTransfers.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -344,7 +348,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("batchpayments", {count: apiResponse.body.batchPayments.length});
+        res.render("batchpayments", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.batchPayments.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -363,7 +370,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("brandingthemes", {count: apiResponse.body.brandingThemes.length});
+        res.render("brandingthemes", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.brandingThemes.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -382,7 +392,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("contacts", {count: apiResponse.body.contacts.length});
+        res.render("contacts", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.contacts.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -401,7 +414,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("contactgroups", {count: apiResponse.body.contactGroups.length});
+        res.render("contactgroups", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.contactGroups.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -420,7 +436,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("creditnotes", {count: apiResponse.body.creditNotes.length});
+        res.render("creditnotes", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.creditNotes.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -439,7 +458,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("currencies", {count: apiResponse.body.currencies.length});
+        res.render("currencies", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.currencies.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -458,7 +480,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("employees", {count: apiResponse.body.employees.length});
+        res.render("employees", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.employees.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -477,7 +502,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("expenseclaims", {count: apiResponse.body.expenseClaims.length});
+        res.render("expenseclaims", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.expenseClaims.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -496,7 +524,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("invoicereminders", {count: apiResponse.body.invoiceReminders.length});
+        res.render("invoicereminders", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.invoiceReminders.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -515,7 +546,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("invoices", {count: apiResponse.body.invoices.length});
+        res.render("invoices", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.invoices.length
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -534,7 +568,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("items", {count: apiResponse.body.items.length});
+        res.render("items", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.items.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -553,7 +590,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("journals", {count: apiResponse.body.journals.length});
+        res.render("journals", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.journals.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -572,7 +612,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("manualjournals", {count: apiResponse.body.manualJournals.length});
+        res.render("manualjournals", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.manualJournals.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -610,7 +653,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("overpayments", {count: apiResponse.body.overpayments.length});
+        res.render("overpayments", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.overpayments.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -629,7 +675,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("payments", {count: apiResponse.body.payments.length});
+        res.render("payments", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.payments.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -648,7 +697,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("paymentservices", {count: apiResponse.body.paymentServices.length});
+        res.render("paymentservices", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.paymentServices.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -667,7 +719,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("prepayments", {count: apiResponse.body.prepayments.length});
+        res.render("prepayments", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.prepayments.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -686,7 +741,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("purchaseorders", {count: apiResponse.body.purchaseOrders.length});
+        res.render("purchaseorders", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.purchaseOrders.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -705,7 +763,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("receipts", {count: apiResponse.body.receipts.length});
+        res.render("receipts", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.receipts.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -726,7 +787,10 @@ class App {
         // UPDATE
         // We need specific report API calls
         // let apiResponse = await xero.accountingApi.getReports(req.session.activeTenant);
-        res.render("reports", {count: 0});
+        res.render("reports", {
+          authenticated: this.authenticationData(req, res),
+          count: 0
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -744,7 +808,10 @@ class App {
         const apiResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
         console.log(apiResponse.body);
 
-        res.render("taxrates", {count: apiResponse.body.taxRates.length});
+        res.render("taxrates", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.taxRates.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -760,7 +827,10 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getTrackingCategories(req.session.activeTenant);
-        res.render("trackingcategories", {count: apiResponse.body.trackingCategories.length});
+        res.render("trackingcategories", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.trackingCategories.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -776,7 +846,10 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getUsers(req.session.activeTenant);
-        res.render("users", {count: apiResponse.body.users.length});
+        res.render("users", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.users.length
+        });
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
