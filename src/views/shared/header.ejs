@@ -1,7 +1,7 @@
 <header>
-  <% const loggedIn = typeof(authenticated.allTenants) !== 'undefined' && authenticated.allTenants %>
+  <% const loggedIn = typeof(authenticated) !== 'undefined' && typeof(authenticated.allTenants) !== 'undefined' && authenticated.allTenants.length %>
 
-  <% if ((typeof(consentUrl) !== 'undefined' && consentUrl && typeof(authenticated) !== 'undefined') || !loggedIn) { %>
+  <% if ((typeof(consentUrl) !== 'undefined' && consentUrl && typeof(authenticated) !== 'undefined') && !loggedIn) { %>
     <a href="<%= consentUrl %>">
       <img src='https://developer.xero.com/static/images/documentation/ConnectToXero2019/connect-blue.svg'>
     </a>
