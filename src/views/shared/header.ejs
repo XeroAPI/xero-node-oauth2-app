@@ -1,9 +1,25 @@
 <header>
-  <% if (typeof(consentUrl) !== 'undefined' && consentUrl && typeof(authenticated) !== 'undefined') { %>
+  <% const loggedIn = typeof(authenticated.allTenants) !== 'undefined' && authenticated.allTenants %>
+
+  <% if ((typeof(consentUrl) !== 'undefined' && consentUrl && typeof(authenticated) !== 'undefined') || !loggedIn) { %>
     <a href="<%= consentUrl %>">
       <img src='https://developer.xero.com/static/images/documentation/ConnectToXero2019/connect-blue.svg'>
     </a>
-  <% } else{ %>  
+  <% } else { %>  
     <a href='/'><img src='https://www.xero.com/etc/designs/xero-cms/clientlib/assets/img/logo/logo-xero-blue.svg'></a>
   <% } %>
+
+
+  <% if (loggedIn) { %>
+    <form method='POST' action="/change_organisation" id="change-org">
+      <select name='active_org_id' class="select-box">
+        <% for(var i=0; i < authenticated.allTenants.length; i++) { %>
+          <% var selected = authenticated.allTenants[i] === authenticated.activeTenant ? "selected" : "" %>
+          <option <%=selected %> value=<%= authenticated.allTenants[i] %>> <%= authenticated.allTenants[i] %></option>
+          <% } %>
+        </select>
+        <input type="submit" class="select-input" value="Change Org">
+    </form>
+  <% } %>
+
 </header>

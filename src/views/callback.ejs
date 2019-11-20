@@ -8,7 +8,7 @@
       <div class='body-wrapper'>
         <div class='body-content'>
           <% if (authenticated.decodedIdToken && authenticated.decodedAccessToken) { %>
-            <h2 id='authenticated'>You are authenticated!</h2>
+            <h4 id='authenticated'>You are authenticated with: <span><%= authenticated.activeTenant %></span></h4>
             <hr>
             <h4>Id Token Data:</h2>
             <pre>

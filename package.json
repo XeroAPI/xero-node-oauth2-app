@@ -9,7 +9,7 @@
     "build-ts": "node ./utils/build.js",
     "postinstall": "npm run build-ts",
     "lint": "tslint --project \"tsconfig.json\"",
-    "start-dev": "nodemon --config \"./src/utils/nodemon.json\""
+    "start-dev": "nodemon --config"
   },
   "engines": {
     "node": "12.12.0"
