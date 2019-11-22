@@ -119,6 +119,27 @@ class App {
       }
     });
 
+    // OAuth2 now authenticates at the user level instead of the organisation level
+    router.post("/change_organisation", async (req: Request, res: Response) => {
+      try {
+        const activeOrgId = req.body.active_org_id
+        req.session.activeTenant = activeOrgId
+        const authData = this.authenticationData(req, res)
+
+        res.render("home", {
+          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        console.log(e)
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
     router.get("/callback", async (req: Request, res: Response) => {
       try {
         const url = "http://localhost:5000/" + req.originalUrl;
@@ -150,26 +171,6 @@ class App {
       }
     });
 
-    router.post("/change_organisation", async (req: Request, res: Response) => {
-      try {
-        const activeOrgId = req.body.active_org_id
-        req.session.activeTenant = activeOrgId
-        const authData = this.authenticationData(req, res)
-
-        res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
-          authenticated: this.authenticationData(req, res)
-        });
-      } catch (e) {
-        console.log(e)
-        res.status(res.statusCode);
-        res.render("shared/error", {
-          consentUrl: await xero.buildConsentUrl(),
-          error: e
-        });
-      }
-    });
-
     router.get("/accounts", async (req: Request, res: Response) => {
       try {
         const accessToken =  req.session.accessToken;
@@ -179,7 +180,7 @@ class App {
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
         // CREATE
-        const account: Account = {name: "Foo" + Helper.getRandomNumber(), code: "" + Helper.getRandomNumber(), type: AccountType.EXPENSE};
+        const account: Account = { name: "Foo" + Helper.getRandomNumber(), code: "" + Helper.getRandomNumber(), type: AccountType.EXPENSE };
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
@@ -187,8 +188,8 @@ class App {
         const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant, accountId);
 
         // UPDATE
-        const accountUp: Account = {name: "Bar" + Helper.getRandomNumber()};
-        const accounts: Accounts = {accounts:[accountUp]};
+        const accountUp: Account = { name: "Bar" + Helper.getRandomNumber() };
+        const accounts: Accounts = { accounts:[accountUp] };
         const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId,accounts);
 
         // CREATE ATTACHMENT
@@ -230,7 +231,7 @@ class App {
 
         console.log(accountId);
         // DELETE
-        // let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
+        let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
 
         res.render("accounts", {
           consentUrl: await xero.buildConsentUrl(),
@@ -241,10 +242,8 @@ class App {
           updateName: accountUpdateResponse.body.accounts[0].name,
           createAttachmentId: accountAttachmentsResponse.body.attachments[0].attachmentID,
           attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
-          deleteName: "temp",
+          deleteName: accountDeleteResponse.body.accounts[0].name
         });
-        // accountDeleteResponse.body.accounts[0].name
-
      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -266,11 +265,17 @@ class App {
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
+        const allAccounts = await xero.accountingApi.getAccounts(req.session.activeTenant);
+        console.log('allAccounts: ',allAccounts.body.accounts.filter(e => !['NONE','BASEXCLUDED'].includes(e.taxType)))
+        const validAccountCode = allAccounts.body.accounts.filter(e => !['NONE','BASEXCLUDED'].includes(e.taxType))[0].code
+        console.log('validAccountCode: ',validAccountCode)
+
+
         const lineItems: LineItem[] = [{
           description: "consulting",
           quantity: 1.0,
           unitAmount: 20.0,
-          accountCode: "200",
+          accountCode: validAccountCode,
         }];
         const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
         const accountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant,  null, where);
@@ -283,11 +288,11 @@ class App {
           bankAccount: useBankAccount,
           date: "2019-09-19T00:00:00",
         };
-        const bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(req.session.activeTenant,  newBankTransaction);
+        const bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(req.session.activeTenant, newBankTransaction);
 
         // GET ONE
         const bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
-        const bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(req.session.activeTenant,  bankTransactionId);
+        const bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(req.session.activeTenant, bankTransactionId);
 
         // UPDATE status to deleted
         const bankTransactionUp = Object.assign({}, bankTransactionGetResponse.body.bankTransactions[0]);
@@ -295,7 +300,7 @@ class App {
         delete bankTransactionUp.contact; // also has an updatedDateUTC
         bankTransactionUp.status = BankTransaction.StatusEnum.DELETED;
         const bankTransactions: BankTransactions = { bankTransactions: [bankTransactionUp] };
-        const bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(req.session.activeTenant,  bankTransactionId, bankTransactions);
+        const bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(req.session.activeTenant, bankTransactionId, bankTransactions);
 
         res.render("banktransactions", {
           authenticated: this.authenticationData(req, res),
