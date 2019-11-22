@@ -7,7 +7,9 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Bank Tranfers success: Count: <%= count %></p>          
+          <p>Total Bank Tranfers Count: (<%= allBankTransfers.length %>): <%= allBankTransfers.bankTransfers.map(bt => bt.bankTransferId) %></p>
+          <p>Created Bank Tranfer: <%= createBankTransferId %></p>
+          <p>Get Bank Tranfer: <%= getBankTransferId %></p>
         </div>
       </div>
     </div>

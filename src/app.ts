@@ -229,7 +229,6 @@ class App {
           console.log("file written successfully");
         });
 
-        console.log(accountId);
         // DELETE
         let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
 
@@ -322,18 +321,46 @@ class App {
     router.get("/banktranfers", async (req: Request, res: Response) => {
 
       // FIRST check if two bank accounts exist!!
+      console.log('hiya')
 
       try {
+        console.log('sup')
+
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getBankTransfers(req.session.activeTenant);
+        
+        
         // CREATE
+        const getAccounts = await xero.accountingApi.getAccounts(req.session.activeTenant);
+        const allAccounts = getAccounts.body.accounts
+        const acc1 = allAccounts[0]
+        const acc2 = allAccounts[1]
+        const bankTransfer: BankTransfer = {
+          'fromBankAccount': acc1,
+          'toBankAccount': acc2,
+          'amount': '100'
+        }
+
+        console.log('bankTransfer: -> ', bankTransfer)
+        const bankTransfers: BankTransfers = { bankTransfers: [bankTransfer] }
+        const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant, bankTransfers);
+        const createdBankTransferId = createBankTransfer.body.bankTransfers[0].bankTransferID
+
+        console.log('createBankTransfer: -> ', createBankTransfer)
+
         // GET ONE
-        // UPDATE
+        const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant, createdBankTransferId)
+        console.log('getBankTransfer: -> ', getBankTransfer)
+
+        // GET ALL
+        const getBankTransfersResult = await xero.accountingApi.getBankTransfers(req.session.activeTenant);
+        console.log('getBankTransfersResult: -> ', getBankTransfersResult)
+
         res.render("banktranfers", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.bankTransfers.length
+          allBankTransfers: getBankTransfersResult.body.bankTransfers.length,
+          createBankTransferId: createdBankTransferId,
+          getBankTransferId: getBankTransfer.body.bankTransfers[0].bankTransferID
         });
      } catch (e) {
         res.status(res.statusCode);
