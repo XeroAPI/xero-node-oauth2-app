@@ -120,6 +120,7 @@ class App {
     });
 
     // OAuth2 now authenticates at the user level instead of the organisation level
+    // Loop and get org names
     router.post("/change_organisation", async (req: Request, res: Response) => {
       try {
         const activeOrgId = req.body.active_org_id
@@ -265,10 +266,7 @@ class App {
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
         const allAccounts = await xero.accountingApi.getAccounts(req.session.activeTenant);
-        console.log('allAccounts: ',allAccounts.body.accounts.filter(e => !['NONE','BASEXCLUDED'].includes(e.taxType)))
         const validAccountCode = allAccounts.body.accounts.filter(e => !['NONE','BASEXCLUDED'].includes(e.taxType))[0].code
-        console.log('validAccountCode: ',validAccountCode)
-
 
         const lineItems: LineItem[] = [{
           description: "consulting",
