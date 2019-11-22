@@ -120,6 +120,7 @@ class App {
     });
 
     // OAuth2 now authenticates at the user level instead of the organisation level
+    // Loop and get org names
     router.post("/change_organisation", async (req: Request, res: Response) => {
       try {
         const activeOrgId = req.body.active_org_id
@@ -229,7 +230,6 @@ class App {
           console.log("file written successfully");
         });
 
-        console.log(accountId);
         // DELETE
         let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
 
@@ -266,10 +266,7 @@ class App {
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
         const allAccounts = await xero.accountingApi.getAccounts(req.session.activeTenant);
-        console.log('allAccounts: ',allAccounts.body.accounts.filter(e => !['NONE','BASEXCLUDED'].includes(e.taxType)))
         const validAccountCode = allAccounts.body.accounts.filter(e => !['NONE','BASEXCLUDED'].includes(e.taxType))[0].code
-        console.log('validAccountCode: ',validAccountCode)
-
 
         const lineItems: LineItem[] = [{
           description: "consulting",
@@ -320,20 +317,59 @@ class App {
     });
 
     router.get("/banktranfers", async (req: Request, res: Response) => {
-
-      // FIRST check if two bank accounts exist!!
-
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getBankTransfers(req.session.activeTenant);
+         // GET ALL
+         const getBankTransfersResult = await xero.accountingApi.getBankTransfers(req.session.activeTenant);
+         console.log('getBankTransfer.body.bankTransfers: ', getBankTransfersResult.body.bankTransfers)
+         
         // CREATE
+        // FIRST we need two Accounts type=BANK
+        const account1: Account = {
+          name: "Ima Bank: " + Helper.getRandomNumber(),
+          code: "" + Helper.getRandomNumber(),
+          type: AccountType.BANK,
+          bankAccountNumber: Helper.getRandomNumber().toString()
+        };
+        const account2: Account = {
+          name: "Ima Bank: " + Helper.getRandomNumber(),
+          code: "" + Helper.getRandomNumber(),
+          type: AccountType.BANK,
+          bankAccountNumber: Helper.getRandomNumber().toString()
+        };
+        const created1 = await xero.accountingApi.createAccount(req.session.activeTenant, account1);
+        const created2 = await xero.accountingApi.createAccount(req.session.activeTenant, account2);
+        const acc1 = created1.body.accounts[0]
+        const acc2 = created2.body.accounts[0]
+
+        console.log('acc1: ',acc1)
+        console.log('acc2: ',acc2)
+
+        // then we can create a bank transer
+        const bankTransfer: BankTransfer = {
+          fromBankAccount: {
+            accountID: acc1.accountID,
+            name: acc1.name
+          },
+          toBankAccount: {
+            accountID: acc2.accountID,
+            name: acc2.name
+          },
+          amount: '1000'
+        }
+
+        const bankTransfers: BankTransfers = { bankTransfers: [bankTransfer] }
+        const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant, bankTransfers);
+
         // GET ONE
-        // UPDATE
+        const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant, createBankTransfer.body.bankTransfers[0].bankTransferID)
+       
         res.render("banktranfers", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.bankTransfers.length
+          allBankTransfers: getBankTransfersResult.body.bankTransfers,
+          createBankTransferId: createBankTransfer.body.bankTransfers[0].bankTransferID,
+          getBankTransferId: getBankTransfer.body.bankTransfers[0].bankTransferID
         });
      } catch (e) {
         res.status(res.statusCode);
