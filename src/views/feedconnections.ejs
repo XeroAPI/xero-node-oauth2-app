@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <a href='https://developer.xero.com/documentation/bank-feeds-api/feed-connections' target='_blank'>
+            <h4>https://developer.xero.com/documentation/bank-feeds-api/feed-connections</h4>
+          </a>
+          <p><strong>Read all Feed Connections - count:</strong> <%= count %></p>
+          <p><strong>Create Feed Connection - token :</strong> <%= createName %></p>
+          <p><strong>Read one Feed Connection - name :</strong> <%= getOneName %></p>
+          <p><strong>Delete Account - ID :</strong> <%= deleteId %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
