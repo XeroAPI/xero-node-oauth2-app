@@ -7,7 +7,10 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Currencies success: Count: <%= count %></p>
+          <h4>Currencies:</h4>
+          <% for(var i=0; i < currencies.length; i++) { %>
+            <p><i><%= currencies[i].code %></i> - <%= currencies[i].description %></p>
+          <% } %>
         </div>
       </div>
     </div>

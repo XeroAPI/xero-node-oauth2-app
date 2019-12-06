@@ -7,9 +7,12 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Total Bank Tranfers Count: (<%= allBankTransfers.length %>) </p>
-          <p>Created Bank Tranfer: <%= createBankTransferId %></p>
-          <p>Get Bank Tranfer: <%= getBankTransferId %></p>
+          <a href='https://developer.xero.com/documentation/api/bank-transfers' target='_blank'>
+            <h4>Bank Transfers</h4>
+          </a>
+          <p><strong>Total Bank Tranfers Count:</strong> (<%= allBankTransfers.length %>) </p>
+          <p><strong>Created Bank Tranfer:</strong> <%= createBankTransferId %></p>
+          <p><strong>Get Bank Tranfer:</strong> <%= getBankTransferId %></p>
         </div>
       </div>
     </div>

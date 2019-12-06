@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Items, LineItem, XeroClient } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -15,7 +15,8 @@ const mime = require("mime-types");
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
-const scopes = "openid profile email bankfeeds accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access";
+const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access";
+// if you are approved to use the bankfeeds API than the 'bankfeeds' scope is required
 
 interface XeroJwt {
   nbf: number
@@ -69,6 +70,7 @@ const xero_bankfeeds = new XeroBankFeedClient({
 
 const consentUrl = xero.buildConsentUrl();
 
+
 class App {
   public app: express.Application;
 
@@ -76,7 +78,6 @@ class App {
     this.app = express();
     this.config();
     this.routes();
-
     this.app.set( "views", path.join( __dirname, "views" ) );
     this.app.set("view engine", "ejs");
     this.app.use(express.static( path.join( __dirname, "public" )));
@@ -155,6 +156,7 @@ class App {
         const accessToken = await xero.readTokenSet();
 
         const decodedIdToken: XeroJwt = jwtDecode(accessToken.id_token);
+
         req.session.decodedIdToken = decodedIdToken
 
         const decodedAccessToken: XeroAccessToken = jwtDecode(accessToken.access_token)
@@ -200,10 +202,11 @@ class App {
         const accounts: Accounts = { accounts:[accountUp] };
         const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId,accounts);
 
+        // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
+
         // CREATE ATTACHMENT
         const filename = "xero-dev.jpg";
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
-        // const filesize = fs.statSync(pathToUpload).size;
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
@@ -213,13 +216,12 @@ class App {
           },
         });
 
-        console.log(accountAttachmentsResponse.body);
-
-        // GET ATTACHMENTS
-        const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(req.session.activeTenant, accountId);
         const attachmentId = accountAttachmentsResponse.body.attachments[0].attachmentID;
         const attachmentMimeType = accountAttachmentsResponse.body.attachments[0].mimeType;
         const attachmentFileName = accountAttachmentsResponse.body.attachments[0].fileName;
+
+        // GET ATTACHMENTS
+        const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(req.session.activeTenant, accountId);
 
         // GET ATTACHMENT BY ID
         const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant, accountId, attachmentId, attachmentMimeType);
@@ -327,11 +329,10 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-         // GET ALL
-         const getBankTransfersResult = await xero.accountingApi.getBankTransfers(req.session.activeTenant);
-         console.log('getBankTransfer.body.bankTransfers: ', getBankTransfersResult.body.bankTransfers)
+        
+        // GET ALL
+        const getBankTransfersResult = await xero.accountingApi.getBankTransfers(req.session.activeTenant);
          
-        // CREATE
         // FIRST we need two Accounts type=BANK
         const account1: Account = {
           name: "Ima Bank: " + Helper.getRandomNumber(),
@@ -350,10 +351,7 @@ class App {
         const acc1 = created1.body.accounts[0]
         const acc2 = created2.body.accounts[0]
 
-        console.log('acc1: ',acc1)
-        console.log('acc2: ',acc2)
-
-        // then we can create a bank transer
+        // CREATE
         const bankTransfer: BankTransfer = {
           fromBankAccount: {
             accountID: acc1.accountID,
@@ -365,7 +363,6 @@ class App {
           },
           amount: '1000'
         }
-
         const bankTransfers: BankTransfers = { bankTransfers: [bankTransfer] }
         const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant, bankTransfers);
 
@@ -391,13 +388,76 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getBatchPayments(req.session.activeTenant);
+        
+        // create a contact to attach to invoice
+        console.log('first im here')
+        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
+        const contactId = contactCreateResponse.body.contacts[0].contactID;
+
+        // Then create an approved/authorised invoice
+        console.log('then im here')
+        const invoiceParams: Invoice = {
+          type: Invoice.TypeEnum.ACCREC,
+          contact: { 
+            contactID: contactId,
+          },
+          date: "2009-05-27T00:00:00",
+          dueDate: "2009-06-06T00:00:00",
+          lineAmountTypes: LineAmountTypes.Exclusive,
+          lineItems: [
+            {
+              description: "Consulting services as agreed (20% off standard rate)",
+              taxType: "NONE",
+              quantity: 10,
+              unitAmount: 100.00,
+              accountCode: "500",
+              discountRate: "20"
+            }
+          ],
+          status: Invoice.StatusEnum.AUTHORISED
+        }
+        const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
+        const invoice = createdInvoice.body.invoices[0]
+        console.log('Now im ear')
+
         // CREATE
-        // GET ONE
-        // UPDATE
+        const payment1: Payment = {
+          account: { code: "001" },
+          date: "2019-12-31",
+          amount: 500,
+          invoice
+        }
+        const payment2: Payment = {
+          account: { "code": "001" },
+          date: "2019-12-31",
+          amount: 500,
+          invoice
+        }
+
+        const payments: BatchPayment = {
+          payments: [
+            payment1,
+            payment2
+          ]
+        }
+        const batchPayments: BatchPayments = {
+          batchPayments: [
+            payments
+          ]
+        }
+        console.log('im here')
+        const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant, batchPayments);
+
+        console.log('createBatchPayment: ',createBatchPayment)
+
+        // GET
+        const apiResponse = await xero.accountingApi.getBatchPayments(req.session.activeTenant);
+
+
         res.render("batchpayments", {
           authenticated: this.authenticationData(req, res),
+          createBatchPayment: createBatchPayment.body.batchPayments,
           count: apiResponse.body.batchPayments.length
         });
      } catch (e) {
@@ -524,7 +584,7 @@ class App {
         // UPDATE
         res.render("currencies", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.currencies.length
+          currencies: apiResponse.body.currencies
         });
      } catch (e) {
         res.status(res.statusCode);
@@ -605,11 +665,40 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getInvoices(req.session.activeTenant);
         // CREATE
+        // const invoiceParams: Invoice = {
+        //   "Type": "ACCREC",
+        //   "Contact": { 
+        //     "ContactID": "eaa28f49-6028-4b6e-bb12-d8f6278073fc" 
+        //   },
+        //   "Date": "\/Date(1518685950940+0000)\/",
+        //   "DueDate": "\/Date(1518685950940+0000)\/",
+        //   "DateString": "2009-05-27T00:00:00",
+        //   "DueDateString": "2009-06-06T00:00:00",
+        //   "LineAmountTypes": "Exclusive",
+        //   "LineItems": [
+        //     {
+        //       "Description": "Consulting services as agreed (20% off standard rate)",
+        //       "Quantity": "10",
+        //       "UnitAmount": "100.00",
+        //       "AccountCode": "200",
+        //       "DiscountRate": "20"
+        //     }
+        //   ]
+        // }
+        // const invoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
+
+        // {
+        //   "Invoice": { "InvoiceID": "96df0dff-43ec-4899-a7d9-e9d63ef12b19" },
+        //   "Account": { "Code": "001" },
+        //   "Date": "2009-09-08",
+        //   "Amount": 32.06
+        // }
+
         // GET ONE
         // UPDATE
+        // GET ALL
+        const apiResponse = await xero.accountingApi.getInvoices(req.session.activeTenant);
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.invoices.length
