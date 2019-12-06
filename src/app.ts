@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, LineItem, XeroClient } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Items, LineItem, XeroClient } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -435,14 +435,30 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+
         // GET ALL
-        const apiResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+
         // CREATE
+        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
+        const contactId = contactCreateResponse.body.contacts[0].contactID;
+
         // GET ONE
+        const contactGetResponse = await xero.accountingApi.getContact(req.session.activeTenant, contactId);
+
         // UPDATE
+        const contactUpdate: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber() };
+        const contacts: Contacts = { contacts:[contactUpdate] };
+        const contactUpdateResponse = await xero.accountingApi.updateContact(req.session.activeTenant, contactId, contacts);
+
         res.render("contacts", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.contacts.length
+          contactsCount: contactsGetResponse.body.contacts.length,
+          createName: contactCreateResponse.body.contacts[0].name,
+          getOneName: contactGetResponse.body.contacts[0].name,
+          updateName: contactUpdateResponse.body.contacts[0].name,
         });
      } catch (e) {
         res.status(res.statusCode);
@@ -611,14 +627,50 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+
         // GET ALL
-        const apiResponse = await xero.accountingApi.getItems(req.session.activeTenant);
+        const itemsGetResponse = await xero.accountingApi.getItems(req.session.activeTenant);
+
         // CREATE
+        const item: Item = {
+          code: "Foo" + Helper.getRandomNumber(),
+          name: "Bar",
+          purchaseDetails: {
+            unitPrice: 375.5000,
+            taxType: "NONE",
+            accountCode: "500",
+            cOGSAccountCode: "500"
+          },
+          salesDetails: {
+            unitPrice: 520.9900,
+            taxType: "NONE",
+            accountCode: "400",
+          },
+          inventoryAssetAccountCode: "630"
+        };
+        const itemCreateResponse = await xero.accountingApi.createItem(req.session.activeTenant, item);
+        const itemId = itemCreateResponse.body.items[0].itemID;
+
         // GET ONE
+        const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant, itemId);
+
         // UPDATE
+        const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(), name: "Bar - updated", inventoryAssetAccountCode: '630' };
+        const items: Items = { items:[itemUpdate] };
+        const itemUpdateResponse = await xero.accountingApi.updateItem(req.session.activeTenant, itemId, items);
+
+        // DELETE
+        const itemDeleteResponse = await xero.accountingApi.deleteItem(req.session.activeTenant, itemId);
+        
+        console.log(itemDeleteResponse);
         res.render("items", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.items.length
+          itemsCount: itemsGetResponse.body.items.length,
+          createName: itemCreateResponse.body.items[0].name,
+          getOneName: itemGetResponse.body.items[0].name,
+          updateName: itemUpdateResponse.body.items[0].name,
+          deleteResponse: itemDeleteResponse.response.statusCode
         });
      } catch (e) {
         res.status(res.statusCode);

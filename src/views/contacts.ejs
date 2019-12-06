@@ -7,7 +7,13 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Contacts success: Count: <%= count %></p>
+            <a href='https://developer.xero.com/documentation/api/contacts' target='_blank'>
+              <h4>https://developer.xero.com/documentation/api/contacts</h4>
+            </a>
+            <p><strong>Read all Contacts - count:</strong> <%= contactsCount %></p>
+            <p><strong>Create Contact - name :</strong> <%= createName %></p>
+            <p><strong>Read one Contact - name :</strong> <%= getOneName %></p>
+            <p><strong>Updated Contact - name :</strong> <%= updateName %></p>
         </div>
       </div>
     </div>
