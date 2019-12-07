@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -468,14 +468,14 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        
         // GET ALL
         const apiResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
-        // CREATE
-        // GET ONE
-        // UPDATE
+        console.log('apiResponse.body.brandingThemes',apiResponse.body.brandingThemes)
+
         res.render("brandingthemes", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.brandingThemes.length
+          brandingThemes: apiResponse.body.brandingThemes
         });
      } catch (e) {
         res.status(res.statusCode);
@@ -528,14 +528,46 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getContactGroups(req.session.activeTenant);
+        
         // CREATE
+        const contactGroupParams: ContactGroups = {contactGroups: [{ name: 'Ima Contact Group' + Helper.getRandomNumber(10000)}] }
+        const createContactGroup = await xero.accountingApi.createContactGroup(req.session.activeTenant, contactGroupParams);
+        const contactGroup = createContactGroup.body.contactGroups[0]
+
         // GET ONE
+        const getContactGroup = await xero.accountingApi.getContactGroup(req.session.activeTenant, contactGroup.contactGroupID)
+
         // UPDATE
+        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
+        const contactId = contactCreateResponse.body.contacts[0].contactID;
+        const updatedContactGroupParams: ContactGroups = {
+          contactGroups: [{
+            name: 'New Contact Group ' + Helper.getRandomNumber(10000),
+            contacts: [{ contactID: contactId }]
+          }]
+        }
+        console.log('updatedContactGroupParams: ',updatedContactGroupParams)
+        
+        // TODO the endpoint is not receiving the contact... so I cannot delete one
+        const updatedContactGroup = await xero.accountingApi.updateContactGroup(req.session.activeTenant, contactGroup.contactGroupID, updatedContactGroupParams)
+        console.log('updatedContactGroup.body.contactGroups[0]: ',updatedContactGroup.body.contactGroups[0])
+
+        // DELETE
+        const deletedContactGroupContact = await xero.accountingApi.deleteContactGroupContact(req.session.activeTenant, contactGroup.contactGroupID, '')
+
+        // GET ALL
+        const allContactGroups = await xero.accountingApi.getContactGroups(req.session.activeTenant);
+
+        // missing the [0] someplace below
+
         res.render("contactgroups", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.contactGroups.length
+          createdContactGroup: contactGroup,
+          getContactGroup: getContactGroup.body.contactGroups[0].contactGroupID,
+          updatedContactGroup: updatedContactGroup.body.contactGroups[0].contactGroupID,
+          deletedContactGroupContact: deletedContactGroupContact.body.contactGroups[0].contactGroupID,
+          count: allContactGroups.body.contactGroups.length
         });
      } catch (e) {
         res.status(res.statusCode);
