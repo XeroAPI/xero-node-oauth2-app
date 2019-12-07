@@ -1,5 +1,5 @@
 export default class helper {
-  public static getRandomNumber() {
-    return Math.round(Math.random() * (100000 - 1) + 1);
+  public static getRandomNumber(range) {
+    return Math.round(Math.random() * (range - 1) + 1);
   }
 }

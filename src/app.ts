@@ -190,7 +190,7 @@ class App {
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
         // CREATE
-        const account: Account = { name: "Foo" + Helper.getRandomNumber(), code: "" + Helper.getRandomNumber(), type: AccountType.EXPENSE };
+        const account: Account = { name: "Foo" + Helper.getRandomNumber(10000), code: "" + Helper.getRandomNumber(10000), type: AccountType.EXPENSE };
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
@@ -198,7 +198,7 @@ class App {
         const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant, accountId);
 
         // UPDATE
-        const accountUp: Account = { name: "Bar" + Helper.getRandomNumber() };
+        const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(10000) };
         const accounts: Accounts = { accounts:[accountUp] };
         const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId,accounts);
 
@@ -335,16 +335,16 @@ class App {
          
         // FIRST we need two Accounts type=BANK
         const account1: Account = {
-          name: "Ima Bank: " + Helper.getRandomNumber(),
-          code: "" + Helper.getRandomNumber(),
+          name: "Ima Bank: " + Helper.getRandomNumber(10000),
+          code: "" + Helper.getRandomNumber(10000),
           type: AccountType.BANK,
-          bankAccountNumber: Helper.getRandomNumber().toString()
+          bankAccountNumber: Helper.getRandomNumber(209087654321050).toString()
         };
         const account2: Account = {
-          name: "Ima Bank: " + Helper.getRandomNumber(),
-          code: "" + Helper.getRandomNumber(),
+          name: "Ima Bank: " + Helper.getRandomNumber(10000),
+          code: "" + Helper.getRandomNumber(10000),
           type: AccountType.BANK,
-          bankAccountNumber: Helper.getRandomNumber().toString()
+          bankAccountNumber: Helper.getRandomNumber(209087654321051).toString(),
         };
         const created1 = await xero.accountingApi.createAccount(req.session.activeTenant, account1);
         const created2 = await xero.accountingApi.createAccount(req.session.activeTenant, account2);
@@ -390,13 +390,11 @@ class App {
         await xero.setTokenSet(accessToken);
         
         // create a contact to attach to invoice
-        console.log('first im here')
-        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
         const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
         const contactId = contactCreateResponse.body.contacts[0].contactID;
 
         // Then create an approved/authorised invoice
-        console.log('then im here')
         const invoiceParams: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: { 
@@ -407,19 +405,17 @@ class App {
           lineAmountTypes: LineAmountTypes.Exclusive,
           lineItems: [
             {
-              description: "Consulting services as agreed (20% off standard rate)",
+              description: "Consulting services",
               taxType: "NONE",
-              quantity: 10,
+              quantity: 20,
               unitAmount: 100.00,
-              accountCode: "500",
-              discountRate: "20"
+              accountCode: "500"
             }
           ],
           status: Invoice.StatusEnum.AUTHORISED
         }
         const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
         const invoice = createdInvoice.body.invoices[0]
-        console.log('Now im ear')
 
         // CREATE
         const payment1: Payment = {
@@ -436,6 +432,7 @@ class App {
         }
 
         const payments: BatchPayment = {
+          date: "2018-08-01",
           payments: [
             payment1,
             payment2
@@ -446,11 +443,9 @@ class App {
             payments
           ]
         }
-        console.log('im here')
+        console.log('payments0: ',payments.payments)
         const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant, batchPayments);
-
-        console.log('createBatchPayment: ',createBatchPayment)
-
+    
         // GET
         const apiResponse = await xero.accountingApi.getBatchPayments(req.session.activeTenant);
 
@@ -500,7 +495,7 @@ class App {
         const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
 
         // CREATE
-        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
         const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
         const contactId = contactCreateResponse.body.contacts[0].contactID;
 
@@ -508,7 +503,7 @@ class App {
         const contactGetResponse = await xero.accountingApi.getContact(req.session.activeTenant, contactId);
 
         // UPDATE
-        const contactUpdate: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber() };
+        const contactUpdate: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000) };
         const contacts: Contacts = { contacts:[contactUpdate] };
         const contactUpdateResponse = await xero.accountingApi.updateContact(req.session.activeTenant, contactId, contacts);
 
@@ -722,7 +717,7 @@ class App {
 
         // CREATE
         const item: Item = {
-          code: "Foo" + Helper.getRandomNumber(),
+          code: "Foo" + Helper.getRandomNumber(10000),
           name: "Bar",
           purchaseDetails: {
             unitPrice: 375.5000,
@@ -744,7 +739,7 @@ class App {
         const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant, itemId);
 
         // UPDATE
-        const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(), name: "Bar - updated", inventoryAssetAccountCode: '630' };
+        const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(10000), name: "Bar - updated", inventoryAssetAccountCode: '630' };
         const items: Items = { items:[itemUpdate] };
         const itemUpdateResponse = await xero.accountingApi.updateItem(req.session.activeTenant, itemId, items);
 
@@ -1055,9 +1050,9 @@ class App {
 
         // CREATE
         const feedConnection: FeedConnection = new FeedConnection();
-        feedConnection.accountName = "My New Account"  + Helper.getRandomNumber();
-        feedConnection.accountNumber = "123"  + Helper.getRandomNumber();
-        feedConnection.accountToken = "foobar"  + Helper.getRandomNumber();
+        feedConnection.accountName = "My New Account"  + Helper.getRandomNumber(10000);
+        feedConnection.accountNumber = "123"  + Helper.getRandomNumber(10000);
+        feedConnection.accountToken = "foobar"  + Helper.getRandomNumber(10000);
         feedConnection.accountType = FeedConnection.AccountTypeEnum.BANK;
         feedConnection.currency = CurrencyCode.GBP;
 
