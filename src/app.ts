@@ -536,22 +536,48 @@ class App {
 
         // GET ONE
         const getContactGroup = await xero.accountingApi.getContactGroup(req.session.activeTenant, contactGroup.contactGroupID)
+        
 
         // UPDATE
-        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
-        const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
-        const contactId = contactCreateResponse.body.contacts[0].contactID;
-        const updatedContactGroupParams: ContactGroups = {
-          contactGroups: [{
-            name: 'New Contact Group ' + Helper.getRandomNumber(10000),
-            contacts: [{ contactID: contactId }]
-          }]
-        }
-        console.log('updatedContactGroupParams: ',updatedContactGroupParams)
         
-        // TODO the endpoint is not receiving the contact... so I cannot delete one
-        const updatedContactGroup = await xero.accountingApi.updateContactGroup(req.session.activeTenant, contactGroup.contactGroupID, updatedContactGroupParams)
-        console.log('updatedContactGroup.body.contactGroups[0]: ',updatedContactGroup.body.contactGroups[0])
+        // THIS IS PASSING CONTACTS ( https://api-console.xero.com/logs/96587438-cccb-48d8-b3cb-eb78bc13e723 )
+        // But is not creating anything.. Its dropping it in the SDK though its typed as a param
+        // export declare class ContactGroup {
+        //   'name'?: string;
+        //   'status'?: ContactGroup.StatusEnum;
+        //   'contactGroupID'?: string;
+        //   'contacts'?: Array<Contact>;
+        //   ...
+        // }
+        // HTTP -> payload
+        // {"ContactGroups":[{"Name":"New Contact Group 3763","Contacts":[{"ContactID":"ed972568-85ad-4d08-9f58-f5d932eca15f"}]}]}
+        // HTTP -> response
+        //   {
+        //     "ContactGroupID": "dc20c10b-1432-42b3-a127-14200ceb8ac2",
+        //     "Name": "New Contact Group 3763",
+        //     "Status": "ACTIVE",
+        //     "Contacts": [],
+        //     "HasValidationErrors": false
+        //   }
+        // ]
+        // so 2 things.. 
+        // the updateContactGroup drops any `contacts:` and the `createContactGroupContacts` function..
+        // requires the Contact object to actually be a `contacts: [{contactID: string}]` not the js object.
+        
+        // this endpoint needs updating ^
+        // update group endpint => const updatedContactGroup = await xero.accountingApi.updateContactGroup(req.session.activeTenant, contactGroup.contactGroupID, updatedContactGroupParams)
+
+        // create contact  & setup params
+        const num = Helper.getRandomNumber(10000)
+        const contact: Contact = { name: "Contact Foo Bar" + num, firstName: "Foo", lastName: "Bar", emailAddress: `foo+${num}@example.com` };
+        const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
+        const createdContact = contactCreateResponse.body.contacts[0];
+        const updatedContactGroupParams: Contacts = {
+          contacts: [{ contactID: createdContact.contactID }]
+        }
+        // this is the one that works.. but its typed to accept the Contact obj, when it actually only accepts: 
+        // an 'array' of contactID's => [{ contactID: createdContact.contactID }]
+        const updatedContactGroup = await xero.accountingApi.createContactGroupContacts(req.session.activeTenant, contactGroup.contactGroupID, updatedContactGroupParams)
 
         // DELETE
         const deletedContactGroupContact = await xero.accountingApi.deleteContactGroupContact(req.session.activeTenant, contactGroup.contactGroupID, '')
@@ -559,13 +585,11 @@ class App {
         // GET ALL
         const allContactGroups = await xero.accountingApi.getContactGroups(req.session.activeTenant);
 
-        // missing the [0] someplace below
-
         res.render("contactgroups", {
           authenticated: this.authenticationData(req, res),
           createdContactGroup: contactGroup,
           getContactGroup: getContactGroup.body.contactGroups[0].contactGroupID,
-          updatedContactGroup: updatedContactGroup.body.contactGroups[0].contactGroupID,
+          updatedContactGroup: updatedContactGroup.body.contacts[0],
           deletedContactGroupContact: deletedContactGroupContact.body.contactGroups[0].contactGroupID,
           count: allContactGroups.body.contactGroups.length
         });
