@@ -225,7 +225,6 @@ class App {
 
         // GET ATTACHMENT BY ID
         const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant, accountId, attachmentId, attachmentMimeType);
-        console.log(accountAttachmentsGetByIdResponse.body.length);
         fs.writeFile(`id-${attachmentFileName}`, accountAttachmentsGetByIdResponse.body, (err) => {
           if (err) { throw err; }
           console.log("file written successfully");
@@ -233,7 +232,6 @@ class App {
 
         // GET ATTACHMENT BY FILENAME
         const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(req.session.activeTenant, accountId, attachmentFileName, attachmentMimeType);
-        console.log(accountAttachmentsGetByFilenameResponse.body.length);
         fs.writeFile(`filename-${attachmentFileName}`, accountAttachmentsGetByFilenameResponse.body, (err) => {
           if (err) { throw err; }
           console.log("file written successfully");
@@ -470,7 +468,6 @@ class App {
         
         // GET ALL
         const apiResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
-        console.log('apiResponse.body.brandingThemes',apiResponse.body.brandingThemes)
 
         res.render("brandingthemes", {
           authenticated: this.authenticationData(req, res),
@@ -777,8 +774,7 @@ class App {
 
         // DELETE
         const itemDeleteResponse = await xero.accountingApi.deleteItem(req.session.activeTenant, itemId);
-        
-        console.log(itemDeleteResponse);
+
         res.render("items", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
@@ -1022,7 +1018,6 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
-        console.log(apiResponse.body);
 
         res.render("taxrates", {
           authenticated: this.authenticationData(req, res),
