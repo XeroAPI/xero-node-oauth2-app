@@ -443,7 +443,6 @@ class App {
             payments
           ]
         }
-        console.log('payments0: ',payments.payments)
         const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant, batchPayments);
     
         // GET
@@ -567,7 +566,6 @@ class App {
         // this endpoint needs updating ^
         // update group endpint => const updatedContactGroup = await xero.accountingApi.updateContactGroup(req.session.activeTenant, contactGroup.contactGroupID, updatedContactGroupParams)
 
-        // create contact  & setup params
         const num = Helper.getRandomNumber(10000)
         const contact: Contact = { name: "Contact Foo Bar" + num, firstName: "Foo", lastName: "Bar", emailAddress: `foo+${num}@example.com` };
         const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
@@ -580,17 +578,18 @@ class App {
         const updatedContactGroup = await xero.accountingApi.createContactGroupContacts(req.session.activeTenant, contactGroup.contactGroupID, updatedContactGroupParams)
 
         // DELETE
-        const deletedContactGroupContact = await xero.accountingApi.deleteContactGroupContact(req.session.activeTenant, contactGroup.contactGroupID, '')
+        const deletedContactGroupContact = await xero.accountingApi.deleteContactGroupContact(req.session.activeTenant, contactGroup.contactGroupID, createdContact.contactID)
+        const deleted = deletedContactGroupContact.response.statusCode === 204 
 
         // GET ALL
         const allContactGroups = await xero.accountingApi.getContactGroups(req.session.activeTenant);
 
         res.render("contactgroups", {
           authenticated: this.authenticationData(req, res),
-          createdContactGroup: contactGroup,
-          getContactGroup: getContactGroup.body.contactGroups[0].contactGroupID,
-          updatedContactGroup: updatedContactGroup.body.contacts[0],
-          deletedContactGroupContact: deletedContactGroupContact.body.contactGroups[0].contactGroupID,
+          createdContactGroupID: contactGroup.contactGroupID,
+          getContactGroupName: getContactGroup.body.contactGroups[0].name,
+          updatedContactGroupContactID: updatedContactGroup.body.contacts[0].contactID,
+          deletedContactGroupContact: deleted ? `${createdContact.contactID} removed from contact group` : 'failed to delete',
           count: allContactGroups.body.contactGroups.length
         });
      } catch (e) {
