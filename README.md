@@ -15,6 +15,7 @@ Create an OAuth 2.0 app in Xero to get a *CLIENT_ID* and *CLIENT_SECRET*.
 * Click "Create App"
 * Click "Generate a secret"
 * Create a `.env` in the root of your project, and replace the 3 variables
+> `touch .env`
 ```
 CLIENT_ID=...
 CLIENT_SECRET=...
