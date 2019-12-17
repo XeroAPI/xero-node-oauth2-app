@@ -151,7 +151,7 @@ class App {
 
     router.get("/callback", async (req: Request, res: Response) => {
       try {
-        const url = "http://localhost:5000/" + req.originalUrl;
+        const url = process.env.REDIRECT_URI + req.originalUrl;
         await xero.setAccessTokenFromRedirectUri(url);
         const accessToken = await xero.readTokenSet();
 
