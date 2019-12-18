@@ -17,6 +17,7 @@ const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
 const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access";
 // if you are approved to use the bankfeeds API than the 'bankfeeds' scope is required
+// https://developer.xero.com/documentation/bank-feeds-api/overview
 
 interface XeroJwt {
   nbf: number
@@ -128,7 +129,7 @@ class App {
     });
 
     // OAuth2 now authenticates at the user level instead of the organisation level
-    // Loop and get org names
+    // TODO - show loop / get + map each org_name to org_id
     router.post("/change_organisation", async (req: Request, res: Response) => {
       try {
         const activeOrgId = req.body.active_org_id
