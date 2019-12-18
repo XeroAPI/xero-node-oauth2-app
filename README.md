@@ -28,6 +28,3 @@ REDIRECT_URI=...
 npm install
 npm run start-dev
 ```
-
-A hosted version of the sample app can be viewed here: https://xero-node-oauth2-app.herokuapp.com/
-
