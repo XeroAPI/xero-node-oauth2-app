@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -710,7 +710,7 @@ class App {
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
         const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
 
-        const invoice: Invoice = {
+        const invoiceParams: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: {
             contactID: contactsResponse.body.contacts[0].contactID
@@ -746,21 +746,31 @@ class App {
           ]
         }
         
-        const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoice)
+        const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
 
         // GET ONE
         const getInvoice = await xero.accountingApi.getInvoice(req.session.activeTenant, createdInvoice.body.invoices[0].invoiceID)
+        const invoiceId = getInvoice.body.invoices[0].invoiceID
 
         // UPDATE
-        // const updateInvoice = await xero.accountingApi.updateInvoice(req.session.activeTenant, )
+        const newReference = {reference: `NEW-REF:${Helper.getRandomNumber(10000)}`}
+
+        const invoiceToUpdate: Invoices = {
+          invoices: [            
+            Object.assign(invoiceParams, newReference)
+          ]
+        }
+
+        const updatedInvoices = await xero.accountingApi.updateInvoice(req.session.activeTenant, invoiceId, invoiceToUpdate)
 
         // GET ALL
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
 
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
-          getInvoiceID: getInvoice.body.invoices[0].invoiceID,
+          invoiceId,
           createdInvoice: createdInvoice.body.invoices[0],
+          updatedInvoice: updatedInvoices.body.invoices[0],
           count: totalInvoices.body.invoices.length
         });
       } catch (e) {
