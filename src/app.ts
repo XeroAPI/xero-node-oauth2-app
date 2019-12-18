@@ -149,6 +149,30 @@ class App {
       }
     });
 
+    router.get("/logout", async (req: Request, res: Response) => {
+      try {
+        const consentUrl = await xero.buildConsentUrl();
+        
+        req.session.decodedAccessToken = null
+        req.session.accessToken = null
+        req.session.allTenants = null
+        req.session.activeTenant = null
+
+        const authData = this.authenticationData(req, res)
+
+        res.render("home", { 
+          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          authenticated: authData
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
     router.get("/callback", async (req: Request, res: Response) => {
       try {
         const url = process.env.REDIRECT_URI + req.originalUrl;
@@ -491,7 +515,8 @@ class App {
         const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
 
         // CREATE
-        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        const contact: any = { id: "84343da8-d908-4ddd-9f6f-9af6c72ebc4c", name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        console.log('contact: ',contact)
         const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
         const contactId = contactCreateResponse.body.contacts[0].contactID;
 
