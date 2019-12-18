@@ -1,4 +1,13 @@
 <!doctype html>
+<script>
+  setTimeout(() => {
+    if(window.confirm("WARNING! This sample application will Create, Read, Update & Delete REAL objects in your Xero Database. Please only use a Demo company or test organisation.")) {
+      console.log('welcome to the tutorial :)')
+    } else {
+      window.location.assign('/logout')
+    }
+  }, 500)
+</script>
 <html>
   <%- include('shared/head') -%>
   <body>
@@ -24,7 +33,10 @@
               </code>
             </pre>
           <%} else { %>
-            <h2>Please authenticate to explore the tutorial</h2>
+            <p>This tutorial will show developers how to utilise our API endpoints with the "xero-node" SDK version in package.json</p>
+            <h3 style='color:red;'>WARNING!</h3>
+            <p>This tutorial will Create, Read, Update & Delete REAL objects in the authenticated Xero organisation.</p>
+            <p>Please only authenticate with a <a href='https://developer.xero.com/documentation/getting-started/development-accounts' target='_blank'>Demo Company</a> or a non-production organisation.</p>
           <% } %>
         </div>
       </div>

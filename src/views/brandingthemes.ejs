@@ -7,7 +7,19 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Branding Themes success: Count: <%= count %></p>
+          <a href='https://developer.xero.com/documentation/api/branding-themes' target='_blank'>
+            <h4>Branding Themes</h4>
+          </a>
+          <% for(var i=0; i < brandingThemes.length; i++) { %>
+            <hr>
+            <tr>
+              <p><strong>brandingThemeID: </strong><%= brandingThemes[i].brandingThemeID %></p>
+              <p><strong>name: </strong><%= brandingThemes[i].name %></p>
+              <p><strong>logoUrl: </strong><%= brandingThemes[i].logoUrl %></p>
+              <p><strong>type: </strong><%= brandingThemes[i].type %></p>
+              <p><strong>sortOrder: </strong><%= brandingThemes[i].sortOrder %></p>
+            </tr>
+         <% } %>
         </div>
       </div>
     </div>

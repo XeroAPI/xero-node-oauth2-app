@@ -14,16 +14,13 @@ Create an OAuth 2.0 app in Xero to get a *CLIENT_ID* and *CLIENT_SECRET*.
 * Enter your app details (your redirect URI: `http://localhost:${PORT}`)
 * Click "Create App"
 * Click "Generate a secret"
-* Create a `.env` in the root of your project, and replace the 3 variables
+* Create a `.env` file in the root of your project & replace the 3 variables
 > `touch .env`
 ```
 CLIENT_ID=...
 CLIENT_SECRET=...
 REDIRECT_URI=...
 ```
-
-<!-- "create app" screenshot -->
-<!-- "generate secret" screenshot -->
 
 ### Build and run
 
@@ -32,5 +29,5 @@ npm install
 npm run start-dev
 ```
 
-
 A hosted version of the sample app can be viewed here: https://xero-node-oauth2-app.herokuapp.com/
+

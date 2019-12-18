@@ -1,5 +1,5 @@
 <header>
-  <% const loggedIn = typeof(authenticated) !== 'undefined' && typeof(authenticated.allTenants) !== 'undefined' && authenticated.allTenants.length %>
+  <% const loggedIn = typeof(authenticated) !== 'undefined' && typeof(authenticated.allTenants) !== 'undefined' && authenticated.allTenants && authenticated.allTenants.length %>
 
   <% if ((typeof(consentUrl) !== 'undefined' && consentUrl && typeof(authenticated) !== 'undefined') && !loggedIn) { %>
     <a href="<%= consentUrl %>">
