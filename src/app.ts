@@ -564,15 +564,9 @@ class App {
         const updatedContactGroupParams: Contacts = {
           contacts: [{ contactID: createdContact.contactID }]
         }
-        // To create contacts w/in contact group, actually cannot pass a whole Contact.. actually need to pass it => `{ contacts: [{ contactID: createdContact.contactID }] }`
+        // To create contacts w/in contact group you cannot pass a whole Contact
+        // need to pass it as an aray of with the following key `{ contacts: [{ contactID: createdContact.contactID }] }`
         const updatedContactGroup = await xero.accountingApi.createContactGroupContacts(req.session.activeTenant, contactGroup.contactGroupID, updatedContactGroupParams)
-
-        // Also worth noting - the following is typed as a params SDK function and passes through the API logs, but does not actually create the nested { contacts: ... }
-        // const updateGroupParams: ContactGroups = {contactGroups: [{ 
-        //   contactGroupID: contactGroup.contactGroupID,
-        //   contacts: [{ contactID: createdContact.contactID }]
-        // }] }
-        // const updatedContactGroup = await xero.accountingApi.updateContactGroup(req.session.activeTenant, contactGroup.contactGroupID, updateGroupParams)
         
         // DELETE
         const deletedContactGroupContact = await xero.accountingApi.deleteContactGroupContact(req.session.activeTenant, contactGroup.contactGroupID, createdContact.contactID)
@@ -712,43 +706,62 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        // CREATE
-        // const invoiceParams: Invoice = {
-        //   "Type": "ACCREC",
-        //   "Contact": { 
-        //     "ContactID": "eaa28f49-6028-4b6e-bb12-d8f6278073fc" 
-        //   },
-        //   "Date": "\/Date(1518685950940+0000)\/",
-        //   "DueDate": "\/Date(1518685950940+0000)\/",
-        //   "DateString": "2009-05-27T00:00:00",
-        //   "DueDateString": "2009-06-06T00:00:00",
-        //   "LineAmountTypes": "Exclusive",
-        //   "LineItems": [
-        //     {
-        //       "Description": "Consulting services as agreed (20% off standard rate)",
-        //       "Quantity": "10",
-        //       "UnitAmount": "100.00",
-        //       "AccountCode": "200",
-        //       "DiscountRate": "20"
-        //     }
-        //   ]
-        // }
-        // const invoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
+        
+        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
 
-        // {
-        //   "Invoice": { "InvoiceID": "96df0dff-43ec-4899-a7d9-e9d63ef12b19" },
-        //   "Account": { "Code": "001" },
-        //   "Date": "2009-09-08",
-        //   "Amount": 32.06
-        // }
+        const invoice: Invoice = {
+          type: Invoice.TypeEnum.ACCREC,
+          contact: {
+            contactID: contactsResponse.body.contacts[0].contactID
+          },
+          expectedPaymentDate: "2009-10-20T00:00:00",
+          invoiceNumber: `XERO:${Helper.getRandomNumber(10000)}`,
+          reference: `REF:${Helper.getRandomNumber(10000)}`,
+          brandingThemeID: brandingTheme.body.brandingThemes[0].brandingThemeID,
+          url: "https://deeplink-to-your-site.com",
+          currencyCode: CurrencyCode.USD,
+          status: Invoice.StatusEnum.SUBMITTED,
+          lineAmountTypes: LineAmountTypes.Inclusive,
+          subTotal: 87.11,
+          totalTax: 10.89,
+          total: 98.00,
+          date: "2009-05-27T00:00:00",
+          dueDate: "2009-06-06T00:00:00",
+          lineItems: [
+            {
+              description: "Consulting services",
+              taxType: "NONE",
+              quantity: 20,
+              unitAmount: 100.00,
+              accountCode: "500"
+            },
+            {
+              description: "Mega Consulting services",
+              taxType: "NONE",
+              quantity: 10,
+              unitAmount: 500.00,
+              accountCode: "500"
+            }
+          ]
+        }
+        
+        const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoice)
 
         // GET ONE
+        const getInvoice = await xero.accountingApi.getInvoice(req.session.activeTenant, createdInvoice.body.invoices[0].invoiceID)
+
         // UPDATE
+        // const updateInvoice = await xero.accountingApi.updateInvoice(req.session.activeTenant, )
+
         // GET ALL
-        const apiResponse = await xero.accountingApi.getInvoices(req.session.activeTenant);
+        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
+
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.invoices.length
+          getInvoiceID: getInvoice.body.invoices[0].invoiceID,
+          createdInvoice: createdInvoice.body.invoices[0],
+          count: totalInvoices.body.invoices.length
         });
       } catch (e) {
         res.status(res.statusCode);

@@ -7,7 +7,13 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Invoices success count: <%= count %></p>
+          <a href='https://developer.xero.com/documentation/api/invoices' target='_blank'>
+            <h4>Invoices</h4>
+          </a>
+          <p>Created Invoice Number: $<%= createdInvoice.invoiceNumber %></p>
+          <p>Created Invoice Total: $<%= createdInvoice.total %></p>
+          <p>Get Invoice: <%= getInvoiceID %></p>
+          <p>Total Invoices: <%= count %></p>
         </div>
       </div>
     </div>
