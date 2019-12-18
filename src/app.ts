@@ -71,7 +71,6 @@ const xero_bankfeeds = new XeroBankFeedClient({
 
 const consentUrl = xero.buildConsentUrl();
 
-
 class App {
   public app: express.Application;
 
@@ -181,10 +180,9 @@ class App {
         const accessToken = await xero.readTokenSet();
 
         const decodedIdToken: XeroJwt = jwtDecode(accessToken.id_token);
-
-        req.session.decodedIdToken = decodedIdToken
-
         const decodedAccessToken: XeroAccessToken = jwtDecode(accessToken.access_token)
+        
+        req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
         req.session.accessToken = accessToken;
         req.session.allTenants = xero.tenantIds
@@ -228,7 +226,6 @@ class App {
         const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId,accounts);
 
         // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
-
         // CREATE ATTACHMENT
         const filename = "xero-dev.jpg";
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
