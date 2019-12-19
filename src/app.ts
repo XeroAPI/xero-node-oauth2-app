@@ -72,7 +72,7 @@ const xero_bankfeeds = new XeroBankFeedClient({
 const consentUrl = xero.buildConsentUrl();
 
 if (!client_id || !client_secret || !redirectUrl) { 
-  throw('Environment Variables not all set :(')
+  throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
 }
 
 class App {
