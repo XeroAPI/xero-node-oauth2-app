@@ -71,6 +71,10 @@ const xero_bankfeeds = new XeroBankFeedClient({
 
 const consentUrl = xero.buildConsentUrl();
 
+if (!client_id || !client_secret || !redirectUrl) { 
+  throw('Environment Variables not all set :(')
+}
+
 class App {
   public app: express.Application;
 
