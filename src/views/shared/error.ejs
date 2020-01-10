@@ -9,7 +9,11 @@
         <h1>Error:</h1>
         <pre>
           <code class='language-javascript'>
-            <% if(error && error.response) { %>
+            <% if(error && error.toString().includes("TypeError: Cannot read property 'access_token' of undefined")) { %>
+              <%= error %>
+              <hr>
+              <a href="/">Re-Authenticate</a>
+            <% } else if (error && error.response) { %>
               <%- JSON.stringify(error, null, 2).replace(/[{}]/g, '') %>
             <% } else{ %>
               <%= error %>

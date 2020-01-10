@@ -7,7 +7,11 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Batch payments success: Count: <%= count %></p>
+          <a href='https://developer.xero.com/documentation/api/batch-payments' target='_blank'>
+            <h4>Batch Payments</h4>
+          </a>
+          <p><strong>Created Batch Payments:</strong> <%= createBatchPayment %></p>
+          <p><strong>Total Batch Payments:</strong> <%= count %></p>
         </div>
       </div>
     </div>
