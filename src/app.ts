@@ -756,8 +756,6 @@ class App {
         }
         
         // CREATE
-        console.log(`req.session.activeTenant = `,req.session.activeTenant)
-        console.log(`invoiceParams = `,invoiceParams)
         const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
 
         // GET ONE
