@@ -441,41 +441,46 @@ class App {
         const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
         const invoice = createdInvoice.body.invoices[0]
 
+        const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
+
         // CREATE
-        const payment1: Payment = {
+        const payment1: any = { // Payment
           account: { code: "001" },
           date: "2019-12-31",
           amount: 500,
-          invoice
-        }
-        const payment2: Payment = {
-          account: { "code": "001" },
-          date: "2019-12-31",
-          amount: 500,
-          invoice
+          invoice: {
+            invoiceID: invoice.invoiceID // Not typed correctly
+          }
         }
 
+        // BatchPayment 'reference'?: string; is not optional
+        // "ValidationErrors": [
+          // "Message": "Batch deposits require a reference"
         const payments: BatchPayment = {
+          account: {
+            accountID: accountsGetResponse.body.accounts[0].accountID
+          },
+          reference: "ref",
           date: "2018-08-01",
           payments: [
-            payment1,
-            payment2
+            payment1
           ]
         }
-        const batchPayments: BatchPayments = {
+
+        const batchPayments: BatchPayments = { // BatchPayments - the account is not typed correctly in ts BatchPayment to accept an accountID
           batchPayments: [
             payments
           ]
         }
+
         const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant, batchPayments);
     
         // GET
         const apiResponse = await xero.accountingApi.getBatchPayments(req.session.activeTenant);
 
-
         res.render("batchpayments", {
           authenticated: this.authenticationData(req, res),
-          createBatchPayment: createBatchPayment.body.batchPayments,
+          createBatchPayment: createBatchPayment.body.batchPayments[0].batchPaymentID,
           count: apiResponse.body.batchPayments.length
         });
      } catch (e) {
@@ -750,6 +755,7 @@ class App {
           ]
         }
         
+        // CREATE
         const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
 
         // GET ONE
