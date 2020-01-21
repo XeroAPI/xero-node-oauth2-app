@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -69,9 +69,9 @@ const xero_bankfeeds = new XeroBankFeedClient({
         scopes: scopes.split(" "),
       });
 
-const consentUrl = xero.buildConsentUrl();
+//const consentUrl = xero.buildConsentUrl();
 
-if (!client_id || !client_secret || !redirectUrl) { 
+if (!client_id || !client_secret || !redirectUrl) {
   throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
 }
 
@@ -92,11 +92,13 @@ class App {
     this.app.use(bodyParser.urlencoded({ extended: false }));
 
     // global session variables
+    /*
     this.app.use(function(req, res, next) {
       res.locals.consentUrl = consentUrl
 
       next();
     });
+    */
   }
 
   // helpers
@@ -118,7 +120,7 @@ class App {
         const consentUrl = await xero.buildConsentUrl();
         const authData = this.authenticationData(req, res)
 
-        res.render("home", { 
+        res.render("home", {
           consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
           authenticated: authData
         });
@@ -140,7 +142,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          //consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
@@ -156,7 +158,7 @@ class App {
     router.get("/logout", async (req: Request, res: Response) => {
       try {
         const consentUrl = await xero.buildConsentUrl();
-        
+
         req.session.decodedAccessToken = null
         req.session.accessToken = null
         req.session.allTenants = null
@@ -164,7 +166,7 @@ class App {
 
         const authData = this.authenticationData(req, res)
 
-        res.render("home", { 
+        res.render("home", {
           consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
           authenticated: authData
         });
@@ -185,7 +187,7 @@ class App {
 
         const decodedIdToken: XeroJwt = jwtDecode(accessToken.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(accessToken.access_token)
-        
+
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
         req.session.accessToken = accessToken;
@@ -195,7 +197,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("callback", {
-          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          //consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
@@ -294,7 +296,7 @@ class App {
         // GET ALL
         const bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(req.session.activeTenant);
 
-        // CREATE
+        // CREATE ONE OR MORE BANK TRANSACTION
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
@@ -318,7 +320,41 @@ class App {
           bankAccount: useBankAccount,
           date: "2019-09-19T00:00:00",
         };
-        const bankTransactionCreateResponse = await xero.accountingApi.createBankTransaction(req.session.activeTenant, newBankTransaction);
+
+        // Add bank transaction objects to array
+        const newBankTransactions: BankTransactions = new BankTransactions();
+        newBankTransactions.bankTransactions = [newBankTransaction,newBankTransaction];
+        const bankTransactionCreateResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant, newBankTransactions, false);
+
+        // UPDATE OR CREATE ONE OR MORE BANK TRANSACTION
+        const newBankTransaction2: BankTransaction = {
+          type: BankTransaction.TypeEnum.SPEND,
+          contact: useContact,
+          lineItems,
+          bankAccount: useBankAccount,
+          date: "2019-09-19T00:00:00",
+        };
+
+        // Swap in this lineItem arry to force an ERROR with an invalid account code
+        const lineItems2: LineItem[] = [{
+          description: "consulting",
+          quantity: 1.0,
+          unitAmount: 20.0,
+          accountCode: "6666666666",
+        }];
+
+        const newBankTransaction3: BankTransaction = {
+          bankTransactionID:  bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID,
+          type: BankTransaction.TypeEnum.SPEND,
+          contact: useContact,
+          bankAccount: useBankAccount,
+          reference: "Changed",
+          lineItems: lineItems
+        };
+
+        const upBankTransactions:BankTransactions = new BankTransactions();
+        upBankTransactions.bankTransactions = [newBankTransaction2, newBankTransaction3];
+        const bankTransactionUpdateOrCreateResponse = await xero.accountingApi.updateOrCreateBankTransactions(req.session.activeTenant, upBankTransactions, false);
 
         // GET ONE
         const bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
@@ -353,10 +389,10 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        
+
         // GET ALL
         const getBankTransfersResult = await xero.accountingApi.getBankTransfers(req.session.activeTenant);
-         
+
         // FIRST we need two Accounts type=BANK
         const account1: Account = {
           name: "Ima Bank: " + Helper.getRandomNumber(10000),
@@ -392,7 +428,7 @@ class App {
 
         // GET ONE
         const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant, createBankTransfer.body.bankTransfers[0].bankTransferID)
-       
+
         res.render("banktranfers", {
           authenticated: this.authenticationData(req, res),
           allBankTransfers: getBankTransfersResult.body.bankTransfers,
@@ -412,16 +448,40 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        
-        // create a contact to attach to invoice
-        const contact: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
-        const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
-        const contactId = contactCreateResponse.body.contacts[0].contactID;
 
+        // create a contact to attach to invoice
+        const contact: Contact = { name: "Contact Sid Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+
+        const contactPersons: ContactPerson[] = [];
+        const person1: ContactPerson = new ContactPerson();
+        person1.firstName = "Joe";
+        person1.lastName = "Johnson";
+        contactPersons.push(person1);
+        const person2: ContactPerson = new ContactPerson();
+        person2.firstName = "Jane";
+        person2.lastName = "Johnson";
+        contactPersons.push(person2);
+
+        const contact1: Contact = new Contact();
+        contact1.name = "Sid Customer "  + Helper.getRandomNumber(10000);
+        contact1.firstName = "123"  + Helper.getRandomNumber(10000);
+        contact1.lastName = "foobar"  + Helper.getRandomNumber(10000);
+        contact1.emailAddress = "foo@bar.com"
+        contact1.contactPersons = contactPersons;
+
+        const contact2: Contact = { name: "Contact Sid Bar 2" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com", contactPersons:[{firstName: "Joe", lastName: "Johnson" }] };
+
+        const newContacts: Contacts = new Contacts();
+        // Add contact object to array
+        newContacts.contacts = [contact1,contact2];
+
+        const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
+        const contactId = contactCreateResponse.body.contacts[0].contactID;
+        console.log(contactId);
         // Then create an approved/authorised invoice
-        const invoiceParams: Invoice = {
+        const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
-          contact: { 
+          contact: {
             contactID: contactId,
           },
           date: "2009-05-27T00:00:00",
@@ -438,7 +498,11 @@ class App {
           ],
           status: Invoice.StatusEnum.AUTHORISED
         }
-        const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
+
+        const newInvoices: Invoices = new Invoices();
+        newInvoices.invoices = [invoice1];
+
+        const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices)
         const invoice = createdInvoice.body.invoices[0]
 
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
@@ -474,7 +538,7 @@ class App {
         }
 
         const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant, batchPayments);
-    
+
         // GET
         const apiResponse = await xero.accountingApi.getBatchPayments(req.session.activeTenant);
 
@@ -496,7 +560,7 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        
+
         // GET ALL
         const apiResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
 
@@ -521,11 +585,20 @@ class App {
         // GET ALL
         const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
 
-        // CREATE
-        const contact: any = { id: "84343da8-d908-4ddd-9f6f-9af6c72ebc4c", name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
-        console.log('contact: ',contact)
-        const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
+        // CREATE ONE OR MORE
+        const contact1: any = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        const newContacts: Contacts = new Contacts();
+        newContacts.contacts = [contact1];
+        const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
         const contactId = contactCreateResponse.body.contacts[0].contactID;
+
+        // UPDATE or CREATE ONE OR MORE - force validation error
+        const upContacts: Contacts = new Contacts();
+        const contact2: any = { id: contactId, name: "Contact Foo Bar", firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        const contact3: any = { name: "Contact Foo Bar", firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+
+        upContacts.contacts = [contact2,contact3];
+        const updateOrCreateContactsResponse = await xero.accountingApi.updateOrCreateContacts(req.session.activeTenant, upContacts, false);
 
         // GET ONE
         const contactGetResponse = await xero.accountingApi.getContact(req.session.activeTenant, contactId);
@@ -556,7 +629,7 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        
+
         // CREATE
         const contactGroupParams: ContactGroups = {contactGroups: [{ name: 'Ima Contact Group' + Helper.getRandomNumber(10000)}] }
         const createContactGroup = await xero.accountingApi.createContactGroup(req.session.activeTenant, contactGroupParams);
@@ -564,11 +637,13 @@ class App {
 
         // GET
         const getContactGroup = await xero.accountingApi.getContactGroup(req.session.activeTenant, contactGroup.contactGroupID)
-        
+
         // UPDATE
         const num = Helper.getRandomNumber(10000)
-        const contact: Contact = { name: "Contact Foo Bar" + num, firstName: "Foo", lastName: "Bar", emailAddress: `foo+${num}@example.com` };
-        const contactCreateResponse = await xero.accountingApi.createContact(req.session.activeTenant, contact);
+        const contact1: Contact = { name: "Contact Foo Bar" + num, firstName: "Foo", lastName: "Bar", emailAddress: `foo+${num}@example.com` };
+        const newContacts: Contacts = new Contacts();
+        newContacts.contacts = [contact1];
+        const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
         const createdContact = contactCreateResponse.body.contacts[0];
         const updatedContactGroupParams: Contacts = {
           contacts: [{ contactID: createdContact.contactID }]
@@ -576,10 +651,10 @@ class App {
         // To create contacts w/in contact group you cannot pass a whole Contact
         // need to pass it as an aray of with the following key `{ contacts: [{ contactID: createdContact.contactID }] }`
         const updatedContactGroup = await xero.accountingApi.createContactGroupContacts(req.session.activeTenant, contactGroup.contactGroupID, updatedContactGroupParams)
-        
+
         // DELETE
         const deletedContactGroupContact = await xero.accountingApi.deleteContactGroupContact(req.session.activeTenant, contactGroup.contactGroupID, createdContact.contactID)
-        const deleted = deletedContactGroupContact.response.statusCode === 204 
+        const deleted = deletedContactGroupContact.response.statusCode === 204
 
         // GET ALL
         const allContactGroups = await xero.accountingApi.getContactGroups(req.session.activeTenant);
@@ -715,11 +790,11 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        
+
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
         const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
 
-        const invoiceParams: Invoice = {
+        const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: {
             contactID: contactsResponse.body.contacts[0].contactID
@@ -754,9 +829,37 @@ class App {
             }
           ]
         }
-        
-        // CREATE
-        const createdInvoice = await xero.accountingApi.createInvoice(req.session.activeTenant, invoiceParams)
+
+        // Array of Invoices needed
+        const newInvoices: Invoices = new Invoices()
+        newInvoices.invoices = [invoice1, invoice1];
+
+        // CREATE ONE OR MORE INVOICES
+        const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices, false)
+
+
+        // CREATE ONE OR MORE INVOICES - FORCE Validation error with bad account code
+        const updateInvoices: Invoices = new Invoices();
+        const invoice2: Invoice = {
+          type: Invoice.TypeEnum.ACCREC,
+          contact: {
+            contactID: contactsResponse.body.contacts[0].contactID
+          },
+          status: Invoice.StatusEnum.SUBMITTED,
+          date: "2009-05-27T00:00:00",
+          dueDate: "2009-06-06T00:00:00",
+          lineItems: [
+            {
+              description: "Consulting services",
+              taxType: "NONE",
+              quantity: 20,
+              unitAmount: 100.00,
+              accountCode: "99999999"
+            }
+          ]
+        }
+        updateInvoices.invoices = [invoice1,invoice2];
+        const updateOrCreateInvoiceResponse = await xero.accountingApi.updateOrCreateInvoices(req.session.activeTenant, updateInvoices, false)
 
         // GET ONE
         const getInvoice = await xero.accountingApi.getInvoice(req.session.activeTenant, createdInvoice.body.invoices[0].invoiceID)
@@ -766,8 +869,8 @@ class App {
         const newReference = {reference: `NEW-REF:${Helper.getRandomNumber(10000)}`}
 
         const invoiceToUpdate: Invoices = {
-          invoices: [            
-            Object.assign(invoiceParams, newReference)
+          invoices: [
+            Object.assign(invoice1, newReference)
           ]
         }
 
@@ -800,8 +903,8 @@ class App {
         // GET ALL
         const itemsGetResponse = await xero.accountingApi.getItems(req.session.activeTenant);
 
-        // CREATE
-        const item: Item = {
+        // CREATE ONE or MORE ITEMS
+        const item1: Item = {
           code: "Foo" + Helper.getRandomNumber(10000),
           name: "Bar",
           purchaseDetails: {
@@ -817,8 +920,30 @@ class App {
           },
           inventoryAssetAccountCode: "630"
         };
-        const itemCreateResponse = await xero.accountingApi.createItem(req.session.activeTenant, item);
+        const newItems: Items = new Items();
+        newItems.items = [item1]
+
+        const itemCreateResponse = await xero.accountingApi.createItems(req.session.activeTenant, newItems,false);
         const itemId = itemCreateResponse.body.items[0].itemID;
+
+
+        // UPDATE OR CREATE ONE or MORE ITEMS - FORCE validation error on update
+        const updateItems: Items = new Items();
+        const item2: Item = {
+          code: itemCreateResponse.body.items[0].code,
+          name: "Bar",
+          purchaseDetails: {
+            unitPrice: 375.5000,
+            taxType: "NONE",
+            accountCode: "9999999",
+            cOGSAccountCode: "500"
+          },
+          inventoryAssetAccountCode: "630"
+        };
+        updateItems.items = [item1,item2]
+
+        const updateOrCreateItemsResponse = await xero.accountingApi.updateOrCreateItems(req.session.activeTenant, updateItems, false);
+
 
         // GET ONE
         const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant, itemId);
@@ -1142,21 +1267,21 @@ class App {
         const feedConnections: FeedConnections = new FeedConnections();
         feedConnections.items = [feedConnection];
          const createResponse = await xero_bankfeeds.bankFeedsApi.createFeedConnections(req.session.activeTenant, feedConnections);
-      
+
          // GET ALL
         const readAllResponse = await xero_bankfeeds.bankFeedsApi.getFeedConnections(req.session.activeTenant);
-      
+
         // GET ONE
         const feedConnectionId = readAllResponse.body.items[0].id;
         const readOneResponse = await xero_bankfeeds.bankFeedsApi.getFeedConnection(req.session.activeTenant, feedConnectionId);
-      
+
         // DELETE
         const deleteConnection: FeedConnection = new FeedConnection();
         deleteConnection.id = feedConnectionId;
         const deleteConnections: FeedConnections = new FeedConnections();
         deleteConnections.items = [deleteConnection];
         const deleteResponse = await xero_bankfeeds.bankFeedsApi.deleteFeedConnections(req.session.activeTenant,deleteConnections);
-     
+
         res.render("feedconnections", {
           authenticated: this.authenticationData(req, res),
           count: readAllResponse.body.items.length,

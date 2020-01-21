@@ -38,7 +38,7 @@
     "module-alias": "^2.2.2",
     "nodemon": "^1.19.4",
     "path": "^0.12.7",
-    "xero-node": "^4.0.6",
+    "xero-node": "file:../xero-node/xero-node-4.1.0.tgz",
     "xero-node-bankfeeds": "^0.9.1"
   }
 }
