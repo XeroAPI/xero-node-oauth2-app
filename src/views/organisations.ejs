@@ -7,7 +7,27 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Organisation name: <%= name %></p>
+          <a href='https://developer.xero.com/documentation/api/organisation' target='_blank'>
+            <h4>Organisation</h4>
+          </a>
+          <% for(var i=0; i < orgs.length; i++) { %>
+            <p><strong>Name:</strong><i> <%= orgs[i].name %></i></p>
+            <p><strong>organisationID:</strong><i> <%= orgs[i].organisationID %></i></p>
+            <p><strong>aPIKey:</strong><i> <%= orgs[i].aPIKey %></i></p>
+            <p><strong>name:</strong><i> <%= orgs[i].name %></i></p>
+            <p><strong>legalName:</strong><i> <%= orgs[i].legalName %></i></p>
+            <p><strong>paysTax:</strong><i> <%= orgs[i].paysTax %></i></p>
+            <p><strong>version:</strong><i> <%= orgs[i].version %></i></p>
+            <p><strong>organisationType:</strong><i> <%= orgs[i].organisationType %></i></p>
+            <p><strong>baseCurrency:</strong><i> <%= orgs[i].baseCurrency %></i></p>
+            <p><strong>countryCode:</strong><i> <%= orgs[i].countryCode %></i></p>
+            <p><strong>isDemoCompany:</strong><i> <%= orgs[i].isDemoCompany %></i></p>
+            <p><strong>organisationStatus:</strong><i> <%= orgs[i].organisationStatus %></i></p>
+            <p><strong>timezone:</strong><i> <%= orgs[i].timezone %></i></p>
+            <p><strong>organisationEntityType:</strong><i> <%= orgs[i].organisationEntityType %></i></p>
+            <p><strong>shortCode:</strong><i> <%= orgs[i].shortCode %></i></p>
+            <p><strong>edition:</strong><i> <%= orgs[i].edition %></i></p>
+          <% } %>
         </div>
       </div>
     </div>

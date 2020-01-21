@@ -909,6 +909,8 @@ class App {
     });
 
     router.get("/items", async (req: Request, res: Response) => {
+      // currently works with DEMO COMPANY specific data.. Will need to create proper accounts 
+      // w/ cOGS codes to have this work with an empty Xero Org
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
@@ -936,34 +938,22 @@ class App {
         const newItems: Items = new Items();
         newItems.items = [item1]
 
-        const itemCreateResponse = await xero.accountingApi.createItems(req.session.activeTenant, newItems,false);
+        const itemCreateResponse = await xero.accountingApi.createItems(req.session.activeTenant, newItems);
         const itemId = itemCreateResponse.body.items[0].itemID;
 
-
         // UPDATE OR CREATE ONE or MORE ITEMS - FORCE validation error on update
+        item1.name = "Bar" + Helper.getRandomNumber(10000)
         const updateItems: Items = new Items();
-        const item2: Item = {
-          code: itemCreateResponse.body.items[0].code,
-          name: "Bar",
-          purchaseDetails: {
-            unitPrice: 375.5000,
-            taxType: "NONE",
-            accountCode: "9999999",
-            cOGSAccountCode: "500"
-          },
-          inventoryAssetAccountCode: "630"
-        };
-        updateItems.items = [item1,item2]
+        updateItems.items = [item1]
 
-        const updateOrCreateItemsResponse = await xero.accountingApi.updateOrCreateItems(req.session.activeTenant, updateItems, false);
-
+        await xero.accountingApi.updateOrCreateItems(req.session.activeTenant, updateItems, false);
 
         // GET ONE
-        const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant, itemId);
+        const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant, itemsGetResponse.body.items[0].itemID)
 
         // UPDATE
-        const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(10000), name: "Bar - updated", inventoryAssetAccountCode: '630' };
-        const items: Items = { items:[itemUpdate] };
+        const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(10000), name: "Bar - updated", inventoryAssetAccountCode: item1.inventoryAssetAccountCode };
+        const items: Items = { items: [itemUpdate] };
         const itemUpdateResponse = await xero.accountingApi.updateItem(req.session.activeTenant, itemId, items);
 
         // DELETE
@@ -1040,7 +1030,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("organisations", {name: apiResponse.body.organisations[0].name});
+        res.render("organisations", { 
+          authenticated: this.authenticationData(req, res),
+          orgs: apiResponse.body.organisations
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
