@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, Quote, Quotes } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -69,7 +69,7 @@ const xero_bankfeeds = new XeroBankFeedClient({
         scopes: scopes.split(" "),
       });
 
-const consentUrl = xero.buildConsentUrl();
+// const consentUrl = xero.buildConsentUrl();
 
 if (!client_id || !client_secret || !redirectUrl) { 
   throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
@@ -92,11 +92,11 @@ class App {
     this.app.use(bodyParser.urlencoded({ extended: false }));
 
     // global session variables
-    this.app.use(function(req, res, next) {
-      res.locals.consentUrl = consentUrl
+    // this.app.use(function(req, res, next) {
+    //   res.locals.consentUrl = consentUrl
 
-      next();
-    });
+    //   next();
+    // });
   }
 
   // helpers
@@ -140,7 +140,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          // consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
@@ -195,7 +195,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("callback", {
-          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          // consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
@@ -1116,6 +1116,29 @@ class App {
         res.render("users", {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.users.length
+        });
+     } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/quotes", async (req: Request, res: Response) => {
+      try {
+        const accessToken = req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+        // GET ALL
+        const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant);
+
+        // GET ONE
+        const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant, getAllQuotes.body.quotes[0].quoteID);
+        res.render("quotes", {
+          authenticated: this.authenticationData(req, res),
+          count: getAllQuotes.body.quotes.length,
+          getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber
         });
      } catch (e) {
         res.status(res.statusCode);

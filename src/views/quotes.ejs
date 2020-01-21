@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+            <a href='https://developer.xero.com/documentation/api/quotes' target='_blank'>
+              <h4>https://developer.xero.com/documentation/api/quotes</h4>
+            </a>
+            <p><strong>Read all Quotes - count:</strong> <%= count %></p>
+            <p><strong>Read one Quote - quote number :</strong> <%= getOneQuoteNumber %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
