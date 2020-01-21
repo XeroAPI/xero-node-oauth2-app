@@ -69,8 +69,6 @@ const xero_bankfeeds = new XeroBankFeedClient({
         scopes: scopes.split(" "),
       });
 
-//const consentUrl = xero.buildConsentUrl();
-
 if (!client_id || !client_secret || !redirectUrl) {
   throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
 }
@@ -94,7 +92,7 @@ class App {
     // global session variables
     /*
     this.app.use(function(req, res, next) {
-      res.locals.consentUrl = consentUrl
+      res.locals.consentUrl = xero.buildConsentUrl();
 
       next();
     });
@@ -117,11 +115,10 @@ class App {
     router.get("/", async (req: Request, res: Response) => {
 
       try {
-        const consentUrl = await xero.buildConsentUrl();
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: authData
         });
       } catch (e) {
@@ -133,6 +130,9 @@ class App {
       }
     });
 
+    // refreshToken
+
+
     // OAuth2 now authenticates at the user level instead of the organisation level
     // TODO - show loop / get + map each org_name to org_id
     router.post("/change_organisation", async (req: Request, res: Response) => {
@@ -142,7 +142,37 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          //consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        console.log(e)
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/refresh-token", async (req: Request, res: Response) => {
+      try {
+
+        // Refresh Token
+        await xero.refreshToken()
+        const newAccessToken = await xero.readTokenSet();
+
+        const decodedIdToken: XeroJwt = jwtDecode(newAccessToken.id_token);
+        const decodedAccessToken: XeroAccessToken = jwtDecode(newAccessToken.access_token)
+
+        req.session.decodedIdToken = decodedIdToken
+        req.session.decodedAccessToken = decodedAccessToken
+        req.session.accessToken = newAccessToken;
+
+        const authData = this.authenticationData(req, res)
+
+        res.render("home", {
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
@@ -157,8 +187,6 @@ class App {
 
     router.get("/logout", async (req: Request, res: Response) => {
       try {
-        const consentUrl = await xero.buildConsentUrl();
-
         req.session.decodedAccessToken = null
         req.session.accessToken = null
         req.session.allTenants = null
@@ -167,7 +195,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: authData
         });
       } catch (e) {
@@ -197,7 +225,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("callback", {
-          //consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
