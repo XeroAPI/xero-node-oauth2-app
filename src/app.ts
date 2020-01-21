@@ -69,7 +69,6 @@ const xero_bankfeeds = new XeroBankFeedClient({
         scopes: scopes.split(" "),
       });
 
-
 if (!client_id || !client_secret || !redirectUrl) {
   throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
 }
@@ -108,10 +107,9 @@ class App {
 
       try {
         const authData = this.authenticationData(req, res)
-        const consent = await xero.buildConsentUrl()
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : consent,
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: authData
         });
       } catch (e) {
@@ -136,7 +134,6 @@ class App {
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
-        console.log(e)
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -166,7 +163,6 @@ class App {
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
-        console.log(e)
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -177,8 +173,6 @@ class App {
 
     router.get("/logout", async (req: Request, res: Response) => {
       try {
-        const consentUrl = await xero.buildConsentUrl();
-
         req.session.decodedAccessToken = null
         req.session.accessToken = null
         req.session.allTenants = null
@@ -217,11 +211,10 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("callback", {
-          //consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
-        console.log(e)
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -497,7 +490,7 @@ class App {
 
         const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
         const contactId = contactCreateResponse.body.contacts[0].contactID;
-        console.log(contactId);
+
         // Then create an approved/authorised invoice
         const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
