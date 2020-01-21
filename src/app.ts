@@ -69,7 +69,6 @@ const xero_bankfeeds = new XeroBankFeedClient({
         scopes: scopes.split(" "),
       });
 
-//const consentUrl = xero.buildConsentUrl();
 
 if (!client_id || !client_secret || !redirectUrl) {
   throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
@@ -90,15 +89,6 @@ class App {
   private config(): void {
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
-
-    // global session variables
-    /*
-    this.app.use(function(req, res, next) {
-      res.locals.consentUrl = consentUrl
-
-      next();
-    });
-    */
   }
 
   // helpers
@@ -117,11 +107,11 @@ class App {
     router.get("/", async (req: Request, res: Response) => {
 
       try {
-        const consentUrl = await xero.buildConsentUrl();
         const authData = this.authenticationData(req, res)
+        const consent = await xero.buildConsentUrl()
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          consentUrl: authData.decodedAccessToken ? undefined : consent,
           authenticated: authData
         });
       } catch (e) {
@@ -142,7 +132,37 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          //consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        console.log(e)
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/refresh-token", async (req: Request, res: Response) => {
+      try {
+        
+        // Refresh Token
+        await xero.refreshToken()
+        const newAccessToken = await xero.readTokenSet();
+
+        const decodedIdToken: XeroJwt = jwtDecode(newAccessToken.id_token);
+        const decodedAccessToken: XeroAccessToken = jwtDecode(newAccessToken.access_token)
+
+        req.session.decodedIdToken = decodedIdToken
+        req.session.decodedAccessToken = decodedAccessToken
+        req.session.accessToken = newAccessToken;
+
+        const authData = this.authenticationData(req, res)
+
+        res.render("home", {
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
@@ -167,7 +187,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: authData
         });
       } catch (e) {
@@ -197,7 +217,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("callback", {
-          //consentUrl: authData.decodedAccessToken ? undefined : consentUrl,
+          //consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
