@@ -832,6 +832,19 @@ class App {
         // CREATE ONE OR MORE INVOICES
         const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices, false)
 
+        console.log(createdInvoice.response.statusCode);
+
+        // Since we are using summarizeErrors = false we get 200 OK statuscode
+        // Our array of created invoices include those that succeeded and those with validation errors.
+        // loop over the invoices and if it has an error, loop over the error messages
+        for(let i=0; i<createdInvoice.body.invoices.length; i++){
+          if(createdInvoice.body.invoices[i].hasErrors) {
+            let errors = createdInvoice.body.invoices[i].validationErrors;
+            for(let j=0; j<errors.length; j++){
+              console.log(errors[j].message);
+            }
+          }
+        }
 
         // CREATE ONE OR MORE INVOICES - FORCE Validation error with bad account code
         const updateInvoices: Invoices = new Invoices();
