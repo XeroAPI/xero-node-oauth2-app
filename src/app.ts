@@ -88,15 +88,6 @@ class App {
   private config(): void {
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
-
-    // global session variables
-    /*
-    this.app.use(function(req, res, next) {
-      res.locals.consentUrl = xero.buildConsentUrl();
-
-      next();
-    });
-    */
   }
 
   // helpers
@@ -130,9 +121,6 @@ class App {
       }
     });
 
-    // refreshToken
-
-
     // OAuth2 now authenticates at the user level instead of the organisation level
     // TODO - show loop / get + map each org_name to org_id
     router.post("/change_organisation", async (req: Request, res: Response) => {
@@ -146,7 +134,6 @@ class App {
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
-        console.log(e)
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -176,7 +163,6 @@ class App {
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
-        console.log(e)
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -229,7 +215,6 @@ class App {
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
-        console.log(e)
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -477,40 +462,12 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
-        // create a contact to attach to invoice
-        const contact: Contact = { name: "Contact Sid Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
-
-        const contactPersons: ContactPerson[] = [];
-        const person1: ContactPerson = new ContactPerson();
-        person1.firstName = "Joe";
-        person1.lastName = "Johnson";
-        contactPersons.push(person1);
-        const person2: ContactPerson = new ContactPerson();
-        person2.firstName = "Jane";
-        person2.lastName = "Johnson";
-        contactPersons.push(person2);
-
-        const contact1: Contact = new Contact();
-        contact1.name = "Sid Customer "  + Helper.getRandomNumber(10000);
-        contact1.firstName = "123"  + Helper.getRandomNumber(10000);
-        contact1.lastName = "foobar"  + Helper.getRandomNumber(10000);
-        contact1.emailAddress = "foo@bar.com"
-        contact1.contactPersons = contactPersons;
-
-        const contact2: Contact = { name: "Contact Sid Bar 2" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com", contactPersons:[{firstName: "Joe", lastName: "Johnson" }] };
-
-        const newContacts: Contacts = new Contacts();
-        // Add contact object to array
-        newContacts.contacts = [contact1,contact2];
-
-        const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
-        const contactId = contactCreateResponse.body.contacts[0].contactID;
-        console.log(contactId);
+        const allContacts = await xero.accountingApi.getContacts(req.session.activeTenant)
         // Then create an approved/authorised invoice
         const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: {
-            contactID: contactId,
+            contactID: allContacts.body.contacts[0].contactID
           },
           date: "2009-05-27T00:00:00",
           dueDate: "2009-06-06T00:00:00",
@@ -614,25 +571,37 @@ class App {
         const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
 
         // CREATE ONE OR MORE
-        const contact1: any = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000), firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        const contact1: Contact = { name: "Rick James: " + Helper.getRandomNumber(10000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
         const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
         const contactId = contactCreateResponse.body.contacts[0].contactID;
 
-        // UPDATE or CREATE ONE OR MORE - force validation error
-        const upContacts: Contacts = new Contacts();
-        const contact2: any = { id: contactId, name: "Contact Foo Bar", firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
-        const contact3: any = { name: "Contact Foo Bar", firstName: "Foo", lastName: "Bar", emailAddress: "foo.bar@example.com" };
+        // UPDATE or CREATE BATCH - force validation error
+        const person: ContactPerson = {
+          firstName: 'Joe',
+          lastName: 'Schmo'
+        }
 
-        upContacts.contacts = [contact2,contact3];
-        const updateOrCreateContactsResponse = await xero.accountingApi.updateOrCreateContacts(req.session.activeTenant, upContacts, false);
+        const updateContacts: Contacts = new Contacts();
+        const contact2: Contact = {
+          contactID: contactId,
+          name: "Rick James: " + Helper.getRandomNumber(10000),
+          firstName: "Rick",
+          lastName: "James",
+          emailAddress: "test@example.com",
+          contactPersons: [person]
+        };
+        const contact3: Contact = { name: "Rick James: " + Helper.getRandomNumber(10000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
+
+        updateContacts.contacts = [contact2, contact3];
+        await xero.accountingApi.updateOrCreateContacts(req.session.activeTenant, updateContacts, false);
 
         // GET ONE
         const contactGetResponse = await xero.accountingApi.getContact(req.session.activeTenant, contactId);
 
-        // UPDATE
-        const contactUpdate: Contact = { name: "Contact Foo Bar" + Helper.getRandomNumber(10000) };
+        // UPDATE SINGLE
+        const contactUpdate: Contact = { name: "Rick James Updated: " + Helper.getRandomNumber(10000) };
         const contacts: Contacts = { contacts:[contactUpdate] };
         const contactUpdateResponse = await xero.accountingApi.updateContact(req.session.activeTenant, contactId, contacts);
 
@@ -668,7 +637,7 @@ class App {
 
         // UPDATE
         const num = Helper.getRandomNumber(10000)
-        const contact1: Contact = { name: "Contact Foo Bar" + num, firstName: "Foo", lastName: "Bar", emailAddress: `foo+${num}@example.com` };
+        const contact1: Contact = { name: "Rick James: " + num, firstName: "Rick", lastName: "James", emailAddress: `foo+${num}@example.com` };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
         const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
@@ -924,6 +893,8 @@ class App {
     });
 
     router.get("/items", async (req: Request, res: Response) => {
+      // currently works with DEMO COMPANY specific data.. Will need to create proper accounts
+      // w/ cOGS codes to have this work with an empty Xero Org
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
@@ -951,34 +922,22 @@ class App {
         const newItems: Items = new Items();
         newItems.items = [item1]
 
-        const itemCreateResponse = await xero.accountingApi.createItems(req.session.activeTenant, newItems,false);
+        const itemCreateResponse = await xero.accountingApi.createItems(req.session.activeTenant, newItems);
         const itemId = itemCreateResponse.body.items[0].itemID;
 
-
         // UPDATE OR CREATE ONE or MORE ITEMS - FORCE validation error on update
+        item1.name = "Bar" + Helper.getRandomNumber(10000)
         const updateItems: Items = new Items();
-        const item2: Item = {
-          code: itemCreateResponse.body.items[0].code,
-          name: "Bar",
-          purchaseDetails: {
-            unitPrice: 375.5000,
-            taxType: "NONE",
-            accountCode: "9999999",
-            cOGSAccountCode: "500"
-          },
-          inventoryAssetAccountCode: "630"
-        };
-        updateItems.items = [item1,item2]
+        updateItems.items = [item1]
 
-        const updateOrCreateItemsResponse = await xero.accountingApi.updateOrCreateItems(req.session.activeTenant, updateItems, false);
-
+        await xero.accountingApi.updateOrCreateItems(req.session.activeTenant, updateItems, false);
 
         // GET ONE
-        const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant, itemId);
+        const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant, itemsGetResponse.body.items[0].itemID)
 
         // UPDATE
-        const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(10000), name: "Bar - updated", inventoryAssetAccountCode: '630' };
-        const items: Items = { items:[itemUpdate] };
+        const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(10000), name: "Bar - updated", inventoryAssetAccountCode: item1.inventoryAssetAccountCode };
+        const items: Items = { items: [itemUpdate] };
         const itemUpdateResponse = await xero.accountingApi.updateItem(req.session.activeTenant, itemId, items);
 
         // DELETE
@@ -1055,7 +1014,10 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("organisations", {name: apiResponse.body.organisations[0].name});
+        res.render("organisations", {
+          authenticated: this.authenticationData(req, res),
+          orgs: apiResponse.body.organisations
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
