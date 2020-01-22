@@ -902,7 +902,12 @@ class App {
           new Date("2008-01-16"),
           'Status=Paid'
         )
-       
+        // https://github.com/XeroAPI/xero-node/issues/264
+        // going out as https://api.xero.com/api.xro/2.0/Invoices?where=Status%3DPaid
+        // Status=Paid
+        // need it as https://api.xero.com/api.xro/2.0/Invoices?where=Status%3D%3D%22Paid%22
+        // Status=="Paid"
+        
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
           filteredInvoices: filteredInvoices.body.invoices.length
