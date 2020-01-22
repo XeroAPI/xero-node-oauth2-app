@@ -104,10 +104,8 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
-
       try {
         const authData = this.authenticationData(req, res)
-
         res.render("home", {
           consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: authData
@@ -1163,16 +1161,21 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        // GET ALL
-
+        // GET BANK SUMMARY REPORT
+        const fromDate = "2019-01-01";
+        const toDate = "2019-12-31";
+        const apiResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant, fromDate, toDate);
+        console.log(apiResponse.body.reports[0].reportTitles[2]);
         // CREATE
         // GET ONE
         // UPDATE
         // We need specific report API calls
         // let apiResponse = await xero.accountingApi.getReports(req.session.activeTenant);
         res.render("reports", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          count: 0
+          count: 0,
+          bankSummaryTitle: apiResponse.body.reports[0].reportTitles[2]
         });
      } catch (e) {
         res.status(res.statusCode);
