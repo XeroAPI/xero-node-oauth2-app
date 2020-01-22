@@ -792,6 +792,27 @@ class App {
       }
     });
 
+    router.get("/email-invoice", async (req: Request, res: Response) => {
+      try {
+        const accessToken =  req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+        const invoices = xero.accountingApi.getInvoices(req.session.activeTenant)
+        // SEEND ONE
+        const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant, invoices.response.body.invoices[0].invoiceID, {})
+
+        res.render("invoices", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.invoiceReminders.length
+        });
+     } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
     router.get("/items", async (req: Request, res: Response) => {
       try {
         const accessToken =  req.session.accessToken;
