@@ -571,7 +571,13 @@ class App {
         const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
 
         // CREATE ONE OR MORE
-        const contact1: Contact = { name: "Rick James: " + Helper.getRandomNumber(10000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
+        const contact1: Contact = { 
+          contactNumber: '1234',
+          name: "Rick James: " + Helper.getRandomNumber(10000),
+          firstName: "Rick",
+          lastName: "James",
+          emailAddress: "test@example.com"
+        };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
         const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
@@ -586,6 +592,7 @@ class App {
         const updateContacts: Contacts = new Contacts();
         const contact2: Contact = { 
           contactID: contactId,
+          contactNumber: '1234',
           name: "Rick James: " + Helper.getRandomNumber(10000),
           firstName: "Rick",
           lastName: "James",
