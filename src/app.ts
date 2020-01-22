@@ -892,6 +892,30 @@ class App {
       }
     });
 
+    router.get("/filter-invoices", async (req: Request, res: Response) => {
+      try {
+        const accessToken =  req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+
+        const filteredInvoices = await xero.accountingApi.getInvoices(
+          req.session.activeTenant,
+          new Date("2008-01-16"),
+          'Status=Paid'
+        )
+       
+        res.render("invoices", {
+          authenticated: this.authenticationData(req, res),
+          filteredInvoices: filteredInvoices.body.invoices.length
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
     router.get("/items", async (req: Request, res: Response) => {
       // currently works with DEMO COMPANY specific data.. Will need to create proper accounts 
       // w/ cOGS codes to have this work with an empty Xero Org
