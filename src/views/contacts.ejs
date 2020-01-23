@@ -13,7 +13,7 @@
             <p><strong>Read all Contacts - count:</strong> <%= contactsCount %></p>
             <p><strong>Create Contact - name :</strong> <%= createName %></p>
             <p><strong>Read one Contact - name :</strong> <%= getOneName %></p>
-            <p><strong>Updated Contact - name :</strong> <%= updateName %></p>
+            <p><strong>Updated Contact :</strong> <%= JSON.stringify(updatedContact, null, 2).replace(/[{}]/g, '') %></p>
         </div>
       </div>
     </div>
