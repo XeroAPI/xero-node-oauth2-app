@@ -104,10 +104,8 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
-
       try {
         const authData = this.authenticationData(req, res)
-
         res.render("home", {
           consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: authData
@@ -144,7 +142,7 @@ class App {
 
     router.get("/refresh-token", async (req: Request, res: Response) => {
       try {
-        
+
         // Refresh Token
         await xero.refreshToken()
         const newAccessToken = await xero.readTokenSet();
@@ -584,7 +582,7 @@ class App {
         }
 
         const updateContacts: Contacts = new Contacts();
-        const contact2: Contact = { 
+        const contact2: Contact = {
           contactID: contactId,
           name: "Rick James: " + Helper.getRandomNumber(10000),
           firstName: "Rick",
@@ -841,6 +839,19 @@ class App {
 
         // CREATE ONE OR MORE INVOICES
         const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices, false)
+        console.log(createdInvoice.response.statusCode);
+
+        // Since we are using summarizeErrors = false we get 200 OK statuscode
+        // Our array of created invoices include those that succeeded and those with validation errors.
+        // loop over the invoices and if it has an error, loop over the error messages
+        for(let i=0; i<createdInvoice.body.invoices.length; i++){
+          if(createdInvoice.body.invoices[i].hasErrors) {
+            let errors = createdInvoice.body.invoices[i].validationErrors;
+            for(let j=0; j<errors.length; j++){
+              console.log(errors[j].message);
+            }
+          }
+        }
 
         // CREATE ONE OR MORE INVOICES - FORCE Validation error with bad account code
         const updateInvoices: Invoices = new Invoices();
@@ -923,7 +934,7 @@ class App {
     });
 
     router.get("/items", async (req: Request, res: Response) => {
-      // currently works with DEMO COMPANY specific data.. Will need to create proper accounts 
+      // currently works with DEMO COMPANY specific data.. Will need to create proper accounts
       // w/ cOGS codes to have this work with an empty Xero Org
       try {
         const accessToken =  req.session.accessToken;
@@ -1044,7 +1055,7 @@ class App {
         // CREATE
         // GET ONE
         // UPDATE
-        res.render("organisations", { 
+        res.render("organisations", {
           authenticated: this.authenticationData(req, res),
           orgs: apiResponse.body.organisations
         });
@@ -1193,16 +1204,21 @@ class App {
       try {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        // GET ALL
-
+        // GET BANK SUMMARY REPORT
+        const fromDate = "2019-01-01";
+        const toDate = "2019-12-31";
+        const apiResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant, fromDate, toDate);
+        console.log(apiResponse.body.reports[0].reportTitles[2]);
         // CREATE
         // GET ONE
         // UPDATE
         // We need specific report API calls
         // let apiResponse = await xero.accountingApi.getReports(req.session.activeTenant);
         res.render("reports", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          count: 0
+          count: 0,
+          bankSummaryTitle: apiResponse.body.reports[0].reportTitles[2]
         });
      } catch (e) {
         res.status(res.statusCode);
