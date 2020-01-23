@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -609,7 +609,7 @@ class App {
           contactsCount: contactsGetResponse.body.contacts.length,
           createName: contactCreateResponse.body.contacts[0].name,
           getOneName: contactGetResponse.body.contacts[0].name,
-          updateName: contactUpdateResponse.body.contacts[0].name,
+          updatedContact: contactUpdateResponse.body.contacts[0],
         });
      } catch (e) {
         res.status(res.statusCode);
@@ -786,13 +786,21 @@ class App {
         const accessToken =  req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
-        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
         const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
+
+        const num = Helper.getRandomNumber(10000)
+        const contact1: Contact = { name: "Test User: " + num, firstName: "Rick", lastName: "James", emailAddress: req.session.decodedIdToken.email};
+        const newContacts: Contacts = new Contacts();
+        newContacts.contacts = [contact1];
+        await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
+
+        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const selfContact = contactsResponse.body.contacts.filter(contact => contact.emailAddress === req.session.decodedIdToken.email);
 
         const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: {
-            contactID: contactsResponse.body.contacts[0].contactID
+            contactID: selfContact[0].contactID
           },
           expectedPaymentDate: "2009-10-20T00:00:00",
           invoiceNumber: `XERO:${Helper.getRandomNumber(10000)}`,
@@ -831,7 +839,6 @@ class App {
 
         // CREATE ONE OR MORE INVOICES
         const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices, false)
-
         console.log(createdInvoice.response.statusCode);
 
         // Since we are using summarizeErrors = false we get 200 OK statuscode
@@ -851,7 +858,7 @@ class App {
         const invoice2: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: {
-            contactID: contactsResponse.body.contacts[0].contactID
+            contactID: selfContact[0].contactID
           },
           status: Invoice.StatusEnum.SUBMITTED,
           date: "2009-05-27T00:00:00",
@@ -867,7 +874,7 @@ class App {
           ]
         }
         updateInvoices.invoices = [invoice1,invoice2];
-        const updateOrCreateInvoiceResponse = await xero.accountingApi.updateOrCreateInvoices(req.session.activeTenant, updateInvoices, false)
+        await xero.accountingApi.updateOrCreateInvoices(req.session.activeTenant, updateInvoices, false)
 
         // GET ONE
         const getInvoice = await xero.accountingApi.getInvoice(req.session.activeTenant, createdInvoice.body.invoices[0].invoiceID)
@@ -890,11 +897,34 @@ class App {
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
           invoiceId,
+          email: req.session.decodedIdToken.email,
           createdInvoice: createdInvoice.body.invoices[0],
           updatedInvoice: updatedInvoices.body.invoices[0],
           count: totalInvoices.body.invoices.length
         });
       } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/email-invoice", async (req: Request, res: Response) => {
+      try {
+        const accessToken =  req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+      
+        const invoiceID = req.query.invoiceID
+        // SEND Email
+        const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant, invoiceID, {})
+
+        res.render("invoices", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse
+        });
+     } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1247,6 +1277,29 @@ class App {
         res.render("users", {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.users.length
+        });
+     } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/quotes", async (req: Request, res: Response) => {
+      try {
+        const accessToken = req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+        // GET ALL
+        const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant)
+
+        // GET ONE
+        const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant, getAllQuotes.body.quotes[0].quoteID);
+        res.render("quotes", {
+          authenticated: this.authenticationData(req, res),
+          count: getAllQuotes.body.quotes.length,
+          getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber
         });
      } catch (e) {
         res.status(res.statusCode);
