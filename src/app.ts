@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes, TrackingCategory, TrackingCategories, TrackingOption } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -56,18 +56,18 @@ interface XeroAccessToken {
 }
 
 const xero = new XeroClient({
-        clientId: client_id,
-        clientSecret: client_secret,
-        redirectUris: [redirectUrl],
-        scopes: scopes.split(" "),
-      });
+  clientId: client_id,
+  clientSecret: client_secret,
+  redirectUris: [redirectUrl],
+  scopes: scopes.split(" "),
+});
 
 const xero_bankfeeds = new XeroBankFeedClient({
-        clientId: client_id,
-        clientSecret: client_secret,
-        redirectUris: [redirectUrl],
-        scopes: scopes.split(" "),
-      });
+  clientId: client_id,
+  clientSecret: client_secret,
+  redirectUris: [redirectUrl],
+  scopes: scopes.split(" "),
+});
 
 if (!client_id || !client_secret || !redirectUrl) {
   throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
@@ -80,9 +80,9 @@ class App {
     this.app = express();
     this.config();
     this.routes();
-    this.app.set( "views", path.join( __dirname, "views" ) );
+    this.app.set("views", path.join(__dirname, "views"));
     this.app.set("view engine", "ejs");
-    this.app.use(express.static( path.join( __dirname, "public" )));
+    this.app.use(express.static(path.join(__dirname, "public")));
   }
 
   private config(): void {
@@ -223,7 +223,7 @@ class App {
 
     router.get("/accounts", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
         // GET ALL
@@ -239,8 +239,8 @@ class App {
 
         // UPDATE
         const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(10000) };
-        const accounts: Accounts = { accounts:[accountUp] };
-        const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId,accounts);
+        const accounts: Accounts = { accounts: [accountUp] };
+        const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId, accounts);
 
         // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
         // CREATE ATTACHMENT
@@ -249,7 +249,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant,  accountId, filename, readStream, {
+        const accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, readStream, {
           headers: {
             "Content-Type": contentType,
           },
@@ -290,7 +290,7 @@ class App {
           attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
           deleteName: accountDeleteResponse.body.accounts[0].name
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -312,7 +312,7 @@ class App {
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
         const allAccounts = await xero.accountingApi.getAccounts(req.session.activeTenant);
-        const validAccountCode = allAccounts.body.accounts.filter(e => !['NONE','BASEXCLUDED'].includes(e.taxType))[0].code
+        const validAccountCode = allAccounts.body.accounts.filter(e => !['NONE', 'BASEXCLUDED'].includes(e.taxType))[0].code
 
         const lineItems: LineItem[] = [{
           description: "consulting",
@@ -321,7 +321,7 @@ class App {
           accountCode: validAccountCode,
         }];
         const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
-        const accountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant,  null, where);
+        const accountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant, null, where);
         const useBankAccount: Account = { accountID: accountsResponse.body.accounts[0].accountID };
 
         const newBankTransaction: BankTransaction = {
@@ -334,7 +334,7 @@ class App {
 
         // Add bank transaction objects to array
         const newBankTransactions: BankTransactions = new BankTransactions();
-        newBankTransactions.bankTransactions = [newBankTransaction,newBankTransaction];
+        newBankTransactions.bankTransactions = [newBankTransaction, newBankTransaction];
         const bankTransactionCreateResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant, newBankTransactions, false);
 
         // UPDATE OR CREATE ONE OR MORE BANK TRANSACTION
@@ -355,7 +355,7 @@ class App {
         }];
 
         const newBankTransaction3: BankTransaction = {
-          bankTransactionID:  bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID,
+          bankTransactionID: bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID,
           type: BankTransaction.TypeEnum.SPEND,
           contact: useContact,
           bankAccount: useBankAccount,
@@ -363,7 +363,7 @@ class App {
           lineItems: lineItems
         };
 
-        const upBankTransactions:BankTransactions = new BankTransactions();
+        const upBankTransactions: BankTransactions = new BankTransactions();
         upBankTransactions.bankTransactions = [newBankTransaction2, newBankTransaction3];
         const bankTransactionUpdateOrCreateResponse = await xero.accountingApi.updateOrCreateBankTransactions(req.session.activeTenant, upBankTransactions, false);
 
@@ -398,7 +398,7 @@ class App {
 
     router.get("/banktranfers", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
         // GET ALL
@@ -446,7 +446,7 @@ class App {
           createBankTransferId: createBankTransfer.body.bankTransfers[0].bankTransferID,
           getBankTransferId: getBankTransfer.body.bankTransfers[0].bankTransferID
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -457,7 +457,7 @@ class App {
 
     router.get("/batchpayments", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
         const allContacts = await xero.accountingApi.getContacts(req.session.activeTenant)
@@ -502,7 +502,7 @@ class App {
 
         // BatchPayment 'reference'?: string; is not optional
         // "ValidationErrors": [
-          // "Message": "Batch deposits require a reference"
+        // "Message": "Batch deposits require a reference"
         const payments: BatchPayment = {
           account: {
             accountID: accountsGetResponse.body.accounts[0].accountID
@@ -530,7 +530,7 @@ class App {
           createBatchPayment: createBatchPayment.body.batchPayments[0].batchPaymentID,
           count: apiResponse.body.batchPayments.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -541,7 +541,7 @@ class App {
 
     router.get("/brandingthemes", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
         // GET ALL
@@ -551,7 +551,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           brandingThemes: apiResponse.body.brandingThemes
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -562,7 +562,7 @@ class App {
 
     router.get("/contacts", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
         // GET ALL
@@ -600,7 +600,7 @@ class App {
 
         // UPDATE SINGLE
         const contactUpdate: Contact = { name: "Rick James Updated: " + Helper.getRandomNumber(10000) };
-        const contacts: Contacts = { contacts:[contactUpdate] };
+        const contacts: Contacts = { contacts: [contactUpdate] };
         const contactUpdateResponse = await xero.accountingApi.updateContact(req.session.activeTenant, contactId, contacts);
 
         res.render("contacts", {
@@ -611,7 +611,7 @@ class App {
           getOneName: contactGetResponse.body.contacts[0].name,
           updatedContact: contactUpdateResponse.body.contacts[0],
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -622,11 +622,11 @@ class App {
 
     router.get("/contactgroups", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
         // CREATE
-        const contactGroupParams: ContactGroups = {contactGroups: [{ name: 'Ima Contact Group' + Helper.getRandomNumber(10000)}] }
+        const contactGroupParams: ContactGroups = { contactGroups: [{ name: 'Ima Contact Group' + Helper.getRandomNumber(10000) }] }
         const createContactGroup = await xero.accountingApi.createContactGroup(req.session.activeTenant, contactGroupParams);
         const contactGroup = createContactGroup.body.contactGroups[0]
 
@@ -662,7 +662,7 @@ class App {
           deletedContactGroupContact: deleted ? `${createdContact.contactID} removed from contact group` : 'failed to delete',
           count: allContactGroups.body.contactGroups.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -673,7 +673,7 @@ class App {
 
     router.get("/creditnotes", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getCreditNotes(req.session.activeTenant);
@@ -684,7 +684,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.creditNotes.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -695,7 +695,7 @@ class App {
 
     router.get("/currencies", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant);
@@ -706,7 +706,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           currencies: apiResponse.body.currencies
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -717,7 +717,7 @@ class App {
 
     router.get("/employees", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getEmployees(req.session.activeTenant);
@@ -728,7 +728,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.employees.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -739,7 +739,7 @@ class App {
 
     router.get("/expenseclaims", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getExpenseClaims(req.session.activeTenant);
@@ -750,7 +750,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.expenseClaims.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -761,7 +761,7 @@ class App {
 
     router.get("/invoicereminders", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getInvoiceReminders(req.session.activeTenant);
@@ -772,7 +772,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.invoiceReminders.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -783,13 +783,13 @@ class App {
 
     router.get("/invoices", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
         const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
 
         const num = Helper.getRandomNumber(10000)
-        const contact1: Contact = { name: "Test User: " + num, firstName: "Rick", lastName: "James", emailAddress: req.session.decodedIdToken.email};
+        const contact1: Contact = { name: "Test User: " + num, firstName: "Rick", lastName: "James", emailAddress: req.session.decodedIdToken.email };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
         await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
@@ -844,10 +844,10 @@ class App {
         // Since we are using summarizeErrors = false we get 200 OK statuscode
         // Our array of created invoices include those that succeeded and those with validation errors.
         // loop over the invoices and if it has an error, loop over the error messages
-        for(let i=0; i<createdInvoice.body.invoices.length; i++){
-          if(createdInvoice.body.invoices[i].hasErrors) {
+        for (let i = 0; i < createdInvoice.body.invoices.length; i++) {
+          if (createdInvoice.body.invoices[i].hasErrors) {
             let errors = createdInvoice.body.invoices[i].validationErrors;
-            for(let j=0; j<errors.length; j++){
+            for (let j = 0; j < errors.length; j++) {
               console.log(errors[j].message);
             }
           }
@@ -873,7 +873,7 @@ class App {
             }
           ]
         }
-        updateInvoices.invoices = [invoice1,invoice2];
+        updateInvoices.invoices = [invoice1, invoice2];
         await xero.accountingApi.updateOrCreateInvoices(req.session.activeTenant, updateInvoices, false)
 
         // GET ONE
@@ -881,7 +881,7 @@ class App {
         const invoiceId = getInvoice.body.invoices[0].invoiceID
 
         // UPDATE
-        const newReference = {reference: `NEW-REF:${Helper.getRandomNumber(10000)}`}
+        const newReference = { reference: `NEW-REF:${Helper.getRandomNumber(10000)}` }
 
         const invoiceToUpdate: Invoices = {
           invoices: [
@@ -913,9 +913,9 @@ class App {
 
     router.get("/email-invoice", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
-      
+
         const invoiceID = req.query.invoiceID
         // SEND Email
         const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant, invoiceID, {})
@@ -924,7 +924,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -937,7 +937,7 @@ class App {
       // currently works with DEMO COMPANY specific data.. Will need to create proper accounts
       // w/ cOGS codes to have this work with an empty Xero Org
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
 
         // GET ALL
@@ -993,7 +993,7 @@ class App {
           updateName: itemUpdateResponse.body.items[0].name,
           deleteResponse: itemDeleteResponse.response.statusCode
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1004,7 +1004,7 @@ class App {
 
     router.get("/journals", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getJournals(req.session.activeTenant);
@@ -1015,7 +1015,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.journals.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1026,7 +1026,7 @@ class App {
 
     router.get("/manualjournals", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getManualJournals(req.session.activeTenant);
@@ -1037,7 +1037,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.manualJournals.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1048,7 +1048,7 @@ class App {
 
     router.get("/organisations", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getOrganisations(req.session.activeTenant);
@@ -1070,7 +1070,7 @@ class App {
 
     router.get("/overpayments", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getOverpayments(req.session.activeTenant);
@@ -1081,7 +1081,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.overpayments.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1092,7 +1092,7 @@ class App {
 
     router.get("/payments", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getPayments(req.session.activeTenant);
@@ -1103,7 +1103,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.payments.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1114,7 +1114,7 @@ class App {
 
     router.get("/paymentservices", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getPaymentServices(req.session.activeTenant);
@@ -1125,7 +1125,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.paymentServices.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1136,7 +1136,7 @@ class App {
 
     router.get("/prepayments", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getPrepayments(req.session.activeTenant);
@@ -1147,7 +1147,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.prepayments.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1158,7 +1158,7 @@ class App {
 
     router.get("/purchaseorders", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getPurchaseOrders(req.session.activeTenant);
@@ -1169,7 +1169,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.purchaseOrders.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1180,7 +1180,7 @@ class App {
 
     router.get("/receipts", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getReceipts(req.session.activeTenant);
@@ -1191,7 +1191,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.receipts.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1202,7 +1202,7 @@ class App {
 
     router.get("/reports", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET BANK SUMMARY REPORT
         const fromDate = "2019-01-01";
@@ -1220,7 +1220,7 @@ class App {
           count: 0,
           bankSummaryTitle: apiResponse.body.reports[0].reportTitles[2]
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1231,7 +1231,7 @@ class App {
 
     router.get("/taxrates", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
         const apiResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
@@ -1240,7 +1240,7 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.taxRates.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1251,15 +1251,46 @@ class App {
 
     router.get("/trackingcategories", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
+
         // GET ALL
-        const apiResponse = await xero.accountingApi.getTrackingCategories(req.session.activeTenant);
+        const getAllResponse = await xero.accountingApi.getTrackingCategories(req.session.activeTenant);
+
+        // New Tracking Category
+        const trackingCategory: TrackingCategory = {
+          name: `Tracking Category ${Helper.getRandomNumber(10000)}`,
+          status: TrackingCategory.StatusEnum.ACTIVE
+        };
+
+        // New Tracking Category Option
+        const trackingCategoryOption: TrackingOption = {
+          name: `Tracking Option ${Helper.getRandomNumber(10000)}`,
+          status: TrackingOption.StatusEnum.ACTIVE
+        };
+
+        // CREATE
+        const createCategoryResponse = await xero.accountingApi.createTrackingCategory(req.session.activeTenant, trackingCategory);
+        await xero.accountingApi.createTrackingOptions(req.session.activeTenant, createCategoryResponse.body.trackingCategories[0].trackingCategoryID, trackingCategoryOption);
+
+        // GET ONE
+        const getOneResponse = await xero.accountingApi.getTrackingCategory(req.session.activeTenant, createCategoryResponse.body.trackingCategories[0].trackingCategoryID);
+
+        // UPDATE
+        const updateResponse = await xero.accountingApi.updateTrackingCategory(req.session.activeTenant, getOneResponse.body.trackingCategories[0].trackingCategoryID, { name: `${getOneResponse.body.trackingCategories[0].name} - updated` });
+
+        // DELETE
+        const deleteResponse = await xero.accountingApi.deleteTrackingCategory(req.session.activeTenant, createCategoryResponse.body.trackingCategories[0].trackingCategoryID);
+
         res.render("trackingcategories", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.trackingCategories.length
+          count: getAllResponse.body.trackingCategories.length,
+          created: createCategoryResponse.body.trackingCategories[0].trackingCategoryID,
+          got: getOneResponse.body.trackingCategories[0].name,
+          updated: updateResponse.body.trackingCategories[0].name,
+          deleted: deleteResponse.body.trackingCategories[0].status
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1270,15 +1301,19 @@ class App {
 
     router.get("/users", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getUsers(req.session.activeTenant);
+        const getAllUsers = await xero.accountingApi.getUsers(req.session.activeTenant);
+
+        // GET ONE USER
+        const getUser = await xero.accountingApi.getUser(req.session.activeTenant, getAllUsers.body.users[0].userID);
         res.render("users", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.users.length
+          user: getUser.body.users[0].emailAddress,
+          count: getAllUsers.body.users.length
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1301,7 +1336,7 @@ class App {
           count: getAllQuotes.body.quotes.length,
           getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber
         });
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1312,22 +1347,22 @@ class App {
 
     router.get("/feedconnections", async (req: Request, res: Response) => {
       try {
-        const accessToken =  req.session.accessToken;
-        await  xero_bankfeeds.setTokenSet(accessToken);
+        const accessToken = req.session.accessToken;
+        await xero_bankfeeds.setTokenSet(accessToken);
 
         // CREATE
         const feedConnection: FeedConnection = new FeedConnection();
-        feedConnection.accountName = "My New Account"  + Helper.getRandomNumber(10000);
-        feedConnection.accountNumber = "123"  + Helper.getRandomNumber(10000);
-        feedConnection.accountToken = "foobar"  + Helper.getRandomNumber(10000);
+        feedConnection.accountName = "My New Account" + Helper.getRandomNumber(10000);
+        feedConnection.accountNumber = "123" + Helper.getRandomNumber(10000);
+        feedConnection.accountToken = "foobar" + Helper.getRandomNumber(10000);
         feedConnection.accountType = FeedConnection.AccountTypeEnum.BANK;
         feedConnection.currency = CurrencyCode.GBP;
 
         const feedConnections: FeedConnections = new FeedConnections();
         feedConnections.items = [feedConnection];
-         const createResponse = await xero_bankfeeds.bankFeedsApi.createFeedConnections(req.session.activeTenant, feedConnections);
+        const createResponse = await xero_bankfeeds.bankFeedsApi.createFeedConnections(req.session.activeTenant, feedConnections);
 
-         // GET ALL
+        // GET ALL
         const readAllResponse = await xero_bankfeeds.bankFeedsApi.getFeedConnections(req.session.activeTenant);
 
         // GET ONE
@@ -1339,7 +1374,7 @@ class App {
         deleteConnection.id = feedConnectionId;
         const deleteConnections: FeedConnections = new FeedConnections();
         deleteConnections.items = [deleteConnection];
-        const deleteResponse = await xero_bankfeeds.bankFeedsApi.deleteFeedConnections(req.session.activeTenant,deleteConnections);
+        const deleteResponse = await xero_bankfeeds.bankFeedsApi.deleteFeedConnections(req.session.activeTenant, deleteConnections);
 
         res.render("feedconnections", {
           authenticated: this.authenticationData(req, res),
@@ -1349,7 +1384,7 @@ class App {
           deleteId: deleteResponse.body.items[0].id
         });
 
-     } catch (e) {
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),

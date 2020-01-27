@@ -1,15 +1,21 @@
 <!doctype html>
 <html>
-  <%- include('shared/head') -%>
-  <body>
-    <%- include('shared/nav') -%>
-    <div class='core-content'>
-      <%- include('shared/header') -%>
-      <div class='body-wrapper'>
-        <div class='body-content'>
-          <p>Tracking Categories success: Count: <%= count %></p>
-        </div>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Tracking Categories success: Count: <%= count %></p>
+        <p>Tracking Categories success: Created: <%= created %></p>
+        <p>Tracking Categories success: Get: <%= got %></p>
+        <p>Tracking Categories success: Updated: <%= updated %></p>
+        <p>Tracking Categories success: Status: <%= deleted %></p>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>
