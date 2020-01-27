@@ -7,7 +7,6 @@ import { Account, Accounts, AccountType, BankTransaction, BankTransactions, Bank
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
-import helper from './helper';
 
 const session = require("express-session");
 const path = require("path");
@@ -1236,9 +1235,10 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
+        console.log(getAllResponse.body);
 
         const newTaxRate: TaxRate = {
-          name: `Tax Rate Name ${helper.getRandomNumber(10000)}`,
+          name: `Tax Rate Name ${Helper.getRandomNumber(10000)}`,
           reportTaxType: undefined,
           taxComponents: [
             {
@@ -1261,19 +1261,23 @@ class App {
 
         // CREATE
         const createResponse = await xero.accountingApi.createTaxRates(req.session.activeTenant, taxRates);
+        console.log(createResponse.body);
 
-        const updatedTaxRate: TaxRate
+        const updatedTaxRate: TaxRate = newTaxRate;
 
-        newTaxRate.status = TaxRate.StatusEnum.DELETED;
+        updatedTaxRate.status = TaxRate.StatusEnum.DELETED;
 
-        taxRates.taxRates = [newTaxRate];
+        taxRates.taxRates = [updatedTaxRate];
 
         // UPDATE
         const updateResponse = await xero.accountingApi.updateTaxRate(req.session.activeTenant, taxRates);
+        console.log(updateResponse.body);
 
         res.render("taxrates", {
           authenticated: this.authenticationData(req, res),
-          count: getAllResponse.body.taxRates.length
+          count: getAllResponse.body.taxRates.length,
+          created: createResponse.body.taxRates[0].name,
+          updated: updateResponse.body.taxRates[0].status
         });
       } catch (e) {
         res.status(res.statusCode);
