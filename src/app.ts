@@ -7,7 +7,6 @@ import { Account, Accounts, AccountType, BankTransaction, BankTransactions, Bank
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
-import helper from './helper';
 
 const session = require("express-session");
 const path = require("path");
@@ -1260,13 +1259,13 @@ class App {
 
         // New Tracking Category
         const trackingCategory: TrackingCategory = {
-          name: `Tracking Category ${helper.getRandomNumber(10000)}`,
+          name: `Tracking Category ${Helper.getRandomNumber(10000)}`,
           status: TrackingCategory.StatusEnum.ACTIVE
         };
 
         // New Tracking Category Option
         const trackingCategoryOption: TrackingOption = {
-          name: `Tracking Option ${helper.getRandomNumber(10000)}`,
+          name: `Tracking Option ${Helper.getRandomNumber(10000)}`,
           status: TrackingOption.StatusEnum.ACTIVE
         };
 
