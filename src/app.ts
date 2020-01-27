@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes, TrackingCategory, TrackingCategories, TrackingOption } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes, TaxRate, TaxRates, TrackingCategory, TrackingCategories, TrackingOption } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -1234,11 +1234,50 @@ class App {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
+        const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
+        console.log(getAllResponse.body);
+
+        const newTaxRate: TaxRate = {
+          name: `Tax Rate Name ${Helper.getRandomNumber(10000)}`,
+          reportTaxType: undefined,
+          taxComponents: [
+            {
+              name: "State Tax",
+              rate: 7.5,
+              isCompound: false,
+              isNonRecoverable: false
+            },
+            {
+              name: "Local Sales Tax",
+              rate: 0.625,
+              isCompound: false,
+              isNonRecoverable: false
+            }
+          ]
+        };
+
+        const taxRates: TaxRates = new TaxRates();
+        taxRates.taxRates = [newTaxRate];
+
+        // CREATE
+        const createResponse = await xero.accountingApi.createTaxRates(req.session.activeTenant, taxRates);
+        console.log(createResponse.body);
+
+        const updatedTaxRate: TaxRate = newTaxRate;
+
+        updatedTaxRate.status = TaxRate.StatusEnum.DELETED;
+
+        taxRates.taxRates = [updatedTaxRate];
+
+        // UPDATE
+        const updateResponse = await xero.accountingApi.updateTaxRate(req.session.activeTenant, taxRates);
+        console.log(updateResponse.body);
 
         res.render("taxrates", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.taxRates.length
+          count: getAllResponse.body.taxRates.length,
+          created: createResponse.body.taxRates[0].name,
+          updated: updateResponse.body.taxRates[0].status
         });
       } catch (e) {
         res.status(res.statusCode);
