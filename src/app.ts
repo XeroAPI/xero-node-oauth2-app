@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes, TaxRate, TaxRates } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes, TaxRate, TaxRates, TrackingCategory, TrackingCategories, TrackingOption } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
@@ -1292,11 +1292,42 @@ class App {
       try {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
+
         // GET ALL
-        const apiResponse = await xero.accountingApi.getTrackingCategories(req.session.activeTenant);
+        const getAllResponse = await xero.accountingApi.getTrackingCategories(req.session.activeTenant);
+
+        // New Tracking Category
+        const trackingCategory: TrackingCategory = {
+          name: `Tracking Category ${Helper.getRandomNumber(10000)}`,
+          status: TrackingCategory.StatusEnum.ACTIVE
+        };
+
+        // New Tracking Category Option
+        const trackingCategoryOption: TrackingOption = {
+          name: `Tracking Option ${Helper.getRandomNumber(10000)}`,
+          status: TrackingOption.StatusEnum.ACTIVE
+        };
+
+        // CREATE
+        const createCategoryResponse = await xero.accountingApi.createTrackingCategory(req.session.activeTenant, trackingCategory);
+        await xero.accountingApi.createTrackingOptions(req.session.activeTenant, createCategoryResponse.body.trackingCategories[0].trackingCategoryID, trackingCategoryOption);
+
+        // GET ONE
+        const getOneResponse = await xero.accountingApi.getTrackingCategory(req.session.activeTenant, createCategoryResponse.body.trackingCategories[0].trackingCategoryID);
+
+        // UPDATE
+        const updateResponse = await xero.accountingApi.updateTrackingCategory(req.session.activeTenant, getOneResponse.body.trackingCategories[0].trackingCategoryID, { name: `${getOneResponse.body.trackingCategories[0].name} - updated` });
+
+        // DELETE
+        const deleteResponse = await xero.accountingApi.deleteTrackingCategory(req.session.activeTenant, createCategoryResponse.body.trackingCategories[0].trackingCategoryID);
+
         res.render("trackingcategories", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.trackingCategories.length
+          count: getAllResponse.body.trackingCategories.length,
+          created: createCategoryResponse.body.trackingCategories[0].trackingCategoryID,
+          got: getOneResponse.body.trackingCategories[0].name,
+          updated: updateResponse.body.trackingCategories[0].name,
+          deleted: deleteResponse.body.trackingCategories[0].status
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1312,10 +1343,14 @@ class App {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getUsers(req.session.activeTenant);
+        const getAllUsers = await xero.accountingApi.getUsers(req.session.activeTenant);
+
+        // GET ONE USER
+        const getUser = await xero.accountingApi.getUser(req.session.activeTenant, getAllUsers.body.users[0].userID);
         res.render("users", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.users.length
+          user: getUser.body.users[0].emailAddress,
+          count: getAllUsers.body.users.length
         });
       } catch (e) {
         res.status(res.statusCode);
