@@ -3,10 +3,9 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes, TaxRate, TaxRates, TrackingCategory, TrackingCategories, TrackingOption } from "xero-node";
+import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes, TaxRate, TaxRates, TrackingCategory, TrackingCategories, TrackingOption, CurrencyCode } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
-import { XeroBankFeedClient, FeedConnection, FeedConnections, CurrencyCode } from "xero-node-bankfeeds";
 
 const session = require("express-session");
 const path = require("path");
@@ -16,8 +15,6 @@ const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
 const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access";
-// if you are approved to use the bankfeeds API than the 'bankfeeds' scope is required
-// https://developer.xero.com/documentation/bank-feeds-api/overview
 
 interface XeroJwt {
   nbf: number
@@ -56,13 +53,6 @@ interface XeroAccessToken {
 }
 
 const xero = new XeroClient({
-  clientId: client_id,
-  clientSecret: client_secret,
-  redirectUris: [redirectUrl],
-  scopes: scopes.split(" "),
-});
-
-const xero_bankfeeds = new XeroBankFeedClient({
   clientId: client_id,
   clientSecret: client_secret,
   redirectUris: [redirectUrl],
@@ -1375,54 +1365,6 @@ class App {
           count: getAllQuotes.body.quotes.length,
           getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber
         });
-      } catch (e) {
-        res.status(res.statusCode);
-        res.render("shared/error", {
-          consentUrl: await xero.buildConsentUrl(),
-          error: e
-        });
-      }
-    });
-
-    router.get("/feedconnections", async (req: Request, res: Response) => {
-      try {
-        const accessToken = req.session.accessToken;
-        await xero_bankfeeds.setTokenSet(accessToken);
-
-        // CREATE
-        const feedConnection: FeedConnection = new FeedConnection();
-        feedConnection.accountName = "My New Account" + Helper.getRandomNumber(10000);
-        feedConnection.accountNumber = "123" + Helper.getRandomNumber(10000);
-        feedConnection.accountToken = "foobar" + Helper.getRandomNumber(10000);
-        feedConnection.accountType = FeedConnection.AccountTypeEnum.BANK;
-        feedConnection.currency = CurrencyCode.GBP;
-
-        const feedConnections: FeedConnections = new FeedConnections();
-        feedConnections.items = [feedConnection];
-        const createResponse = await xero_bankfeeds.bankFeedsApi.createFeedConnections(req.session.activeTenant, feedConnections);
-
-        // GET ALL
-        const readAllResponse = await xero_bankfeeds.bankFeedsApi.getFeedConnections(req.session.activeTenant);
-
-        // GET ONE
-        const feedConnectionId = readAllResponse.body.items[0].id;
-        const readOneResponse = await xero_bankfeeds.bankFeedsApi.getFeedConnection(req.session.activeTenant, feedConnectionId);
-
-        // DELETE
-        const deleteConnection: FeedConnection = new FeedConnection();
-        deleteConnection.id = feedConnectionId;
-        const deleteConnections: FeedConnections = new FeedConnections();
-        deleteConnections.items = [deleteConnection];
-        const deleteResponse = await xero_bankfeeds.bankFeedsApi.deleteFeedConnections(req.session.activeTenant, deleteConnections);
-
-        res.render("feedconnections", {
-          authenticated: this.authenticationData(req, res),
-          count: readAllResponse.body.items.length,
-          createName: createResponse.body.items[0].accountToken,
-          getOneName: readOneResponse.body.accountName,
-          deleteId: deleteResponse.body.items[0].id
-        });
-
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
