@@ -1214,6 +1214,24 @@ class App {
         const getAgedReceivablesByContactResponse = await xero.accountingApi.getReportAgedReceivablesByContact(req.session.activeTenant, contactsGetResponse.body.contacts[0].contactID);
         console.log(getAgedReceivablesByContactResponse.body.reports);
 
+        // GET BALANCE SHEET REPORT
+        const getBalanceSheetResponse = await xero.accountingApi.getReportBalanceSheet(req.session.activeTenant);
+
+        // GET BANK SUMMARY REPORT
+        const getBankSummaryResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant);
+
+        // GET BAS REPORT
+
+        // GET BUDGET SUMMARY REPORT
+
+        // GET EXECUTIVE SUMMARY REPORT
+
+        // GET GST REPORT
+
+        // GET PROFIT AND LOSS REPORT
+
+        // GET TRIAL BALANCE REPORT
+
         res.render("reports", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
