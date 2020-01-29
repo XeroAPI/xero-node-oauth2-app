@@ -1194,21 +1194,33 @@ class App {
       try {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
+
         // GET BANK SUMMARY REPORT
         const fromDate = "2019-01-01";
         const toDate = "2019-12-31";
-        const apiResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant, fromDate, toDate);
-        console.log(apiResponse.body.reports[0].reportTitles[2]);
-        // CREATE
-        // GET ONE
-        // UPDATE
-        // We need specific report API calls
-        // let apiResponse = await xero.accountingApi.getReports(req.session.activeTenant);
+        const getReportBankSummaryResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant, fromDate, toDate);
+
+        // GET 1099 REPORT
+        const reportYear = "2019";
+        const getTenNinetyNineResponse = await xero.accountingApi.getReportTenNinetyNine(req.session.activeTenant, reportYear);
+
+        // getting a contact first
+        const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+
+        // GET AGED PAYABLES BY CONTACT REPORT
+        const getAgedPayablesByContactResponse = await xero.accountingApi.getReportAgedPayablesByContact(req.session.activeTenant, contactsGetResponse.body.contacts[0].contactID);
+
+        // GET AGED RECEIVABLES BY CONTACT REPORT
+        const getAgedReceivablesByContactResponse = await xero.accountingApi.getReportAgedReceivablesByContact(req.session.activeTenant, contactsGetResponse.body.contacts[0].contactID);
+        console.log(getAgedReceivablesByContactResponse.body.reports);
+
         res.render("reports", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          count: 0,
-          bankSummaryTitle: apiResponse.body.reports[0].reportTitles[2]
+          bankSummaryReportTitle: getReportBankSummaryResponse.body.reports[0].reportTitles.join(' '),
+          tenNinetyNineReportTitle: `${getTenNinetyNineResponse.body.reports[0].reportName} ${getTenNinetyNineResponse.body.reports[0].reportDate}`,
+          agedPayablesByContactReportTitle: `${getAgedPayablesByContactResponse.body.reports[0].reportName} ${getAgedPayablesByContactResponse.body.reports[0].reportDate}`,
+          agedReceivablesByContactReportTitle: `${getAgedReceivablesByContactResponse.body.reports[0].reportName} ${getAgedReceivablesByContactResponse.body.reports[0].reportDate}`
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1225,7 +1237,6 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
-        console.log(getAllResponse.body);
 
         const newTaxRate: TaxRate = {
           name: `Tax Rate Name ${Helper.getRandomNumber(10000)}`,
@@ -1251,7 +1262,6 @@ class App {
 
         // CREATE
         const createResponse = await xero.accountingApi.createTaxRates(req.session.activeTenant, taxRates);
-        console.log(createResponse.body);
 
         const updatedTaxRate: TaxRate = newTaxRate;
 
@@ -1261,7 +1271,6 @@ class App {
 
         // UPDATE
         const updateResponse = await xero.accountingApi.updateTaxRate(req.session.activeTenant, taxRates);
-        console.log(updateResponse.body);
 
         res.render("taxrates", {
           authenticated: this.authenticationData(req, res),

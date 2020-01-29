@@ -1,16 +1,20 @@
 <!doctype html>
 <html>
-  <%- include('shared/head') -%>
-  <body>
-    <%- include('shared/nav') -%>
-    <div class='core-content'>
-      <%- include('shared/header') -%>
-      <div class='body-wrapper'>
-        <div class='body-content'>
-          <p>Reports success: Count: <%= count %></p>
-          <p>Bank Summary Title: <%= bankSummaryTitle %></p>
-        </div>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Bank Summary Report Title: <%= bankSummaryReportTitle %></p>
+        <p>1099 Report Title: <%= tenNinetyNineReportTitle %></p>
+        <p>Aged Payables by Contact Report Title & Date: <%= agedPayablesByContactReportTitle %></p>
+        <p>Aged Receivables by Contact Report Title & Date: <%= agedReceivablesByContactReportTitle %></p>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>
