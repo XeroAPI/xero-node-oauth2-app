@@ -923,7 +923,6 @@ class App {
       }
     });
 
-
     router.get("/invoices-filtered", async (req: Request, res: Response) => {
       try {
         const accessToken = req.session.accessToken;
