@@ -923,6 +923,96 @@ class App {
       }
     });
 
+
+    router.get("/invoices-filtered", async (req: Request, res: Response) => {
+      try {
+        const accessToken = req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+
+        // invoices
+        // contacts
+        // credit notes
+
+        // const apiResponse = await xero.accountingApi.getInvoices(
+        //   // expected params & types
+        //   xeroTenantId: req.session.activeTenant,
+        //   ifModifiedSince?: Date,
+        //   where?: string,
+        //   order?: string,
+        //   iDs?: Array<string>,
+        //   invoiceNumbers?: Array<string>,
+        //   contactIDs?: Array<string>,
+        //   statuses?: Array<string>,
+        //   page?: number,
+        //   includeArchived?: boolean,
+        //   createdByMyApp?: boolean,
+        //   unitdp?: number,
+        //   options: {
+        //     ...
+        //   }
+        // )
+        const filteredInvoices = await xero.accountingApi.getInvoices(
+            req.session.activeTenant,
+            new Date(2018),
+            'Type=="ACCREC"',
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            ['PAID', 'DRAFT'],
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined
+          )
+        res.render("invoices-filtered", {
+          authenticated: this.authenticationData(req, res),
+          filteredInvoices: filteredInvoices.body.invoices
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/attach-pdf-invoice", async (req: Request, res: Response) => {
+      try {
+        const accessToken = req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+
+        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
+        
+        // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
+        // CREATE ATTACHMENT
+        const filename = "xero-dev.jpg";
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
+        const readStream = fs.createReadStream(pathToUpload);
+        const contentType = mime.lookup(filename);
+
+        const filteredInvoices = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant, totalInvoices.body.invoices[0].invoiceID, filename, readStream, {
+          headers: {
+            "Content-Type": contentType,
+          },
+        });
+
+        res.render("invoices-filtered", {
+          authenticated: this.authenticationData(req, res),
+          filteredInvoices: filteredInvoices.body
+        });
+
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
     router.get("/items", async (req: Request, res: Response) => {
       // currently works with DEMO COMPANY specific data.. Will need to create proper accounts
       // w/ cOGS codes to have this work with an empty Xero Org
