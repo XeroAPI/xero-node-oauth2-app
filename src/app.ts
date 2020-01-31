@@ -777,7 +777,6 @@ class App {
         await xero.setTokenSet(accessToken);
 
         const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
-
         const num = Helper.getRandomNumber(10000)
         const contact1: Contact = { name: "Test User: " + num, firstName: "Rick", lastName: "James", emailAddress: req.session.decodedIdToken.email };
         const newContacts: Contacts = new Contacts();
@@ -885,12 +884,15 @@ class App {
         // GET ALL
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
 
+        const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(req.session.activeTenant, invoiceId, 'application/pdf')
+
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
           invoiceId,
           email: req.session.decodedIdToken.email,
           createdInvoice: createdInvoice.body.invoices[0],
           updatedInvoice: updatedInvoices.body.invoices[0],
+          getAsPdf,
           count: totalInvoices.body.invoices.length
         });
       } catch (e) {
@@ -934,11 +936,7 @@ class App {
             new Date(2018),
             'Type=="ACCREC"',
             'reference DESC',
-            [ 
-              "4b6d0c8f-10fa-42cd-a6e5-53b175e90005",
-              "5d91be3d-6c7c-4885-acbc-2d1ca7b9c06e",
-              "7ea31cd8-045c-4871-8cda-c0420953a39c"
-            ],
+            undefined,
             undefined,
             undefined,
             ['PAID', 'DRAFT'],
