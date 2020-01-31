@@ -562,6 +562,7 @@ class App {
         const contact1: Contact = { name: "Rick James: " + Helper.getRandomNumber(10000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
+        console.log('newContacts: ',newContacts)
         const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
         const contactId = contactCreateResponse.body.contacts[0].contactID;
 
@@ -775,18 +776,23 @@ class App {
       try {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
+        console.log('hiiiiii')
 
         const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
 
         const num = Helper.getRandomNumber(10000)
+        console.log('req.session.decodedIdToken.emailL: ',req.session.decodedIdToken.email)
         const contact1: Contact = { name: "Test User: " + num, firstName: "Rick", lastName: "James", emailAddress: req.session.decodedIdToken.email };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
+        console.log('create contact :(')
         await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
 
+        console.log('created?')
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
         const selfContact = contactsResponse.body.contacts.filter(contact => contact.emailAddress === req.session.decodedIdToken.email);
 
+        console.log('const invoice1: Invoice = {')
         const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: {
@@ -829,6 +835,7 @@ class App {
         newInvoices.invoices = [invoice1, invoice1];
 
         // CREATE ONE OR MORE INVOICES
+        console.log('// CREATE ONE OR MORE INVOICES')
         const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices, false)
         console.log(createdInvoice.response.statusCode);
 
@@ -866,6 +873,7 @@ class App {
         }
         updateInvoices.invoices = [invoice1, invoice2];
         await xero.accountingApi.updateOrCreateInvoices(req.session.activeTenant, updateInvoices, false)
+        console.log('update or create')
 
         // GET ONE
         const getInvoice = await xero.accountingApi.getInvoice(req.session.activeTenant, createdInvoice.body.invoices[0].invoiceID)
@@ -881,9 +889,14 @@ class App {
         }
 
         const updatedInvoices = await xero.accountingApi.updateInvoice(req.session.activeTenant, invoiceId, invoiceToUpdate)
+        console.log('updating')
 
         // GET ALL
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
+        console.log('get all')
+
+        const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(req.session.activeTenant, invoiceId, 'application/pdf')
+        console.log('getAsPdf: ',getAsPdf)
 
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
@@ -891,6 +904,7 @@ class App {
           email: req.session.decodedIdToken.email,
           createdInvoice: createdInvoice.body.invoices[0],
           updatedInvoice: updatedInvoices.body.invoices[0],
+          getAsPdf: getAsPdf.body,
           count: totalInvoices.body.invoices.length
         });
       } catch (e) {
@@ -934,11 +948,7 @@ class App {
             new Date(2018),
             'Type=="ACCREC"',
             'reference DESC',
-            [ 
-              "4b6d0c8f-10fa-42cd-a6e5-53b175e90005",
-              "5d91be3d-6c7c-4885-acbc-2d1ca7b9c06e",
-              "7ea31cd8-045c-4871-8cda-c0420953a39c"
-            ],
+            undefined,
             undefined,
             undefined,
             ['PAID', 'DRAFT'],
