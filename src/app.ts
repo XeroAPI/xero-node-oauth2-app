@@ -1434,16 +1434,42 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant)
+        
+        // CREATE QUOTE
+        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
         // CREATE QUOTES
-        // const createQuotes = await xero.accountingApi
+        const quote: Quote = {
+          date: '2020-02-05',
+          quoteNumber: "QuoteNum:" + Helper.getRandomNumber(10000),
+          contact: useContact,
+          lineItems: [
+            {
+              description: "Consulting services",
+              taxType: "NONE",
+              quantity: 20,
+              unitAmount: 100.00,
+              accountCode: "500"
+            }
+          ]
+        }
+        const quotes: Quotes = {
+          quotes: [
+            quote
+          ]
+        }
+        console.log(quotes)
+        const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant, quotes, true)
+        // ERROR: "Request is malformed and cannot be deserialised"
 
         // GET ONE
         const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant, getAllQuotes.body.quotes[0].quoteID);
         res.render("quotes", {
           authenticated: this.authenticationData(req, res),
           count: getAllQuotes.body.quotes.length,
-          getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber
+          getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber,
+          createdQuotesId: createQuotes.body.quotes[0].quoteID
         });
       } catch (e) {
         res.status(res.statusCode);
