@@ -1240,7 +1240,7 @@ class App {
 
         // GET BAS REPORT LIST
         const getBASListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant);
-        console.log(getBASListResponse.body.reports[0] || 'This works for Australia based organisations only');
+        console.log(getBASListResponse.body.reports[0] || 'BAS REPORTS - This works for Australia based organisations only');
 
         // GET BAS REPORT - FOR AUSTRALIA ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
         // required parameters
@@ -1262,7 +1262,7 @@ class App {
 
         // GET GST REPORT LIST
         const getGSTListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant);
-        console.log(getGSTListResponse.body.reports[0] || 'This currently works for New Zealand based organisations only. Published GST Reports before 11 Nov 2013 will also be returned');
+        console.log(getGSTListResponse.body.reports[0] || 'GST REPORTS - This currently works for New Zealand based organisations only. Published GST Reports before 11 Nov 2013 will also be returned');
 
         // GET GST REPORT - FOR NEW ZEALAND ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
         // required parameters
