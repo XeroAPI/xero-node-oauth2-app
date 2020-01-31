@@ -268,7 +268,6 @@ class App {
 
         // DELETE
         // let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
-        // let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
 
         res.render("accounts", {
           consentUrl: await xero.buildConsentUrl(),
@@ -279,7 +278,7 @@ class App {
           updateName: accountUpdateResponse.body.accounts[0].name,
           createAttachmentId: accountAttachmentsResponse.body.attachments[0].attachmentID,
           attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
-          deleteName: 'qwer'
+          deleteName: 'un-comment DELETE and pass: accountDeleteResponse.body.accounts[0].name'
         });
       } catch (e) {
         res.status(res.statusCode);
