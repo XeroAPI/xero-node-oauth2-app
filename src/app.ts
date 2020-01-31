@@ -220,7 +220,7 @@ class App {
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
         // CREATE
-        const account: Account = { name: "Foo" + Helper.getRandomNumber(10000), code: "" + Helper.getRandomNumber(10000), type: AccountType.EXPENSE };
+        const account: Account = { name: "Foo" + Helper.getRandomNumber(10000), code: "" + Helper.getRandomNumber(10000), type: AccountType.EXPENSE, hasAttachments: true};
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
@@ -267,7 +267,7 @@ class App {
         });
 
         // DELETE
-        let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
+        // let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
 
         res.render("accounts", {
           consentUrl: await xero.buildConsentUrl(),
@@ -278,7 +278,7 @@ class App {
           updateName: accountUpdateResponse.body.accounts[0].name,
           createAttachmentId: accountAttachmentsResponse.body.attachments[0].attachmentID,
           attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
-          deleteName: accountDeleteResponse.body.accounts[0].name
+          deleteName: 'un-comment DELETE and pass: accountDeleteResponse.body.accounts[0].name'
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -797,6 +797,7 @@ class App {
           reference: `REF:${Helper.getRandomNumber(10000)}`,
           brandingThemeID: brandingTheme.body.brandingThemes[0].brandingThemeID,
           url: "https://deeplink-to-your-site.com",
+          hasAttachments: true,
           currencyCode: CurrencyCode.USD,
           status: Invoice.StatusEnum.SUBMITTED,
           lineAmountTypes: LineAmountTypes.Inclusive,
@@ -914,6 +915,81 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse
         });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/invoices-filtered", async (req: Request, res: Response) => {
+      try {
+        const accessToken = req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+
+        const filteredInvoices = await xero.accountingApi.getInvoices(
+            req.session.activeTenant,
+            new Date(2018),
+            'Type=="ACCREC"',
+            'reference DESC',
+            [ 
+              "4b6d0c8f-10fa-42cd-a6e5-53b175e90005",
+              "5d91be3d-6c7c-4885-acbc-2d1ca7b9c06e",
+              "7ea31cd8-045c-4871-8cda-c0420953a39c"
+            ],
+            undefined,
+            undefined,
+            ['PAID', 'DRAFT'],
+            0,
+            true,
+            false,
+            4,
+            {
+              headers: {
+                'contentType': 'application/json'
+              }
+            }
+          )
+        res.render("invoices-filtered", {
+          authenticated: this.authenticationData(req, res),
+          filteredInvoices: filteredInvoices.body.invoices
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/attach-pdf-invoice", async (req: Request, res: Response) => {
+      try {
+        const accessToken = req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+
+        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant, undefined, undefined, undefined, undefined, undefined, undefined, ['PAID']);
+        
+        // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
+        // CREATE ATTACHMENT
+        const filename = "xero-dev.jpg";
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
+        const readStream = fs.createReadStream(pathToUpload);
+        const contentType = mime.lookup(filename);
+
+        const filteredInvoices = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant, totalInvoices.body.invoices[0].invoiceID, filename, true, readStream, {
+          headers: {
+            "Content-Type": contentType,
+          },
+        });
+
+        res.render("invoices-filtered", {
+          authenticated: this.authenticationData(req, res),
+          filteredInvoices: filteredInvoices.body
+        });
+
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -1357,13 +1433,42 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant)
+        
+        // CREATE QUOTE
+        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
+
+        // CREATE QUOTES
+        const quote: Quote = {
+          date: '2020-02-05',
+          quoteNumber: "QuoteNum:" + Helper.getRandomNumber(10000),
+          contact: useContact,
+          lineItems: [
+            {
+              description: "Consulting services",
+              taxType: "NONE",
+              quantity: 20,
+              unitAmount: 100.00,
+              accountCode: "500"
+            }
+          ]
+        }
+        const quotes: Quotes = {
+          quotes: [
+            quote
+          ]
+        }
+        console.log(quotes)
+        const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant, quotes, true)
+        // ERROR: "Request is malformed and cannot be deserialised"
 
         // GET ONE
         const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant, getAllQuotes.body.quotes[0].quoteID);
         res.render("quotes", {
           authenticated: this.authenticationData(req, res),
           count: getAllQuotes.body.quotes.length,
-          getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber
+          getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber,
+          createdQuotesId: createQuotes.body.quotes[0].quoteID
         });
       } catch (e) {
         res.status(res.statusCode);
