@@ -213,51 +213,52 @@ class App {
 
     router.get("/accounts", async (req: Request, res: Response) => {
       try {
-        let accessToken =  req.session.accessToken;
+        const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         //GET ALL
         let accountsGetResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0]);
+
         //CREATE
         let account: Account = {name: "Foo" + Helper.getRandomNumber(100), code: "" + Helper.getRandomNumber(100), type: AccountType.EXPENSE};      
         let accountCreateResponse = await xero.accountingApi.createAccount(xero.tenantIds[0],account);
         let accountId = accountCreateResponse.body.accounts[0].accountID;
+
         //GET ONE
         let accountGetResponse = await xero.accountingApi.getAccount(xero.tenantIds[0],accountId);
+
         //UPDATE
         let accountUp: Account = {name: "Sidney2 Account" + Helper.getRandomNumber(100)};      
         let accounts: Accounts = {accounts:[accountUp]};
         let accountUpdateResponse = await xero.accountingApi.updateAccount(xero.tenantIds[0],accountId,accounts);
-        
 
         const filename = 'xero-dev.jpg';
-        //const pathToUpload = path.join('src', '__integration_tests__', filename);
         
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
         const filesize = fs.statSync(pathToUpload).size;
         const readStream = fs.createReadStream(pathToUpload);
 
         let attachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
-            headers: {
-                'Content-Type': 'image/jpeg',
-                'Content-Length': filesize.toString(),
-                'Accept': 'application/json'
-            }
+          headers: {
+            'Content-Type': 'image/jpeg',
+            'Content-Length': filesize.toString(),
+            'Accept': 'application/json'
+          }
         });
         
         console.log(attachmentsResponse.body.attachments[0].attachmentID);
 
-        //DELETE - tested and works
+        //DELETE
         /*
         let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountID);
         accountDeleteResponse.body.accounts[0].name
         */
-        
+
         res.render('accounts', {
           getAllCount: accountsGetResponse.body.accounts.length,
           getOneName: accountGetResponse.body.accounts[0].name,
           createName: accountCreateResponse.body.accounts[0].name,
           updateName: accountUpdateResponse.body.accounts[0].name,
-          deleteName: "temp not passing"
+          deleteName: "accountDeleteResponse"
         });   
       }
        catch (e) { 
@@ -451,10 +452,9 @@ class App {
 
         const newInvoices: Invoices = new Invoices();
         newInvoices.invoices = [invoice1];
-
         const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices)
-        const invoice = createdInvoice.body.invoices[0]
 
+        const invoice = createdInvoice.body.invoices[0]
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
         // CREATE
@@ -486,7 +486,6 @@ class App {
             payments
           ]
         }
-
         const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant, batchPayments);
 
         // GET
@@ -1458,7 +1457,6 @@ class App {
         }
         console.log(quotes)
         const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant, quotes, true)
-        // ERROR: "Request is malformed and cannot be deserialised"
 
         // GET ONE
         const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant, getAllQuotes.body.quotes[0].quoteID);
