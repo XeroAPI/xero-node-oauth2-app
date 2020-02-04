@@ -278,7 +278,7 @@ class App {
           updateName: accountUpdateResponse.body.accounts[0].name,
           createAttachmentId: accountAttachmentsResponse.body.attachments[0].attachmentID,
           attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
-          deleteName: 'un-comment DELETE and pass: accountDeleteResponse.body.accounts[0].name'
+          deleteName: 'un-comment to DELETE'
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -474,7 +474,6 @@ class App {
 
         const newInvoices: Invoices = new Invoices();
         newInvoices.invoices = [invoice1];
-
         const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices)
         const invoice = createdInvoice.body.invoices[0]
 
@@ -491,8 +490,6 @@ class App {
         }
 
         // BatchPayment 'reference'?: string; is not optional
-        // "ValidationErrors": [
-        // "Message": "Batch deposits require a reference"
         const payments: BatchPayment = {
           account: {
             accountID: accountsGetResponse.body.accounts[0].accountID
@@ -509,7 +506,6 @@ class App {
             payments
           ]
         }
-
         const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant, batchPayments);
 
         // GET
@@ -829,7 +825,6 @@ class App {
 
         // CREATE ONE OR MORE INVOICES
         const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices, false)
-        console.log(createdInvoice.response.statusCode);
 
         // Since we are using summarizeErrors = false we get 200 OK statuscode
         // Our array of created invoices include those that succeeded and those with validation errors.
@@ -883,18 +878,42 @@ class App {
 
         // GET ALL
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
-
-        const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(req.session.activeTenant, invoiceId, 'application/pdf')
-
+      
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
           invoiceId,
           email: req.session.decodedIdToken.email,
           createdInvoice: createdInvoice.body.invoices[0],
           updatedInvoice: updatedInvoices.body.invoices[0],
-          getAsPdf,
           count: totalInvoices.body.invoices.length
         });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/invoice-as-pdf", async (req: Request, res: Response) => {
+      try {
+        const accessToken = req.session.accessToken;
+        await xero.setTokenSet(accessToken);
+
+        // GET ALL
+        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
+        
+        // GET one as PDF
+        const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(
+          req.session.activeTenant,
+          totalInvoices.body.invoices[0].invoiceID,
+          'application/pdf',
+          { headers: { accept: 'application/pdf'} }
+        )
+        res.setHeader('Content-Disposition', 'attachment; filename=invoice-as-pdf.pdf');
+        res.contentType("application/pdf");
+        res.send(getAsPdf.body);
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -1458,7 +1477,6 @@ class App {
         }
         console.log(quotes)
         const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant, quotes, true)
-        // ERROR: "Request is malformed and cannot be deserialised"
 
         // GET ONE
         const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant, getAllQuotes.body.quotes[0].quoteID);
