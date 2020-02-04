@@ -215,55 +215,77 @@ class App {
       try {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
-        //GET ALL
-        let accountsGetResponse = await xero.accountingApi.getAccounts(xero.tenantIds[0]);
 
-        //CREATE
-        let account: Account = {name: "Foo" + Helper.getRandomNumber(100), code: "" + Helper.getRandomNumber(100), type: AccountType.EXPENSE};      
-        let accountCreateResponse = await xero.accountingApi.createAccount(xero.tenantIds[0],account);
-        let accountId = accountCreateResponse.body.accounts[0].accountID;
+        // GET ALL
+        const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
-        //GET ONE
-        let accountGetResponse = await xero.accountingApi.getAccount(xero.tenantIds[0],accountId);
+        // CREATE
+        const account: Account = { name: "Foo" + Helper.getRandomNumber(10000), code: "" + Helper.getRandomNumber(10000), type: AccountType.EXPENSE, hasAttachments: true};
+        const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant, account);
+        const accountId = accountCreateResponse.body.accounts[0].accountID;
 
-        //UPDATE
-        let accountUp: Account = {name: "Sidney2 Account" + Helper.getRandomNumber(100)};      
-        let accounts: Accounts = {accounts:[accountUp]};
-        let accountUpdateResponse = await xero.accountingApi.updateAccount(xero.tenantIds[0],accountId,accounts);
+        // GET ONE
+        const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant, accountId);
 
-        const filename = 'xero-dev.jpg';
-        
+        // UPDATE
+        const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(10000) };
+        const accounts: Accounts = { accounts: [accountUp] };
+        const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId, accounts);
+
+        // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
+        // CREATE ATTACHMENT
+        const filename = "xero-dev.jpg";
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
-        const filesize = fs.statSync(pathToUpload).size;
         const readStream = fs.createReadStream(pathToUpload);
+        const contentType = mime.lookup(filename);
 
-        let attachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(xero.tenantIds[0], accountId, filename, readStream, {
+        const accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, readStream, {
           headers: {
-            'Content-Type': 'image/jpeg',
-            'Content-Length': filesize.toString(),
-            'Accept': 'application/json'
-          }
+            "Content-Type": contentType,
+          },
         });
-        
-        console.log(attachmentsResponse.body.attachments[0].attachmentID);
 
-        //DELETE
-        /*
-        let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountID);
-        accountDeleteResponse.body.accounts[0].name
-        */
+        const attachmentId = accountAttachmentsResponse.body.attachments[0].attachmentID;
+        const attachmentMimeType = accountAttachmentsResponse.body.attachments[0].mimeType;
+        const attachmentFileName = accountAttachmentsResponse.body.attachments[0].fileName;
 
-        res.render('accounts', {
-          getAllCount: accountsGetResponse.body.accounts.length,
+        // GET ATTACHMENTS
+        const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(req.session.activeTenant, accountId);
+
+        // GET ATTACHMENT BY ID
+        const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant, accountId, attachmentId, attachmentMimeType);
+        fs.writeFile(`id-${attachmentFileName}`, accountAttachmentsGetByIdResponse.body, (err) => {
+          if (err) { throw err; }
+          console.log("file written successfully");
+        });
+
+        // GET ATTACHMENT BY FILENAME
+        const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(req.session.activeTenant, accountId, attachmentFileName, attachmentMimeType);
+        fs.writeFile(`filename-${attachmentFileName}`, accountAttachmentsGetByFilenameResponse.body, (err) => {
+          if (err) { throw err; }
+          console.log("file written successfully");
+        });
+
+        // DELETE
+        // let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
+
+        res.render("accounts", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          accountsCount: accountsGetResponse.body.accounts.length,
           getOneName: accountGetResponse.body.accounts[0].name,
           createName: accountCreateResponse.body.accounts[0].name,
           updateName: accountUpdateResponse.body.accounts[0].name,
-          deleteName: "accountDeleteResponse"
-        });   
-      }
-       catch (e) { 
-        res.status(500);
-        res.send(e);
+          createAttachmentId: accountAttachmentsResponse.body.attachments[0].attachmentID,
+          attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
+          deleteName: 'un-comment to DELETE'
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
       }
     });
 
