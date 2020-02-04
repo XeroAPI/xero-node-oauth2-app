@@ -38,6 +38,6 @@
     "module-alias": "^2.2.2",
     "nodemon": "^1.19.4",
     "path": "^0.12.7",
-    "xero-node": "/Users/chris.knight/code/sdks/xero-node/xero-node-4.1.4.tgz"
+    "xero-node": "4.1.5"
   }
 }

@@ -246,7 +246,6 @@ class App {
         
         console.log(attachmentsResponse.body.attachments[0].attachmentID);
 
-
         //DELETE - tested and works
         /*
         let accountDeleteResponse = await xero.accountingApi.deleteAccount(xero.tenantIds[0],accountID);
@@ -887,17 +886,15 @@ class App {
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
         
         // GET one as PDF
-        const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(req.session.activeTenant, totalInvoices.body.invoices[0].invoiceID, 'application/pdf')
-        
-        // res.header('Content-disposition', 'inline; filename=' + 'test-pdf.pdf');
-        // res.header('Content-type', 'application/pdf');
-        // res.set( 'Content-Type', 'application/pdf' );
-        // const pdf = Buffer.from( new Uint8Array(getAsPdf.body) );
-        // res.send(pdf)
-
+        const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(
+          req.session.activeTenant,
+          totalInvoices.body.invoices[0].invoiceID,
+          'application/pdf',
+          { headers: { accept: 'application/pdf'} }
+        )
+        res.setHeader('Content-Disposition', 'attachment; filename=invoice-as-pdf.pdf');
         res.contentType("application/pdf");
         res.send(getAsPdf.body);
-
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
