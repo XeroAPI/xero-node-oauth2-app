@@ -475,8 +475,8 @@ class App {
         const newInvoices: Invoices = new Invoices();
         newInvoices.invoices = [invoice1];
         const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices)
-
         const invoice = createdInvoice.body.invoices[0]
+
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
         // CREATE
@@ -490,8 +490,6 @@ class App {
         }
 
         // BatchPayment 'reference'?: string; is not optional
-        // "ValidationErrors": [
-        // "Message": "Batch deposits require a reference"
         const payments: BatchPayment = {
           account: {
             accountID: accountsGetResponse.body.accounts[0].accountID
