@@ -1197,7 +1197,7 @@ class App {
 
         // GET 1099 REPORT
         // optional parameters
-        const reportYear: string = "2019";
+        const reportYear = "2019";
         const getTenNinetyNineResponse = await xero.accountingApi.getReportTenNinetyNine(req.session.activeTenant, reportYear);
 
         // getting a contact first
@@ -1205,31 +1205,31 @@ class App {
 
         // GET AGED PAYABLES BY CONTACT REPORT
         // required parameters
-        const apbcContactID: string = contactsGetResponse.body.contacts[0].contactID;
+        const apbcContactID = contactsGetResponse.body.contacts[0].contactID;
         // optional parameters
-        const apbcDate: string = "2019-12-31";
-        const apbcFromDate: string = "2019-01-01";
-        const apbcToDate: string = "2019-12-31";
+        const apbcDate = "2019-12-31";
+        const apbcFromDate = "2019-01-01";
+        const apbcToDate = "2019-12-31";
         const getAgedPayablesByContactResponse = await xero.accountingApi.getReportAgedPayablesByContact(req.session.activeTenant, apbcContactID, apbcDate, apbcFromDate, apbcToDate);
 
         // GET AGED RECEIVABLES BY CONTACT REPORT
         // required parameters
         const arbcContactID = contactsGetResponse.body.contacts[0].contactID;
         // optional parameters
-        const arbcDate: string = "2019-12-31";
-        const arbcFromDate: string = "2019-01-01";
-        const arbcToDate: string = "2019-12-31";
+        const arbcDate = "2019-12-31";
+        const arbcFromDate = "2019-01-01";
+        const arbcToDate = "2019-12-31";
         const getAgedReceivablesByContactResponse = await xero.accountingApi.getReportAgedReceivablesByContact(req.session.activeTenant, arbcContactID, arbcDate, arbcFromDate, arbcToDate);
 
         // GET BALANCE SHEET REPORT
         // optional parameters
-        const balsheetDate: string = "2019-04-22";
-        const balsheetPeriods: number = 7;
-        const balsheetTimeframe: any = "QUARTER";
-        const balsheetTrackingOptionID1: string = undefined;
-        const balsheetTrackingOptionID2: string = undefined;
-        const balsheetStandardLayout: boolean = true;
-        const balsheetPaymentsOnly: boolean = false;
+        const balsheetDate = "2019-04-22";
+        const balsheetPeriods = 7;
+        const balsheetTimeframe = "QUARTER";
+        const balsheetTrackingOptionID1 = undefined;
+        const balsheetTrackingOptionID2 = undefined;
+        const balsheetStandardLayout = true;
+        const balsheetPaymentsOnly = false;
         const getBalanceSheetResponse = await xero.accountingApi.getReportBalanceSheet(req.session.activeTenant, balsheetDate, balsheetPeriods, balsheetTimeframe, balsheetTrackingOptionID1, balsheetTrackingOptionID2, balsheetStandardLayout, balsheetPaymentsOnly);
 
         // GET BANK SUMMARY REPORT
@@ -1250,14 +1250,14 @@ class App {
 
         // GET BUDGET SUMMARY REPORT
         // optional parameters
-        const bsDate: string = "2019-04-22"
-        const bsPeriods: number = 6;
-        const bsTimeframe: number = 3;
+        const bsDate = "2019-04-22"
+        const bsPeriods = 6;
+        const bsTimeframe = 3;
         const getBudgetSummaryResponse = await xero.accountingApi.getReportBudgetSummary(req.session.activeTenant, bsDate, bsPeriods, bsTimeframe);
 
         // GET EXECUTIVE SUMMARY REPORT
         // optional parameters
-        const esDate: string = "2019-04-22";
+        const esDate = "2019-04-22";
         const getExecutiveSummaryResponse = await xero.accountingApi.getReportExecutiveSummary(req.session.activeTenant, esDate);
 
         // GET GST REPORT LIST
@@ -1272,22 +1272,22 @@ class App {
 
         // GET PROFIT AND LOSS REPORT
         // optional parameters
-        const plFromDate: string = "2019-01-01";
-        const plToDate: string = "2019-12-31";
-        const plPeriods: number = 6;
-        const plTimeframe: any = "QUARTER";
-        const plTrackingCategoryID: string = undefined;
-        const plTrackingOptionID: string = undefined;
-        const plTrackingCategoryID2: string = undefined;
-        const plTrackingOptionID2: string = undefined;
-        const plStandardLayout: boolean = true;
-        const plPaymentsOnly: boolean = false;
+        const plFromDate = "2019-01-01";
+        const plToDate = "2019-12-31";
+        const plPeriods = 6;
+        const plTimeframe = "QUARTER";
+        const plTrackingCategoryID = undefined;
+        const plTrackingOptionID = undefined;
+        const plTrackingCategoryID2 = undefined;
+        const plTrackingOptionID2 = undefined;
+        const plStandardLayout = true;
+        const plPaymentsOnly = false;
         const getProfitAndLossResponse = await xero.accountingApi.getReportProfitAndLoss(req.session.activeTenant, plFromDate, plToDate, plPeriods, plTimeframe, plTrackingCategoryID, plTrackingOptionID, plTrackingCategoryID2, plTrackingOptionID2, plStandardLayout, plPaymentsOnly);
 
         // GET TRIAL BALANCE REPORT
         // optional parameters
-        const tbDate: string = "2019-04-22";
-        const tbPaymentsOnly: boolean = false;
+        const tbDate = "2019-04-22";
+        const tbPaymentsOnly = false;
         const getTrialBalanceResponse = await xero.accountingApi.getReportTrialBalance(req.session.activeTenant, tbDate, tbPaymentsOnly);
 
         res.render("reports", {
