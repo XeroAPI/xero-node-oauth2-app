@@ -1,15 +1,20 @@
 <!doctype html>
 <html>
-  <%- include('shared/head') -%>
-  <body>
-    <%- include('shared/nav') -%>
-    <div class='core-content'>
-      <%- include('shared/header') -%>
-      <div class='body-wrapper'>
-        <div class='body-content'>
-          <p>Receipts success: Count: <%= count %></p>
-        </div>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Receipts success: Count: <%= count %></p>
+        <p>Receipts success: Create: <%= create %></p>
+        <p>Receipts success: Get One: <%= getOne %></p>
+        <p>Receipts success: Update: <%= update %></p>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>

@@ -3,7 +3,41 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes, TaxRate, TaxRates, TrackingCategory, TrackingCategories, TrackingOption, CurrencyCode } from "xero-node";
+import {
+  Account,
+  Accounts,
+  AccountType,
+  BankTransaction,
+  BankTransactions,
+  BankTransfer,
+  BankTransfers,
+  Contact,
+  Contacts,
+  Item,
+  Invoice,
+  Items,
+  LineItem,
+  LineAmountTypes,
+  Payment,
+  XeroClient,
+  BatchPayment,
+  BatchPayments,
+  TaxType,
+  ContactGroup,
+  ContactGroups,
+  Invoices,
+  ContactPerson,
+  Quote,
+  Quotes,
+  TaxRate,
+  TaxRates,
+  TrackingCategory,
+  TrackingCategories,
+  TrackingOption,
+  CurrencyCode,
+  Receipt,
+  Receipts
+} from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 
@@ -220,7 +254,7 @@ class App {
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
         // CREATE
-        const account: Account = { name: "Foo" + Helper.getRandomNumber(10000), code: "" + Helper.getRandomNumber(10000), type: AccountType.EXPENSE, hasAttachments: true};
+        const account: Account = { name: "Foo" + Helper.getRandomNumber(10000), code: "" + Helper.getRandomNumber(10000), type: AccountType.EXPENSE, hasAttachments: true };
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
@@ -878,7 +912,7 @@ class App {
 
         // GET ALL
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
-      
+
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
           invoiceId,
@@ -903,13 +937,13 @@ class App {
 
         // GET ALL
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
-        
+
         // GET one as PDF
         const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(
           req.session.activeTenant,
           totalInvoices.body.invoices[0].invoiceID,
           'application/pdf',
-          { headers: { accept: 'application/pdf'} }
+          { headers: { accept: 'application/pdf' } }
         )
         res.setHeader('Content-Disposition', 'attachment; filename=invoice-as-pdf.pdf');
         res.contentType("application/pdf");
@@ -951,24 +985,24 @@ class App {
         await xero.setTokenSet(accessToken);
 
         const filteredInvoices = await xero.accountingApi.getInvoices(
-            req.session.activeTenant,
-            new Date(2018),
-            'Type=="ACCREC"',
-            'reference DESC',
-            undefined,
-            undefined,
-            undefined,
-            ['PAID', 'DRAFT'],
-            0,
-            true,
-            false,
-            4,
-            {
-              headers: {
-                'contentType': 'application/json'
-              }
+          req.session.activeTenant,
+          new Date(2018),
+          'Type=="ACCREC"',
+          'reference DESC',
+          undefined,
+          undefined,
+          undefined,
+          ['PAID', 'DRAFT'],
+          0,
+          true,
+          false,
+          4,
+          {
+            headers: {
+              'contentType': 'application/json'
             }
-          )
+          }
+        )
         res.render("invoices-filtered", {
           authenticated: this.authenticationData(req, res),
           filteredInvoices: filteredInvoices.body.invoices
@@ -988,7 +1022,7 @@ class App {
         await xero.setTokenSet(accessToken);
 
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant, undefined, undefined, undefined, undefined, undefined, undefined, ['PAID']);
-        
+
         // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
         // CREATE ATTACHMENT
         const filename = "xero-dev.jpg";
@@ -1266,13 +1300,61 @@ class App {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getReceipts(req.session.activeTenant);
+        const getReceiptsResponse = await xero.accountingApi.getReceipts(req.session.activeTenant);
+
+
+        // first we need a contactID and userID
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const contactID = getContactsResponse.body.contacts[0].contactID;
+        const getusersResponse = await xero.accountingApi.getUsers(req.session.activeTenant);
+        const userID = getusersResponse.body.users[0].userID;
+
+        // {Receipts}
+        const receipts: Receipts = {
+          receipts: [
+            {
+              contact: {
+                contactID
+              },
+              reference: `Reference ${Helper.getRandomNumber(10000)}`,
+              lineItems: [
+                {
+                  description: "Foobar",
+                  quantity: 2.0,
+                  unitAmount: 20.0,
+                  accountCode: "400",
+                  taxType: "NONE",
+                  lineAmount: 40.0
+                }
+              ],
+              user: {
+                userID
+              },
+              lineAmountTypes: LineAmountTypes.Inclusive,
+              status: Receipt.StatusEnum.DRAFT,
+              date: null
+            }
+          ]
+        };
+
         // CREATE
+        const createReceiptResponse = await xero.accountingApi.createReceipt(req.session.activeTenant, receipts);
+
         // GET ONE
+        const getReceiptResponse = await xero.accountingApi.getReceipt(req.session.activeTenant, createReceiptResponse.body.receipts[0].receiptID);
+
+        const updatedReceipts: Receipts = receipts;
+        updatedReceipts.receipts[0].lineItems[0].description = 'UPDATED - Foobar';
+
         // UPDATE
+        const updateReceiptResponse = await xero.accountingApi.updateReceipt(req.session.activeTenant, getReceiptResponse.body.receipts[0].receiptID, updatedReceipts);
+
         res.render("receipts", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.receipts.length
+          count: getReceiptsResponse.body.receipts.length,
+          create: createReceiptResponse.body.receipts[0].reference,
+          getOne: getReceiptResponse.body.receipts[0].reference,
+          update: updateReceiptResponse.body.receipts[0].lineItems[0].description
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1541,7 +1623,7 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant)
-        
+
         // CREATE QUOTE
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
