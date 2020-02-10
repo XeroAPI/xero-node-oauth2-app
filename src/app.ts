@@ -40,7 +40,6 @@ import {
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
-import { TokenSet } from "openid-client";
 
 const session = require("express-session");
 const path = require("path");
