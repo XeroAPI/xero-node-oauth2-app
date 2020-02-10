@@ -14,8 +14,10 @@
           <p><strong>Create Account - name :</strong> <%= createName %></p>
           <p><strong>Read one Account - name :</strong> <%= getOneName %></p>
           <p><strong>Updated Account - updateName :</strong> <%= updateName %></p>
-          <p><strong>Attached - createAttachmentId:</strong> <%= createAttachmentId %></p>
-          <p><strong>Attached - attachmentsCount :</strong> <%= attachmentsCount %></p>
+          <p><strong>Attached:</strong></p>
+          <pre>
+            <code class='language-javascript'><%- JSON.stringify(attachments, null, 2) %></code>
+          </pre>
           <p><strong>Delete Account - name :</strong> <%= deleteName %></p>
         </div>
       </div>

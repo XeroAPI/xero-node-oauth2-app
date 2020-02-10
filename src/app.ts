@@ -254,7 +254,7 @@ class App {
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
         // CREATE
-        const account: Account = { name: "Foo" + Helper.getRandomNumber(10000), code: "" + Helper.getRandomNumber(10000), type: AccountType.EXPENSE, hasAttachments: true };
+        const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true};
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
@@ -262,40 +262,39 @@ class App {
         const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant, accountId);
 
         // UPDATE
-        const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(10000) };
+        const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(1000000) };
         const accounts: Accounts = { accounts: [accountUp] };
         const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId, accounts);
 
-        // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
         // CREATE ATTACHMENT
-        const filename = "xero-dev.jpg";
-        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
+        const filename = "xero-dev.png";
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const accountAttachmentsResponse = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, readStream, {
-          headers: {
-            "Content-Type": contentType,
-          },
+        const accountAttachmentsResponse: any = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, readStream, {
+            headers: {
+              'Content-Type': contentType
+            }
         });
-
-        const attachmentId = accountAttachmentsResponse.body.attachments[0].attachmentID;
-        const attachmentMimeType = accountAttachmentsResponse.body.attachments[0].mimeType;
-        const attachmentFileName = accountAttachmentsResponse.body.attachments[0].fileName;
+        
+        const attachment = JSON.parse(accountAttachmentsResponse.response['body'])
+        const attachmentId = attachment.Attachments[0].AttachmentID
 
         // GET ATTACHMENTS
         const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(req.session.activeTenant, accountId);
 
         // GET ATTACHMENT BY ID
-        const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant, accountId, attachmentId, attachmentMimeType);
-        fs.writeFile(`id-${attachmentFileName}`, accountAttachmentsGetByIdResponse.body, (err) => {
+        const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant, accountId, attachmentId, contentType);
+        fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByIdResponse.body, (err) => {
           if (err) { throw err; }
           console.log("file written successfully");
         });
 
         // GET ATTACHMENT BY FILENAME
-        const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(req.session.activeTenant, accountId, attachmentFileName, attachmentMimeType);
-        fs.writeFile(`filename-${attachmentFileName}`, accountAttachmentsGetByFilenameResponse.body, (err) => {
+        console.log('await')
+        const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, contentType);
+        fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByFilenameResponse.body, (err) => {
           if (err) { throw err; }
           console.log("file written successfully");
         });
@@ -310,8 +309,7 @@ class App {
           getOneName: accountGetResponse.body.accounts[0].name,
           createName: accountCreateResponse.body.accounts[0].name,
           updateName: accountUpdateResponse.body.accounts[0].name,
-          createAttachmentId: accountAttachmentsResponse.body.attachments[0].attachmentID,
-          attachmentsCount: accountAttachmentsGetResponse.body.attachments.length,
+          attachments: accountAttachmentsGetResponse.response['body'],
           deleteName: 'un-comment to DELETE'
         });
       } catch (e) {
@@ -430,14 +428,14 @@ class App {
 
         // FIRST we need two Accounts type=BANK
         const account1: Account = {
-          name: "Ima Bank: " + Helper.getRandomNumber(10000),
-          code: "" + Helper.getRandomNumber(10000),
+          name: "Ima Bank: " + Helper.getRandomNumber(1000000),
+          code: "" + Helper.getRandomNumber(1000000),
           type: AccountType.BANK,
           bankAccountNumber: Helper.getRandomNumber(209087654321050).toString()
         };
         const account2: Account = {
-          name: "Ima Bank: " + Helper.getRandomNumber(10000),
-          code: "" + Helper.getRandomNumber(10000),
+          name: "Ima Bank: " + Helper.getRandomNumber(1000000),
+          code: "" + Helper.getRandomNumber(1000000),
           type: AccountType.BANK,
           bankAccountNumber: Helper.getRandomNumber(209087654321051).toString(),
         };
@@ -589,7 +587,7 @@ class App {
         const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
 
         // CREATE ONE OR MORE
-        const contact1: Contact = { name: "Rick James: " + Helper.getRandomNumber(10000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
+        const contact1: Contact = { name: "Rick James: " + Helper.getRandomNumber(1000000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
         const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
@@ -604,13 +602,13 @@ class App {
         const updateContacts: Contacts = new Contacts();
         const contact2: Contact = {
           contactID: contactId,
-          name: "Rick James: " + Helper.getRandomNumber(10000),
+          name: "Rick James: " + Helper.getRandomNumber(1000000),
           firstName: "Rick",
           lastName: "James",
           emailAddress: "test@example.com",
           contactPersons: [person]
         };
-        const contact3: Contact = { name: "Rick James: " + Helper.getRandomNumber(10000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
+        const contact3: Contact = { name: "Rick James: " + Helper.getRandomNumber(1000000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
 
         updateContacts.contacts = [contact2, contact3];
         await xero.accountingApi.updateOrCreateContacts(req.session.activeTenant, updateContacts, false);
@@ -619,7 +617,7 @@ class App {
         const contactGetResponse = await xero.accountingApi.getContact(req.session.activeTenant, contactId);
 
         // UPDATE SINGLE
-        const contactUpdate: Contact = { name: "Rick James Updated: " + Helper.getRandomNumber(10000) };
+        const contactUpdate: Contact = { name: "Rick James Updated: " + Helper.getRandomNumber(1000000) };
         const contacts: Contacts = { contacts: [contactUpdate] };
         const contactUpdateResponse = await xero.accountingApi.updateContact(req.session.activeTenant, contactId, contacts);
 
@@ -646,7 +644,7 @@ class App {
         await xero.setTokenSet(accessToken);
 
         // CREATE
-        const contactGroupParams: ContactGroups = { contactGroups: [{ name: 'Ima Contact Group' + Helper.getRandomNumber(10000) }] }
+        const contactGroupParams: ContactGroups = { contactGroups: [{ name: 'Ima Contact Group' + Helper.getRandomNumber(1000000) }] }
         const createContactGroup = await xero.accountingApi.createContactGroup(req.session.activeTenant, contactGroupParams);
         const contactGroup = createContactGroup.body.contactGroups[0]
 
@@ -654,7 +652,7 @@ class App {
         const getContactGroup = await xero.accountingApi.getContactGroup(req.session.activeTenant, contactGroup.contactGroupID)
 
         // UPDATE
-        const num = Helper.getRandomNumber(10000)
+        const num = Helper.getRandomNumber(1000000)
         const contact1: Contact = { name: "Rick James: " + num, firstName: "Rick", lastName: "James", emailAddress: `foo+${num}@example.com` };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
@@ -807,7 +805,7 @@ class App {
         await xero.setTokenSet(accessToken);
 
         const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
-        const num = Helper.getRandomNumber(10000)
+        const num = Helper.getRandomNumber(1000000)
         const contact1: Contact = { name: "Test User: " + num, firstName: "Rick", lastName: "James", emailAddress: req.session.decodedIdToken.email };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
@@ -822,8 +820,8 @@ class App {
             contactID: selfContact[0].contactID
           },
           expectedPaymentDate: "2009-10-20T00:00:00",
-          invoiceNumber: `XERO:${Helper.getRandomNumber(10000)}`,
-          reference: `REF:${Helper.getRandomNumber(10000)}`,
+          invoiceNumber: `XERO:${Helper.getRandomNumber(1000000)}`,
+          reference: `REF:${Helper.getRandomNumber(1000000)}`,
           brandingThemeID: brandingTheme.body.brandingThemes[0].brandingThemeID,
           url: "https://deeplink-to-your-site.com",
           hasAttachments: true,
@@ -900,7 +898,7 @@ class App {
         const invoiceId = getInvoice.body.invoices[0].invoiceID
 
         // UPDATE
-        const newReference = { reference: `NEW-REF:${Helper.getRandomNumber(10000)}` }
+        const newReference = { reference: `NEW-REF:${Helper.getRandomNumber(1000000)}` }
 
         const invoiceToUpdate: Invoices = {
           invoices: [
@@ -1016,7 +1014,7 @@ class App {
       }
     });
 
-    router.get("/attach-pdf-invoice", async (req: Request, res: Response) => {
+    router.get("/attachment-invoice", async (req: Request, res: Response) => {
       try {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
@@ -1025,20 +1023,21 @@ class App {
 
         // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
         // CREATE ATTACHMENT
-        const filename = "xero-dev.jpg";
-        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.jpg");
+        const filename = "xero-dev.png";
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const filteredInvoices = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant, totalInvoices.body.invoices[0].invoiceID, filename, true, readStream, {
+        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant, totalInvoices.body.invoices[0].invoiceID, filename, true, readStream, {
           headers: {
             "Content-Type": contentType,
           },
         });
+        console.log('fileAttached: ',fileAttached)
 
-        res.render("invoices-filtered", {
+        res.render("attachment-invoice", {
           authenticated: this.authenticationData(req, res),
-          filteredInvoices: filteredInvoices.body
+          attachments: JSON.parse(fileAttached.response['body'])
         });
 
       } catch (e) {
@@ -1062,7 +1061,7 @@ class App {
 
         // CREATE ONE or MORE ITEMS
         const item1: Item = {
-          code: "Foo" + Helper.getRandomNumber(10000),
+          code: "Foo" + Helper.getRandomNumber(1000000),
           name: "Bar",
           purchaseDetails: {
             unitPrice: 375.5000,
@@ -1084,7 +1083,7 @@ class App {
         const itemId = itemCreateResponse.body.items[0].itemID;
 
         // UPDATE OR CREATE ONE or MORE ITEMS - FORCE validation error on update
-        item1.name = "Bar" + Helper.getRandomNumber(10000)
+        item1.name = "Bar" + Helper.getRandomNumber(1000000)
         const updateItems: Items = new Items();
         updateItems.items = [item1]
 
@@ -1094,7 +1093,7 @@ class App {
         const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant, itemsGetResponse.body.items[0].itemID)
 
         // UPDATE
-        const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(10000), name: "Bar - updated", inventoryAssetAccountCode: item1.inventoryAssetAccountCode };
+        const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(1000000), name: "Bar - updated", inventoryAssetAccountCode: item1.inventoryAssetAccountCode };
         const items: Items = { items: [itemUpdate] };
         const itemUpdateResponse = await xero.accountingApi.updateItem(req.session.activeTenant, itemId, items);
 
@@ -1496,7 +1495,7 @@ class App {
         const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
 
         const newTaxRate: TaxRate = {
-          name: `Tax Rate Name ${Helper.getRandomNumber(10000)}`,
+          name: `Tax Rate Name ${Helper.getRandomNumber(1000000)}`,
           reportTaxType: undefined,
           taxComponents: [
             {
@@ -1554,13 +1553,13 @@ class App {
 
         // New Tracking Category
         const trackingCategory: TrackingCategory = {
-          name: `Tracking Category ${Helper.getRandomNumber(10000)}`,
+          name: `Tracking Category ${Helper.getRandomNumber(1000000)}`,
           status: TrackingCategory.StatusEnum.ACTIVE
         };
 
         // New Tracking Category Option
         const trackingCategoryOption: TrackingOption = {
-          name: `Tracking Option ${Helper.getRandomNumber(10000)}`,
+          name: `Tracking Option ${Helper.getRandomNumber(1000000)}`,
           status: TrackingOption.StatusEnum.ACTIVE
         };
 
@@ -1631,7 +1630,7 @@ class App {
         // CREATE QUOTES
         const quote: Quote = {
           date: '2020-02-05',
-          quoteNumber: "QuoteNum:" + Helper.getRandomNumber(10000),
+          quoteNumber: "QuoteNum:" + Helper.getRandomNumber(1000000),
           contact: useContact,
           lineItems: [
             {

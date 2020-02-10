@@ -7,10 +7,12 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <a href='https://developer.xero.com/documentation/api/invoices' target='_blank'>
-            <h4>Invoices</h4>
+          <a href='https://developer.xero.com/documentation/api/attachments' target='_blank'>
+            <h4>Attachments</h4>
           </a>
-          <p>Attached PDF to invoice: <%= pdfAttached %></p>
+          <pre>
+            <code class='language-javascript'><%- JSON.stringify(attachments, null, 2) %></code>
+          </pre>
         </div>
       </div>
     </div>
