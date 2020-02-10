@@ -3,7 +3,41 @@ import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
 import * as fs from "fs";
-import { Account, Accounts, AccountType, BankTransaction, BankTransactions, BankTransfer, BankTransfers, Contact, Contacts, Item, Invoice, Items, LineItem, LineAmountTypes, Payment, XeroClient, BatchPayment, BatchPayments, TaxType, ContactGroup, ContactGroups, Invoices, ContactPerson, Quote, Quotes, TaxRate, TaxRates, TrackingCategory, TrackingCategories, TrackingOption, CurrencyCode } from "xero-node";
+import {
+  Account,
+  Accounts,
+  AccountType,
+  BankTransaction,
+  BankTransactions,
+  BankTransfer,
+  BankTransfers,
+  Contact,
+  Contacts,
+  Item,
+  Invoice,
+  Items,
+  LineItem,
+  LineAmountTypes,
+  Payment,
+  XeroClient,
+  BatchPayment,
+  BatchPayments,
+  TaxType,
+  ContactGroup,
+  ContactGroups,
+  Invoices,
+  ContactPerson,
+  Quote,
+  Quotes,
+  TaxRate,
+  TaxRates,
+  TrackingCategory,
+  TrackingCategories,
+  TrackingOption,
+  CurrencyCode,
+  Receipt,
+  Receipts
+} from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { TokenSet } from "openid-client";
@@ -877,7 +911,7 @@ class App {
 
         // GET ALL
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
-      
+
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
           invoiceId,
@@ -902,13 +936,13 @@ class App {
 
         // GET ALL
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
-        
+
         // GET one as PDF
         const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(
           req.session.activeTenant,
           totalInvoices.body.invoices[0].invoiceID,
           'application/pdf',
-          { headers: { accept: 'application/pdf'} }
+          { headers: { accept: 'application/pdf' } }
         )
         res.setHeader('Content-Disposition', 'attachment; filename=invoice-as-pdf.pdf');
         res.contentType("application/pdf");
@@ -950,24 +984,24 @@ class App {
         await xero.setTokenSet(accessToken);
 
         const filteredInvoices = await xero.accountingApi.getInvoices(
-            req.session.activeTenant,
-            new Date(2018),
-            'Type=="ACCREC"',
-            'reference DESC',
-            undefined,
-            undefined,
-            undefined,
-            ['PAID', 'DRAFT'],
-            0,
-            true,
-            false,
-            4,
-            {
-              headers: {
-                'contentType': 'application/json'
-              }
+          req.session.activeTenant,
+          new Date(2018),
+          'Type=="ACCREC"',
+          'reference DESC',
+          undefined,
+          undefined,
+          undefined,
+          ['PAID', 'DRAFT'],
+          0,
+          true,
+          false,
+          4,
+          {
+            headers: {
+              'contentType': 'application/json'
             }
-          )
+          }
+        )
         res.render("invoices-filtered", {
           authenticated: this.authenticationData(req, res),
           filteredInvoices: filteredInvoices.body.invoices
@@ -987,7 +1021,7 @@ class App {
         await xero.setTokenSet(accessToken);
 
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant, undefined, undefined, undefined, undefined, undefined, undefined, ['PAID']);
-        
+
         // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
         // CREATE ATTACHMENT
         const filename = "xero-dev.png";
@@ -1266,13 +1300,61 @@ class App {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getReceipts(req.session.activeTenant);
+        const getReceiptsResponse = await xero.accountingApi.getReceipts(req.session.activeTenant);
+
+
+        // first we need a contactID and userID
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const contactID = getContactsResponse.body.contacts[0].contactID;
+        const getusersResponse = await xero.accountingApi.getUsers(req.session.activeTenant);
+        const userID = getusersResponse.body.users[0].userID;
+
+        // {Receipts}
+        const receipts: Receipts = {
+          receipts: [
+            {
+              contact: {
+                contactID
+              },
+              reference: `Reference ${Helper.getRandomNumber(10000)}`,
+              lineItems: [
+                {
+                  description: "Foobar",
+                  quantity: 2.0,
+                  unitAmount: 20.0,
+                  accountCode: "400",
+                  taxType: "NONE",
+                  lineAmount: 40.0
+                }
+              ],
+              user: {
+                userID
+              },
+              lineAmountTypes: LineAmountTypes.Inclusive,
+              status: Receipt.StatusEnum.DRAFT,
+              date: null
+            }
+          ]
+        };
+
         // CREATE
+        const createReceiptResponse = await xero.accountingApi.createReceipt(req.session.activeTenant, receipts);
+
         // GET ONE
+        const getReceiptResponse = await xero.accountingApi.getReceipt(req.session.activeTenant, createReceiptResponse.body.receipts[0].receiptID);
+
+        const updatedReceipts: Receipts = receipts;
+        updatedReceipts.receipts[0].lineItems[0].description = 'UPDATED - Foobar';
+
         // UPDATE
+        const updateReceiptResponse = await xero.accountingApi.updateReceipt(req.session.activeTenant, getReceiptResponse.body.receipts[0].receiptID, updatedReceipts);
+
         res.render("receipts", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.receipts.length
+          count: getReceiptsResponse.body.receipts.length,
+          create: createReceiptResponse.body.receipts[0].reference,
+          getOne: getReceiptResponse.body.receipts[0].reference,
+          update: updateReceiptResponse.body.receipts[0].lineItems[0].description
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1287,21 +1369,115 @@ class App {
       try {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
+
+        // GET 1099 REPORT
+        // optional parameters
+        const reportYear = "2019";
+        const getTenNinetyNineResponse = await xero.accountingApi.getReportTenNinetyNine(req.session.activeTenant, reportYear);
+
+        // getting a contact first
+        const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+
+        // GET AGED PAYABLES BY CONTACT REPORT
+        // required parameters
+        const apbcContactID = contactsGetResponse.body.contacts[0].contactID;
+        // optional parameters
+        const apbcDate = "2019-12-31";
+        const apbcFromDate = "2019-01-01";
+        const apbcToDate = "2019-12-31";
+        const getAgedPayablesByContactResponse = await xero.accountingApi.getReportAgedPayablesByContact(req.session.activeTenant, apbcContactID, apbcDate, apbcFromDate, apbcToDate);
+
+        // GET AGED RECEIVABLES BY CONTACT REPORT
+        // required parameters
+        const arbcContactID = contactsGetResponse.body.contacts[0].contactID;
+        // optional parameters
+        const arbcDate = "2019-12-31";
+        const arbcFromDate = "2019-01-01";
+        const arbcToDate = "2019-12-31";
+        const getAgedReceivablesByContactResponse = await xero.accountingApi.getReportAgedReceivablesByContact(req.session.activeTenant, arbcContactID, arbcDate, arbcFromDate, arbcToDate);
+
+        // GET BALANCE SHEET REPORT
+        // optional parameters
+        const balsheetDate = "2019-04-22";
+        const balsheetPeriods = 7;
+        const balsheetTimeframe = "QUARTER";
+        const balsheetTrackingOptionID1 = undefined;
+        const balsheetTrackingOptionID2 = undefined;
+        const balsheetStandardLayout = true;
+        const balsheetPaymentsOnly = false;
+        const getBalanceSheetResponse = await xero.accountingApi.getReportBalanceSheet(req.session.activeTenant, balsheetDate, balsheetPeriods, balsheetTimeframe, balsheetTrackingOptionID1, balsheetTrackingOptionID2, balsheetStandardLayout, balsheetPaymentsOnly);
+
         // GET BANK SUMMARY REPORT
-        const fromDate = "2019-01-01";
-        const toDate = "2019-12-31";
-        const apiResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant, fromDate, toDate);
-        console.log(apiResponse.body.reports[0].reportTitles[2]);
-        // CREATE
-        // GET ONE
-        // UPDATE
-        // We need specific report API calls
-        // let apiResponse = await xero.accountingApi.getReports(req.session.activeTenant);
+        // optional parameters
+        const banksumFromDate = "2019-01-01";
+        const banksumToDate = "2019-12-31";
+        const getReportBankSummaryResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant, banksumFromDate, banksumToDate);
+
+        // GET BAS REPORT LIST
+        const getBASListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant);
+        console.log(getBASListResponse.body.reports[0] || 'BAS REPORTS - This works for Australia based organisations only');
+
+        // GET BAS REPORT - FOR AUSTRALIA ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
+        // required parameters
+        // const BASReportID: string = "00000000-0000-0000-0000-000000000000";
+        // const getBASResponse = await xero.accountingApi.getReportBASorGST(req.session.activeTenant, BASReportID);
+        // console.log(getBASResponse.body.reports[0] || 'This works for Australia based organisations only');
+
+        // GET BUDGET SUMMARY REPORT
+        // optional parameters
+        const bsDate = "2019-04-22"
+        const bsPeriods = 6;
+        const bsTimeframe = 3;
+        const getBudgetSummaryResponse = await xero.accountingApi.getReportBudgetSummary(req.session.activeTenant, bsDate, bsPeriods, bsTimeframe);
+
+        // GET EXECUTIVE SUMMARY REPORT
+        // optional parameters
+        const esDate = "2019-04-22";
+        const getExecutiveSummaryResponse = await xero.accountingApi.getReportExecutiveSummary(req.session.activeTenant, esDate);
+
+        // GET GST REPORT LIST
+        const getGSTListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant);
+        console.log(getGSTListResponse.body.reports[0] || 'GST REPORTS - This currently works for New Zealand based organisations only. Published GST Reports before 11 Nov 2013 will also be returned');
+
+        // GET GST REPORT - FOR NEW ZEALAND ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
+        // required parameters
+        // const GSTReportID: string = "00000000-0000-0000-0000-000000000000";
+        // const getGSTResponse = await xero.accountingApi.getReportBASorGST(req.session.activeTenant, GSTReportID);
+        // console.log(getGSTResponse.body.reports[0] || 'This works for NEW ZEALAND based organisations only');
+
+        // GET PROFIT AND LOSS REPORT
+        // optional parameters
+        const plFromDate = "2019-01-01";
+        const plToDate = "2019-12-31";
+        const plPeriods = 6;
+        const plTimeframe = "QUARTER";
+        const plTrackingCategoryID = undefined;
+        const plTrackingOptionID = undefined;
+        const plTrackingCategoryID2 = undefined;
+        const plTrackingOptionID2 = undefined;
+        const plStandardLayout = true;
+        const plPaymentsOnly = false;
+        const getProfitAndLossResponse = await xero.accountingApi.getReportProfitAndLoss(req.session.activeTenant, plFromDate, plToDate, plPeriods, plTimeframe, plTrackingCategoryID, plTrackingOptionID, plTrackingCategoryID2, plTrackingOptionID2, plStandardLayout, plPaymentsOnly);
+
+        // GET TRIAL BALANCE REPORT
+        // optional parameters
+        const tbDate = "2019-04-22";
+        const tbPaymentsOnly = false;
+        const getTrialBalanceResponse = await xero.accountingApi.getReportTrialBalance(req.session.activeTenant, tbDate, tbPaymentsOnly);
+
         res.render("reports", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          count: 0,
-          bankSummaryTitle: apiResponse.body.reports[0].reportTitles[2]
+          bankSummaryReportTitle: getReportBankSummaryResponse.body.reports[0].reportTitles.join(' '),
+          tenNinetyNineReportTitle: `${getTenNinetyNineResponse.body.reports[0].reportName} ${getTenNinetyNineResponse.body.reports[0].reportDate}`,
+          agedPayablesByContactReportTitle: `${getAgedPayablesByContactResponse.body.reports[0].reportName} ${getAgedPayablesByContactResponse.body.reports[0].reportDate}`,
+          agedReceivablesByContactReportTitle: `${getAgedReceivablesByContactResponse.body.reports[0].reportName} ${getAgedReceivablesByContactResponse.body.reports[0].reportDate}`,
+          getBalanceSheetReportTitle: `${getBalanceSheetResponse.body.reports[0].reportName} ${getBalanceSheetResponse.body.reports[0].reportDate}`,
+          getReportBankSummaryReportTitle: `${getReportBankSummaryResponse.body.reports[0].reportName} ${getReportBankSummaryResponse.body.reports[0].reportDate}`,
+          getBudgetSummaryReportTitle: `${getBudgetSummaryResponse.body.reports[0].reportName} ${getBudgetSummaryResponse.body.reports[0].reportDate}`,
+          getExecutiveSummaryReportTitle: `${getExecutiveSummaryResponse.body.reports[0].reportName} ${getExecutiveSummaryResponse.body.reports[0].reportDate}`,
+          getProfitAndLossReportTitle: `${getProfitAndLossResponse.body.reports[0].reportName} ${getProfitAndLossResponse.body.reports[0].reportDate}`,
+          getTrialBalanceReportTitle: `${getTrialBalanceResponse.body.reports[0].reportName} ${getTrialBalanceResponse.body.reports[0].reportDate}`
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1318,7 +1494,6 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
-        console.log(getAllResponse.body);
 
         const newTaxRate: TaxRate = {
           name: `Tax Rate Name ${Helper.getRandomNumber(1000000)}`,
@@ -1344,7 +1519,6 @@ class App {
 
         // CREATE
         const createResponse = await xero.accountingApi.createTaxRates(req.session.activeTenant, taxRates);
-        console.log(createResponse.body);
 
         const updatedTaxRate: TaxRate = newTaxRate;
 
@@ -1354,7 +1528,6 @@ class App {
 
         // UPDATE
         const updateResponse = await xero.accountingApi.updateTaxRate(req.session.activeTenant, taxRates);
-        console.log(updateResponse.body);
 
         res.render("taxrates", {
           authenticated: this.authenticationData(req, res),
@@ -1450,7 +1623,7 @@ class App {
         await xero.setTokenSet(accessToken);
         // GET ALL
         const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant)
-        
+
         // CREATE QUOTE
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
