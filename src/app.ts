@@ -218,33 +218,28 @@ class App {
         await xero.setTokenSet(accessToken);
 
         // GET ALL
-        console.log('// GET ALL')
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
         // CREATE
-        console.log('// CREATE')
         const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true};
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
         // GET ONE
-        console.log('// GET ONE')
         const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant, accountId);
 
         // UPDATE
-        console.log('// UPDATE')
         const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(1000000) };
         const accounts: Accounts = { accounts: [accountUp] };
         const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId, accounts);
 
         // CREATE ATTACHMENT
-        console.log('// CREATE ATTACHMENT')
         const filename = "xero-dev.png";
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        let accountAttachmentsResponse: any = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, readStream, {
+        const accountAttachmentsResponse: any = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, readStream, {
             headers: {
               'Content-Type': contentType
             }
@@ -254,13 +249,9 @@ class App {
         const attachmentId = attachment.Attachments[0].AttachmentID
 
         // GET ATTACHMENTS
-        console.log('// GET ATTACHMENTS')
-        console.log('await')
         const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(req.session.activeTenant, accountId);
 
         // GET ATTACHMENT BY ID
-        console.log('// GET ATTACHMENT BY ID')
-        console.log('await')
         const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant, accountId, attachmentId, contentType);
         fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByIdResponse.body, (err) => {
           if (err) { throw err; }
@@ -276,7 +267,6 @@ class App {
         });
 
         // DELETE
-        console.log('accountAttachmentsGetResponse: ',accountAttachmentsGetResponse)
         // let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
 
         res.render("accounts", {
