@@ -36,7 +36,9 @@ import {
   TrackingOption,
   CurrencyCode,
   Receipt,
-  Receipts
+  Receipts,
+  PurchaseOrder,
+  PurchaseOrders
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -1277,13 +1279,50 @@ class App {
         const accessToken = req.session.accessToken;
         await xero.setTokenSet(accessToken);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getPurchaseOrders(req.session.activeTenant);
+        const getPurchaseOrdersResponse = await xero.accountingApi.getPurchaseOrders(req.session.activeTenant);
+
         // CREATE
+        // first we need a contactID
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const contactID = getContactsResponse.body.contacts[0].contactID;
+
+        const newPurchaseOrder: PurchaseOrder = {
+          contact: {
+            contactID
+          },
+          date: "2020-02-07",
+          deliveryDate: "2020-02-14",
+          lineAmountTypes: LineAmountTypes.Exclusive,
+          lineItems: [
+            {
+              description: "Office Chairs",
+              quantity: 5.0000,
+              unitAmount: 120.00
+            }
+          ]
+        };
+
+        const purchaseOrders: PurchaseOrders = new PurchaseOrders();
+        purchaseOrders.purchaseOrders = [newPurchaseOrder];
+
+        const createPurchaseOrderResponse = await xero.accountingApi.createPurchaseOrders(req.session.activeTenant, purchaseOrders);
+
         // GET ONE
+        const getPurchaseOrderResponse = await xero.accountingApi.getPurchaseOrder(req.session.activeTenant, createPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID);
+
         // UPDATE
+        const updatedPurchaseOrder = newPurchaseOrder;
+        updatedPurchaseOrder.deliveryInstructions = "Don't forget the secret knock";
+        purchaseOrders.purchaseOrders = [updatedPurchaseOrder];
+        const updatePurchaseOrderResponse = await xero.accountingApi.updatePurchaseOrder(req.session.activeTenant, getPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID, purchaseOrders);
+        console.log(updatePurchaseOrderResponse.body.purchaseOrders[0]);
+
         res.render("purchaseorders", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.purchaseOrders.length
+          count: getPurchaseOrdersResponse.body.purchaseOrders.length,
+          create: createPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID,
+          get: getPurchaseOrderResponse.body.purchaseOrders[0].lineItems[0].description,
+          update: updatePurchaseOrderResponse.body.purchaseOrders[0].deliveryInstructions
         });
       } catch (e) {
         res.status(res.statusCode);
