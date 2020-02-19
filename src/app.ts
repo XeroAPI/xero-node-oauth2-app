@@ -171,14 +171,14 @@ class App {
 
         // Refresh Token
         await xero.refreshToken()
-        const newAccessToken = await xero.readTokenSet();
+        const newTokenSet = await xero.readTokenSet();
 
-        const decodedIdToken: XeroJwt = jwtDecode(newAccessToken.id_token);
-        const decodedAccessToken: XeroAccessToken = jwtDecode(newAccessToken.access_token)
+        const decodedIdToken: XeroJwt = jwtDecode(newTokenSet.id_token);
+        const decodedAccessToken: XeroAccessToken = jwtDecode(newTokenSet.access_token)
 
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
-        req.session.accessToken = newAccessToken;
+        req.session.tokenSet = newTokenSet;
 
         const authData = this.authenticationData(req, res)
 
@@ -198,7 +198,7 @@ class App {
     router.get("/logout", async (req: Request, res: Response) => {
       try {
         req.session.decodedAccessToken = null
-        req.session.accessToken = null
+        req.session.tokenSet = null
         req.session.allTenants = null
         req.session.activeTenant = null
 
@@ -221,14 +221,14 @@ class App {
       try {
         const url = process.env.REDIRECT_URI + req.originalUrl;
         await xero.setAccessTokenFromRedirectUri(url);
-        const accessToken = await xero.readTokenSet();
+        const tokenSet = await xero.readTokenSet();
 
-        const decodedIdToken: XeroJwt = jwtDecode(accessToken.id_token);
-        const decodedAccessToken: XeroAccessToken = jwtDecode(accessToken.access_token)
+        const decodedIdToken: XeroJwt = jwtDecode(tokenSet.id_token);
+        const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
 
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
-        req.session.accessToken = accessToken;
+        req.session.tokenSet = tokenSet;
         req.session.allTenants = xero.tenantIds
         req.session.activeTenant = xero.tenantIds[0]
 
@@ -249,14 +249,14 @@ class App {
 
     router.get("/accounts", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // GET ALL
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
 
         // CREATE
-        const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true};
+        const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
@@ -275,11 +275,11 @@ class App {
         const contentType = mime.lookup(filename);
 
         const accountAttachmentsResponse: any = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, readStream, {
-            headers: {
-              'Content-Type': contentType
-            }
+          headers: {
+            'Content-Type': contentType
+          }
         });
-        
+
         const attachment = JSON.parse(accountAttachmentsResponse.response['body'])
         const attachmentId = attachment.Attachments[0].AttachmentID
 
@@ -325,8 +325,8 @@ class App {
 
     router.get("/banktransactions", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // GET ALL
         const bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(req.session.activeTenant);
@@ -422,8 +422,8 @@ class App {
 
     router.get("/banktranfers", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // GET ALL
         const getBankTransfersResult = await xero.accountingApi.getBankTransfers(req.session.activeTenant);
@@ -481,8 +481,8 @@ class App {
 
     router.get("/batchpayments", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         const allContacts = await xero.accountingApi.getContacts(req.session.activeTenant)
         // Then create an approved/authorised invoice
@@ -561,8 +561,8 @@ class App {
 
     router.get("/brandingthemes", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // GET ALL
         const apiResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
@@ -582,8 +582,8 @@ class App {
 
     router.get("/contacts", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // GET ALL
         const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
@@ -642,8 +642,8 @@ class App {
 
     router.get("/contactgroups", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // CREATE
         const contactGroupParams: ContactGroups = { contactGroups: [{ name: 'Ima Contact Group' + Helper.getRandomNumber(1000000) }] }
@@ -693,8 +693,8 @@ class App {
 
     router.get("/creditnotes", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getCreditNotes(req.session.activeTenant);
         // CREATE
@@ -715,8 +715,8 @@ class App {
 
     router.get("/currencies", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant);
         // CREATE
@@ -737,8 +737,8 @@ class App {
 
     router.get("/employees", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getEmployees(req.session.activeTenant);
         // CREATE
@@ -759,8 +759,8 @@ class App {
 
     router.get("/expenseclaims", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getExpenseClaims(req.session.activeTenant);
         // CREATE
@@ -781,8 +781,8 @@ class App {
 
     router.get("/invoicereminders", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getInvoiceReminders(req.session.activeTenant);
         // CREATE
@@ -803,8 +803,8 @@ class App {
 
     router.get("/invoices", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
         const num = Helper.getRandomNumber(1000000)
@@ -932,8 +932,8 @@ class App {
 
     router.get("/invoice-as-pdf", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // GET ALL
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
@@ -959,8 +959,8 @@ class App {
 
     router.get("/email-invoice", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         const invoiceID = req.query.invoiceID
         // SEND Email
@@ -981,8 +981,8 @@ class App {
 
     router.get("/invoices-filtered", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         const filteredInvoices = await xero.accountingApi.getInvoices(
           req.session.activeTenant,
@@ -1018,8 +1018,8 @@ class App {
 
     router.get("/attachment-invoice", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant, undefined, undefined, undefined, undefined, undefined, undefined, ['PAID']);
 
@@ -1035,7 +1035,7 @@ class App {
             "Content-Type": contentType,
           },
         });
-        console.log('fileAttached: ',fileAttached)
+        console.log('fileAttached: ', fileAttached)
 
         res.render("attachment-invoice", {
           authenticated: this.authenticationData(req, res),
@@ -1055,8 +1055,8 @@ class App {
       // currently works with DEMO COMPANY specific data.. Will need to create proper accounts
       // w/ cOGS codes to have this work with an empty Xero Org
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // GET ALL
         const itemsGetResponse = await xero.accountingApi.getItems(req.session.activeTenant);
@@ -1122,8 +1122,8 @@ class App {
 
     router.get("/journals", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getJournals(req.session.activeTenant);
         // CREATE
@@ -1144,8 +1144,8 @@ class App {
 
     router.get("/manualjournals", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getManualJournals(req.session.activeTenant);
         // CREATE
@@ -1166,8 +1166,8 @@ class App {
 
     router.get("/organisations", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getOrganisations(req.session.activeTenant);
         // CREATE
@@ -1188,8 +1188,8 @@ class App {
 
     router.get("/overpayments", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getOverpayments(req.session.activeTenant);
         // CREATE
@@ -1210,8 +1210,8 @@ class App {
 
     router.get("/payments", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getPayments(req.session.activeTenant);
         // CREATE
@@ -1232,8 +1232,8 @@ class App {
 
     router.get("/paymentservices", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getPaymentServices(req.session.activeTenant);
         // CREATE
@@ -1254,8 +1254,8 @@ class App {
 
     router.get("/prepayments", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const apiResponse = await xero.accountingApi.getPrepayments(req.session.activeTenant);
         // CREATE
@@ -1276,8 +1276,8 @@ class App {
 
     router.get("/purchaseorders", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const getPurchaseOrdersResponse = await xero.accountingApi.getPurchaseOrders(req.session.activeTenant);
 
@@ -1335,8 +1335,8 @@ class App {
 
     router.get("/receipts", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const getReceiptsResponse = await xero.accountingApi.getReceipts(req.session.activeTenant);
 
@@ -1405,8 +1405,8 @@ class App {
 
     router.get("/reports", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // GET 1099 REPORT
         // optional parameters
@@ -1528,8 +1528,8 @@ class App {
 
     router.get("/taxrates", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
 
@@ -1584,8 +1584,8 @@ class App {
 
     router.get("/trackingcategories", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
 
         // GET ALL
         const getAllResponse = await xero.accountingApi.getTrackingCategories(req.session.activeTenant);
@@ -1634,8 +1634,8 @@ class App {
 
     router.get("/users", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const getAllUsers = await xero.accountingApi.getUsers(req.session.activeTenant);
 
@@ -1657,8 +1657,8 @@ class App {
 
     router.get("/quotes", async (req: Request, res: Response) => {
       try {
-        const accessToken = req.session.accessToken;
-        await xero.setTokenSet(accessToken);
+        const tokenSet = req.session.tokenSet;
+        await xero.setTokenSet(tokenSet);
         // GET ALL
         const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant)
 
