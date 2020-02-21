@@ -942,7 +942,6 @@ class App {
         const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(
           req.session.activeTenant,
           totalInvoices.body.invoices[0].invoiceID,
-          'application/pdf',
           { headers: { accept: 'application/pdf' } }
         )
         res.setHeader('Content-Disposition', 'attachment; filename=invoice-as-pdf.pdf');
