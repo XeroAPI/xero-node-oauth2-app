@@ -38,7 +38,11 @@ import {
   Receipt,
   Receipts,
   PurchaseOrder,
-  PurchaseOrders
+  PurchaseOrders,
+  Prepayment,
+  Allocation,
+  Allocations,
+  HistoryRecords
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -1256,13 +1260,91 @@ class App {
         const tokenSet = req.session.tokenSet;
         await xero.setTokenSet(tokenSet);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getPrepayments(req.session.activeTenant);
-        // CREATE
+        const getPrepaymentsResponse = await xero.accountingApi.getPrepayments(req.session.activeTenant);
+
+        // CREATE ALLOCATION
+        // for that we'll need a contact
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+
+        // AND we'll need an INVOICE
+        const invoices: Invoices = {
+          invoices: [
+            {
+              type: Invoice.TypeEnum.ACCREC,
+              contact: {
+                contactID: getContactsResponse.body.contacts[0].contactID
+              },
+              lineItems: [
+                {
+                  description: "Acme Tires",
+                  quantity: 2.0,
+                  unitAmount: 20.0,
+                  accountCode: "500",
+                  taxType: "NONE",
+                  lineAmount: 40.0
+                }
+              ],
+              date: "2019-03-11",
+              dueDate: "2018-12-10",
+              reference: "Website Design",
+              status: Invoice.StatusEnum.AUTHORISED
+            }
+          ]
+        };
+
+        const createInvoiceResponse = await xero.accountingApi.createInvoices(req.session.activeTenant, invoices);
+        console.log(createInvoiceResponse.body);
+
+        // AND we'll need a BANK TRANSACTION with PREPAYMENT
+        const newBankTransaction: BankTransaction = {
+          type: BankTransaction.TypeEnum.RECEIVEPREPAYMENT,
+          contact: {
+            contactID: getContactsResponse.body.contacts[0].contactID
+          },
+          lineItems: [{ description: "Acme Tires", quantity: 2.0, unitAmount: 20.0, accountCode: "500", taxType: "NONE", lineAmount: 40.0 }],
+          bankAccount: {
+            code: "090"
+          }
+        };
+
+        const newBankTransactions: BankTransactions = new BankTransactions();
+
+        newBankTransactions.bankTransactions = [newBankTransaction];
+
+        const newBankTransactionResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant, newBankTransactions);
+        console.log(newBankTransactionResponse.body);
+
+        // finally, allocate prepayment to invoice
+        const allocation: Allocation = {
+          amount: 20.50,
+          invoice: {
+            invoiceID: createInvoiceResponse.body.invoices[0].invoiceID
+          },
+          date: "1970-01-01"
+        };
+
+        const newAllocations: Allocations = new Allocations();
+
+        newAllocations.allocations = [allocation];
+
+        const prepaymentAllocationResponse = await xero.accountingApi.createPrepaymentAllocations(req.session.activeTenant, newBankTransactionResponse.body.bankTransactions[0].prepaymentID, newAllocations);
+        console.log(prepaymentAllocationResponse.body);
+
+        // CREATE HISTORY
+        // "Message": "The document with the supplied id was not found for this endpoint."
+        // const historyRecords: HistoryRecords = { historyRecords: [{ details: "Hello World" }] };
+        // const prepaymentHistoryResponse = await xero.accountingApi.createPrepaymentHistory(req.session.activeTenant, newBankTransactionResponse.body.bankTransactions[0].prepaymentID, historyRecords);
+
         // GET ONE
-        // UPDATE
+        const getPrepaymentResponse = await xero.accountingApi.getPrepayment(req.session.activeTenant, newBankTransactionResponse.body.bankTransactions[0].prepaymentID);
+        console.log(getPrepaymentResponse.body);
+
         res.render("prepayments", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.prepayments.length
+          count: getPrepaymentsResponse.body.prepayments.length,
+          prepayment: newBankTransactionResponse.body.bankTransactions[0].prepaymentID,
+          allocation: prepaymentAllocationResponse.body.allocations[0].amount,
+          remainingCredit: getPrepaymentResponse.body.prepayments[0].remainingCredit
         });
       } catch (e) {
         res.status(res.statusCode);

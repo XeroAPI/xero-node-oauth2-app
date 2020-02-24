@@ -1,15 +1,20 @@
 <!doctype html>
 <html>
-  <%- include('shared/head') -%>
-  <body>
-    <%- include('shared/nav') -%>
-    <div class='core-content'>
-      <%- include('shared/header') -%>
-      <div class='body-wrapper'>
-        <div class='body-content'>
-          <p>Pre Payments success: Count: <%= count %></p>
-        </div>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Pre Payments success: Count: <%= count %></p>
+        <p>Pre Payments success: Prepayment ID: <%= prepayment %></p>
+        <p>Pre Payments success: Allocation: <%= allocation %></p>
+        <p>Pre Payments success: Remaining Credit: <%= remainingCredit %></p>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>
