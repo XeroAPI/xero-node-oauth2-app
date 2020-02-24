@@ -42,7 +42,8 @@ import {
   Prepayment,
   Allocation,
   Allocations,
-  HistoryRecords
+  HistoryRecords,
+  PaymentServices
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -54,7 +55,7 @@ const mime = require("mime-types");
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
-const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access";
+const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access paymentservices";
 
 interface XeroJwt {
   nbf: number
@@ -1238,13 +1239,16 @@ class App {
         const tokenSet = req.session.tokenSet;
         await xero.setTokenSet(tokenSet);
         // GET ALL
-        const apiResponse = await xero.accountingApi.getPaymentServices(req.session.activeTenant);
+        const getPaymentServicesResponse = await xero.accountingApi.getPaymentServices(req.session.activeTenant);
+
         // CREATE
-        // GET ONE
-        // UPDATE
+        const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
+        const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant, paymentServices);
+
         res.render("paymentservices", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.paymentServices.length
+          count: getPaymentServicesResponse.body.paymentServices.length,
+          create: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID
         });
       } catch (e) {
         res.status(res.statusCode);
