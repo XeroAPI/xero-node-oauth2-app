@@ -7,43 +7,43 @@ import {
   Account,
   Accounts,
   AccountType,
+  Allocation,
+  Allocations,
   BankTransaction,
   BankTransactions,
   BankTransfer,
   BankTransfers,
-  Contact,
-  Contacts,
-  Item,
-  Invoice,
-  Items,
-  LineItem,
-  LineAmountTypes,
-  Payment,
-  XeroClient,
   BatchPayment,
   BatchPayments,
-  TaxType,
+  Contact,
   ContactGroup,
   ContactGroups,
-  Invoices,
   ContactPerson,
-  Quote,
-  Quotes,
-  TaxRate,
-  TaxRates,
-  TrackingCategory,
-  TrackingCategories,
-  TrackingOption,
+  Contacts,
   CurrencyCode,
-  Receipt,
-  Receipts,
+  HistoryRecords,
+  Invoice,
+  Invoices,
+  Item,
+  Items,
+  LineAmountTypes,
+  LineItem,
+  Payment,
+  PaymentServices,
+  Prepayment,
   PurchaseOrder,
   PurchaseOrders,
-  Prepayment,
-  Allocation,
-  Allocations,
-  HistoryRecords,
-  PaymentServices
+  Quote,
+  Quotes,
+  Receipt,
+  Receipts,
+  TaxRate,
+  TaxRates,
+  TaxType,
+  TrackingCategories,
+  TrackingCategory,
+  TrackingOption,
+  XeroClient,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -570,11 +570,29 @@ class App {
         await xero.setTokenSet(tokenSet);
 
         // GET ALL
-        const apiResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
+        const getBrandingThemesResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
+
+        // GET ONE
+        const getBrandingThemeResponse = await xero.accountingApi.getBrandingTheme(req.session.activeTenant, getBrandingThemesResponse.body.brandingThemes[0].brandingThemeID);
+        console.log(getBrandingThemeResponse.body);
+
+        // CREATE BRANDING THEME PAYMENT SERVICE
+        // first we'll need a payment service
+        const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
+        const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant, paymentServices);
+        const createBrandingThemePaymentServicesResponse = await xero.accountingApi.createBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID, { paymentServiceID: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID });
+        console.log(createBrandingThemePaymentServicesResponse.body);
+
+        // GET BRANDING THEME PAYMENT SERVICES
+        const getBrandingThemePaymentServicesResponse = await xero.accountingApi.getBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID);
+        console.log(getBrandingThemePaymentServicesResponse.body);
 
         res.render("brandingthemes", {
           authenticated: this.authenticationData(req, res),
-          brandingThemes: apiResponse.body.brandingThemes
+          brandingThemesCount: getBrandingThemesResponse.body.brandingThemes.length,
+          brandingTheme: getBrandingThemeResponse.body.brandingThemes[0].name,
+          createBrandingThemePaymentService: createBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceID,
+          getBrandingThemePaymentService: getBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceName
         });
       } catch (e) {
         res.status(res.statusCode);
