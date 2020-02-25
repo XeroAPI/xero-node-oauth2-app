@@ -4,7 +4,7 @@
     if(window.confirm("WARNING! This sample application will Create, Read, Update & Delete REAL objects in your Xero Database. Please only use a Demo company or test organisation.")) {
       console.log('welcome to the tutorial :)')
     } else {
-      window.location.assign('/logout')
+      window.location.assign('/disconnect')
     }
   }, 500)
 </script>
@@ -18,6 +18,14 @@
         <div class='body-content'>
           <% if (authenticated.decodedIdToken && authenticated.decodedAccessToken) { %>
             <h4 id='authenticated'>You are authenticated with: <span><%= authenticated.activeTenant.orgData.name %></span></h4>
+            <hr>
+            <h4>Active Tenant:</h2>
+            <pre>
+              <code class='language-javascript'>
+                <%- JSON.stringify(authenticated.activeTenant.orgData, null, 2).replace(/[{}]/g, '') %>
+              </code>
+            </pre>
+            <hr>
             <hr>
             <h4>Access Token Data:</h2>
               <pre>

@@ -123,10 +123,7 @@ class App {
     router.post("/change_organisation", async (req: Request, res: Response) => {
       try {
         const activeOrgId = req.body.active_org_id
-        console.log('activeOrgId: ',activeOrgId)
-        console.log('xero.tenants: ',xero.tenants)
         const picked = xero.tenants.filter((tenant) => tenant.tenantId == activeOrgId)[0]
-        console.log('picked ',picked)
         req.session.activeTenant = picked
         const authData = this.authenticationData(req, res)
 
@@ -152,7 +149,6 @@ class App {
         } else {
           console.log('tokenSet is not expired!')
         }
-
         // you can also refresh the token passing it explicitly to `refreshTokenUsingTokenSet`
         // const tokenSet: any = {
         //   id_token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFDQUY4RTY2NzcyRDZEQzAyOEQ2NzI2RkQwMjYxNTgxNTcwRUZDMTkiLCJ0eXAiOiJKV1QiLCJ4NXQiOiJISy1PWm5jdGJjQW8xbkp2MENZVmdWY09fQmsifQ.eyJuYmYiOjE1ODI2NTE5NzcsImV4cCI6MTU4MjY1MjI3NywiaXNzIjoiaHR0cHM6Ly9pZGVudGl0eS54ZXJvLmNvbSIsImF1ZCI6IjkwMkREMzIyNzY1NzRFRDE5OTYzOUQ5MjI2QTQyNUIxIiwiaWF0IjoxNTgyNjUxOTc3LCJhdF9oYXNoIjoiYW5nZUY3WUw3Um5wbXVoS2twdHNFZyIsInNpZCI6IjA2MjVmYTg3MWFjZmJlMzUyNzNkMzYzYjc0ZTM1MDIxIiwic3ViIjoiZGI0ZjBmMzdiNTg1NTMwZTkxZjNiOWNiYjUwMzQwZTgiLCJhdXRoX3RpbWUiOjE1ODI2NTE5NjksInhlcm9fdXNlcmlkIjoiZmFhODNlYzktZjZhNy00ODlmLTg5MTEtZTNmY2UwM2ExMTg2IiwiZ2xvYmFsX3Nlc3Npb25faWQiOiJmN2EzOWNlNmZkY2I0ZDgzYWY5ZjE5YmQxZWI5MjMyOCIsInByZWZlcnJlZF91c2VybmFtZSI6ImNocmlzLmtuaWdodEB4ZXJvLmNvbSIsImVtYWlsIjoiY2hyaXMua25pZ2h0QHhlcm8uY29tIiwiZ2l2ZW5fbmFtZSI6IkNocmlzdG9waGVyIiwiZmFtaWx5X25hbWUiOiJLbmlnaHQifQ.pfUrLPvggRppptGmkmHxKPRa9b8bMUxeFW_2UlWFtiCLfSHEmj84ccvDeslASGqL51r55cnMgDuxpkE7JlSA2M-mRi8Vsk3wzYKvhAukrZ4Zg4QRA7ZkxnQKG0kA47L1KoL8x7wzZmcMEJK3_L0pkWnknGvMPd5xY1YRBzd6lpTNn5ZPit37x9rfWKW-YEz0sClT01IZITbZ0BuLuaUyCcoaownoWd4qm2TzGsPSMB_7Yef1Ry06aIzYrYN3TpMCUNBuxG3ZULkpQ-o6cX3yGtIdXZh3aoXvmY-9vyYslH7A4wbpvcjR_fonMcfvmElElTiIdpwU_Y6_Ct3cF7HaJA',
@@ -194,15 +190,17 @@ class App {
       }
     });
 
-    router.get("/logout", async (req: Request, res: Response) => {
+    router.get("/disconnect", async (req: Request, res: Response) => {
       try {
+        const updatedTokenSet: TokenSet = await xero.disconnect(req.session.activeTenant.id)
+        const decodedIdToken: XeroJwt = jwtDecode(updatedTokenSet.id_token);
+        const decodedAccessToken: XeroAccessToken = jwtDecode(updatedTokenSet.access_token)
 
-        await xero.disconnect(req.session.activeTenant.tenantId)
-
-        req.session.decodedAccessToken = null
-        req.session.tokenSet = null
-        req.session.allTenants = null
-        req.session.activeTenant = null
+        req.session.decodedIdToken = decodedIdToken
+        req.session.decodedAccessToken = decodedAccessToken
+        req.session.tokenSet = updatedTokenSet;
+        req.session.allTenants = xero.tenants
+        req.session.activeTenant = xero.tenants[0]
 
         const authData = this.authenticationData(req, res)
 
@@ -226,8 +224,6 @@ class App {
         // and return the orgData of each authorized tenant
         const tokenFromCallback: TokenSet = await xero.apiCallback(url);
 
-        console.log('tokenSet: ',tokenFromCallback)
-        console.log('tokenSet: ',tokenFromCallback.id_token)
         // this is where you should associate & save
         // your tokenSet to a user in your Database
         await xero.setTokenSet(tokenFromCallback);
