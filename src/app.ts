@@ -55,7 +55,7 @@ const mime = require("mime-types");
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
-const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access paymentservices";
+const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access";
 
 interface XeroJwt {
   nbf: number
@@ -114,6 +114,8 @@ class App {
     this.app.set("views", path.join(__dirname, "views"));
     this.app.set("view engine", "ejs");
     this.app.use(express.static(path.join(__dirname, "public")));
+
+    xero.initialize()
   }
 
   private config(): void {
@@ -151,11 +153,14 @@ class App {
     });
 
     // OAuth2 now authenticates at the user level instead of the organisation level
-    // TODO - show loop / get + map each org_name to org_id
     router.post("/change_organisation", async (req: Request, res: Response) => {
       try {
         const activeOrgId = req.body.active_org_id
-        req.session.activeTenant = activeOrgId
+        console.log('activeOrgId: ',activeOrgId)
+        console.log('xero.tenants: ',xero.tenants)
+        const picked = xero.tenants.filter((tenant) => tenant.tenantId == activeOrgId)[0]
+        console.log('picked ',picked)
+        req.session.activeTenant = picked
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
@@ -177,6 +182,7 @@ class App {
         // Refresh Token
         await xero.refreshToken()
         const newTokenSet = await xero.readTokenSet();
+        await xero.setTokenSet(newTokenSet);
 
         const decodedIdToken: XeroJwt = jwtDecode(newTokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(newTokenSet.access_token)
@@ -225,8 +231,12 @@ class App {
     router.get("/callback", async (req: Request, res: Response) => {
       try {
         const url = process.env.REDIRECT_URI + req.originalUrl;
-        await xero.setAccessTokenFromRedirectUri(url);
-        const tokenSet = await xero.readTokenSet();
+        // calling apiCallback will setup all the client with
+        // the meta information of each authorized tenant
+        const tokenSet = await xero.apiCallback(url);
+        // this is where you should associate & save
+        // your tokenSet to a user in your Database
+        await xero.setTokenSet(tokenSet);
 
         const decodedIdToken: XeroJwt = jwtDecode(tokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
@@ -234,9 +244,8 @@ class App {
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
         req.session.tokenSet = tokenSet;
-        req.session.allTenants = xero.tenantIds
-        req.session.activeTenant = xero.tenantIds[0]
-
+        req.session.allTenants = xero.tenants
+        req.session.activeTenant = xero.tenants[0]
         const authData = this.authenticationData(req, res)
 
         res.render("callback", {
@@ -254,24 +263,21 @@ class App {
 
     router.get("/accounts", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // GET ALL
-        const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
+        const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId);
 
         // CREATE
         const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
-        const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant, account);
+        const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
         // GET ONE
-        const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant, accountId);
+        const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant.tenantId, accountId);
 
         // UPDATE
         const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(1000000) };
         const accounts: Accounts = { accounts: [accountUp] };
-        const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant, accountId, accounts);
+        const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant.tenantId, accountId, accounts);
 
         // CREATE ATTACHMENT
         const filename = "xero-dev.png";
@@ -279,7 +285,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const accountAttachmentsResponse: any = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, readStream, {
+        const accountAttachmentsResponse: any = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant.tenantId, accountId, filename, readStream, {
           headers: {
             'Content-Type': contentType
           }
@@ -289,10 +295,10 @@ class App {
         const attachmentId = attachment.Attachments[0].AttachmentID
 
         // GET ATTACHMENTS
-        const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(req.session.activeTenant, accountId);
+        const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(req.session.activeTenant.tenantId, accountId);
 
         // GET ATTACHMENT BY ID
-        const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant, accountId, attachmentId, contentType);
+        const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant.tenantId, accountId, attachmentId, contentType);
         fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByIdResponse.body, (err) => {
           if (err) { throw err; }
           console.log("file written successfully");
@@ -300,14 +306,14 @@ class App {
 
         // GET ATTACHMENT BY FILENAME
         console.log('await')
-        const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(req.session.activeTenant, accountId, filename, contentType);
+        const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(req.session.activeTenant.tenantId, accountId, filename, contentType);
         fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByFilenameResponse.body, (err) => {
           if (err) { throw err; }
           console.log("file written successfully");
         });
 
         // DELETE
-        // let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant, accountId);
+        // let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant.tenantId, accountId);
 
         res.render("accounts", {
           consentUrl: await xero.buildConsentUrl(),
@@ -330,17 +336,14 @@ class App {
 
     router.get("/banktransactions", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // GET ALL
-        const bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(req.session.activeTenant);
+        const bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(req.session.activeTenant.tenantId);
 
         // CREATE ONE OR MORE BANK TRANSACTION
-        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
-        const allAccounts = await xero.accountingApi.getAccounts(req.session.activeTenant);
+        const allAccounts = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId);
         const validAccountCode = allAccounts.body.accounts.filter(e => !['NONE', 'BASEXCLUDED'].includes(e.taxType))[0].code
 
         const lineItems: LineItem[] = [{
@@ -350,7 +353,7 @@ class App {
           accountCode: validAccountCode,
         }];
         const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
-        const accountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant, null, where);
+        const accountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId, null, where);
         const useBankAccount: Account = { accountID: accountsResponse.body.accounts[0].accountID };
 
         const newBankTransaction: BankTransaction = {
@@ -364,7 +367,7 @@ class App {
         // Add bank transaction objects to array
         const newBankTransactions: BankTransactions = new BankTransactions();
         newBankTransactions.bankTransactions = [newBankTransaction, newBankTransaction];
-        const bankTransactionCreateResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant, newBankTransactions, false);
+        const bankTransactionCreateResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant.tenantId, newBankTransactions, false);
 
         // UPDATE OR CREATE ONE OR MORE BANK TRANSACTION
         const newBankTransaction2: BankTransaction = {
@@ -394,11 +397,11 @@ class App {
 
         const upBankTransactions: BankTransactions = new BankTransactions();
         upBankTransactions.bankTransactions = [newBankTransaction2, newBankTransaction3];
-        const bankTransactionUpdateOrCreateResponse = await xero.accountingApi.updateOrCreateBankTransactions(req.session.activeTenant, upBankTransactions, false);
+        const bankTransactionUpdateOrCreateResponse = await xero.accountingApi.updateOrCreateBankTransactions(req.session.activeTenant.tenantId, upBankTransactions, false);
 
         // GET ONE
         const bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
-        const bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(req.session.activeTenant, bankTransactionId);
+        const bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(req.session.activeTenant.tenantId, bankTransactionId);
 
         // UPDATE status to deleted
         const bankTransactionUp = Object.assign({}, bankTransactionGetResponse.body.bankTransactions[0]);
@@ -406,7 +409,7 @@ class App {
         delete bankTransactionUp.contact; // also has an updatedDateUTC
         bankTransactionUp.status = BankTransaction.StatusEnum.DELETED;
         const bankTransactions: BankTransactions = { bankTransactions: [bankTransactionUp] };
-        const bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(req.session.activeTenant, bankTransactionId, bankTransactions);
+        const bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(req.session.activeTenant.tenantId, bankTransactionId, bankTransactions);
 
         res.render("banktransactions", {
           authenticated: this.authenticationData(req, res),
@@ -427,11 +430,8 @@ class App {
 
     router.get("/banktranfers", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // GET ALL
-        const getBankTransfersResult = await xero.accountingApi.getBankTransfers(req.session.activeTenant);
+        const getBankTransfersResult = await xero.accountingApi.getBankTransfers(req.session.activeTenant.tenantId);
 
         // FIRST we need two Accounts type=BANK
         const account1: Account = {
@@ -446,8 +446,8 @@ class App {
           type: AccountType.BANK,
           bankAccountNumber: Helper.getRandomNumber(209087654321051).toString(),
         };
-        const created1 = await xero.accountingApi.createAccount(req.session.activeTenant, account1);
-        const created2 = await xero.accountingApi.createAccount(req.session.activeTenant, account2);
+        const created1 = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account1);
+        const created2 = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account2);
         const acc1 = created1.body.accounts[0]
         const acc2 = created2.body.accounts[0]
 
@@ -464,10 +464,10 @@ class App {
           amount: '1000'
         }
         const bankTransfers: BankTransfers = { bankTransfers: [bankTransfer] }
-        const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant, bankTransfers);
+        const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant.tenantId, bankTransfers);
 
         // GET ONE
-        const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant, createBankTransfer.body.bankTransfers[0].bankTransferID)
+        const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant.tenantId, createBankTransfer.body.bankTransfers[0].bankTransferID)
 
         res.render("banktranfers", {
           authenticated: this.authenticationData(req, res),
@@ -486,10 +486,7 @@ class App {
 
     router.get("/batchpayments", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
-        const allContacts = await xero.accountingApi.getContacts(req.session.activeTenant)
+        const allContacts = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId)
         // Then create an approved/authorised invoice
         const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
@@ -513,10 +510,10 @@ class App {
 
         const newInvoices: Invoices = new Invoices();
         newInvoices.invoices = [invoice1];
-        const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices)
+        const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, newInvoices)
         const invoice = createdInvoice.body.invoices[0]
 
-        const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant);
+        const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId);
 
         // CREATE
         const payment1: any = { // Payment
@@ -545,10 +542,10 @@ class App {
             payments
           ]
         }
-        const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant, batchPayments);
+        const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant.tenantId, batchPayments);
 
         // GET
-        const apiResponse = await xero.accountingApi.getBatchPayments(req.session.activeTenant);
+        const apiResponse = await xero.accountingApi.getBatchPayments(req.session.activeTenant.tenantId);
 
         res.render("batchpayments", {
           authenticated: this.authenticationData(req, res),
@@ -566,11 +563,8 @@ class App {
 
     router.get("/brandingthemes", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // GET ALL
-        const apiResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
+        const apiResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant.tenantId);
 
         res.render("brandingthemes", {
           authenticated: this.authenticationData(req, res),
@@ -587,17 +581,14 @@ class App {
 
     router.get("/contacts", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // GET ALL
-        const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
 
         // CREATE ONE OR MORE
         const contact1: Contact = { name: "Rick James: " + Helper.getRandomNumber(1000000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
-        const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
+        const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant.tenantId, newContacts);
         const contactId = contactCreateResponse.body.contacts[0].contactID;
 
         // UPDATE or CREATE BATCH - force validation error
@@ -618,15 +609,15 @@ class App {
         const contact3: Contact = { name: "Rick James: " + Helper.getRandomNumber(1000000), firstName: "Rick", lastName: "James", emailAddress: "test@example.com" };
 
         updateContacts.contacts = [contact2, contact3];
-        await xero.accountingApi.updateOrCreateContacts(req.session.activeTenant, updateContacts, false);
+        await xero.accountingApi.updateOrCreateContacts(req.session.activeTenant.tenantId, updateContacts, false);
 
         // GET ONE
-        const contactGetResponse = await xero.accountingApi.getContact(req.session.activeTenant, contactId);
+        const contactGetResponse = await xero.accountingApi.getContact(req.session.activeTenant.tenantId, contactId);
 
         // UPDATE SINGLE
         const contactUpdate: Contact = { name: "Rick James Updated: " + Helper.getRandomNumber(1000000) };
         const contacts: Contacts = { contacts: [contactUpdate] };
-        const contactUpdateResponse = await xero.accountingApi.updateContact(req.session.activeTenant, contactId, contacts);
+        const contactUpdateResponse = await xero.accountingApi.updateContact(req.session.activeTenant.tenantId, contactId, contacts);
 
         res.render("contacts", {
           consentUrl: await xero.buildConsentUrl(),
@@ -647,37 +638,34 @@ class App {
 
     router.get("/contactgroups", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // CREATE
         const contactGroupParams: ContactGroups = { contactGroups: [{ name: 'Ima Contact Group' + Helper.getRandomNumber(1000000) }] }
-        const createContactGroup = await xero.accountingApi.createContactGroup(req.session.activeTenant, contactGroupParams);
+        const createContactGroup = await xero.accountingApi.createContactGroup(req.session.activeTenant.tenantId, contactGroupParams);
         const contactGroup = createContactGroup.body.contactGroups[0]
 
         // GET
-        const getContactGroup = await xero.accountingApi.getContactGroup(req.session.activeTenant, contactGroup.contactGroupID)
+        const getContactGroup = await xero.accountingApi.getContactGroup(req.session.activeTenant.tenantId, contactGroup.contactGroupID)
 
         // UPDATE
         const num = Helper.getRandomNumber(1000000)
         const contact1: Contact = { name: "Rick James: " + num, firstName: "Rick", lastName: "James", emailAddress: `foo+${num}@example.com` };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
-        const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
+        const contactCreateResponse = await xero.accountingApi.createContacts(req.session.activeTenant.tenantId, newContacts);
         const createdContact = contactCreateResponse.body.contacts[0];
         const updatedContactGroupParams: Contacts = {
           contacts: [{ contactID: createdContact.contactID }]
         }
         // To create contacts w/in contact group you cannot pass a whole Contact
         // need to pass it as an aray of with the following key `{ contacts: [{ contactID: createdContact.contactID }] }`
-        const updatedContactGroup = await xero.accountingApi.createContactGroupContacts(req.session.activeTenant, contactGroup.contactGroupID, updatedContactGroupParams)
+        const updatedContactGroup = await xero.accountingApi.createContactGroupContacts(req.session.activeTenant.tenantId, contactGroup.contactGroupID, updatedContactGroupParams)
 
         // DELETE
-        const deletedContactGroupContact = await xero.accountingApi.deleteContactGroupContact(req.session.activeTenant, contactGroup.contactGroupID, createdContact.contactID)
+        const deletedContactGroupContact = await xero.accountingApi.deleteContactGroupContact(req.session.activeTenant.tenantId, contactGroup.contactGroupID, createdContact.contactID)
         const deleted = deletedContactGroupContact.response.statusCode === 204
 
         // GET ALL
-        const allContactGroups = await xero.accountingApi.getContactGroups(req.session.activeTenant);
+        const allContactGroups = await xero.accountingApi.getContactGroups(req.session.activeTenant.tenantId);
 
         res.render("contactgroups", {
           authenticated: this.authenticationData(req, res),
@@ -698,10 +686,8 @@ class App {
 
     router.get("/creditnotes", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getCreditNotes(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getCreditNotes(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -720,10 +706,8 @@ class App {
 
     router.get("/currencies", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -742,10 +726,8 @@ class App {
 
     router.get("/employees", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getEmployees(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getEmployees(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -764,10 +746,8 @@ class App {
 
     router.get("/expenseclaims", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getExpenseClaims(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getExpenseClaims(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -786,10 +766,8 @@ class App {
 
     router.get("/invoicereminders", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getInvoiceReminders(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getInvoiceReminders(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -808,17 +786,14 @@ class App {
 
     router.get("/invoices", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
-        const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
+        const brandingTheme = await xero.accountingApi.getBrandingThemes(req.session.activeTenant.tenantId);
         const num = Helper.getRandomNumber(1000000)
         const contact1: Contact = { name: "Test User: " + num, firstName: "Rick", lastName: "James", emailAddress: req.session.decodedIdToken.email };
         const newContacts: Contacts = new Contacts();
         newContacts.contacts = [contact1];
-        await xero.accountingApi.createContacts(req.session.activeTenant, newContacts);
+        await xero.accountingApi.createContacts(req.session.activeTenant.tenantId, newContacts);
 
-        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
         const selfContact = contactsResponse.body.contacts.filter(contact => contact.emailAddress === req.session.decodedIdToken.email);
 
         const invoice1: Invoice = {
@@ -863,7 +838,7 @@ class App {
         newInvoices.invoices = [invoice1, invoice1];
 
         // CREATE ONE OR MORE INVOICES
-        const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant, newInvoices, false)
+        const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, newInvoices, false)
 
         // Since we are using summarizeErrors = false we get 200 OK statuscode
         // Our array of created invoices include those that succeeded and those with validation errors.
@@ -898,10 +873,10 @@ class App {
           ]
         }
         updateInvoices.invoices = [invoice1, invoice2];
-        await xero.accountingApi.updateOrCreateInvoices(req.session.activeTenant, updateInvoices, false)
+        await xero.accountingApi.updateOrCreateInvoices(req.session.activeTenant.tenantId, updateInvoices, false)
 
         // GET ONE
-        const getInvoice = await xero.accountingApi.getInvoice(req.session.activeTenant, createdInvoice.body.invoices[0].invoiceID)
+        const getInvoice = await xero.accountingApi.getInvoice(req.session.activeTenant.tenantId, createdInvoice.body.invoices[0].invoiceID)
         const invoiceId = getInvoice.body.invoices[0].invoiceID
 
         // UPDATE
@@ -913,10 +888,10 @@ class App {
           ]
         }
 
-        const updatedInvoices = await xero.accountingApi.updateInvoice(req.session.activeTenant, invoiceId, invoiceToUpdate)
+        const updatedInvoices = await xero.accountingApi.updateInvoice(req.session.activeTenant.tenantId, invoiceId, invoiceToUpdate)
 
         // GET ALL
-        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
+        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId);
 
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
@@ -937,15 +912,12 @@ class App {
 
     router.get("/invoice-as-pdf", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // GET ALL
-        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant);
+        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId);
 
         // GET one as PDF
         const getAsPdf = await xero.accountingApi.getInvoiceAsPdf(
-          req.session.activeTenant,
+          req.session.activeTenant.tenantId,
           totalInvoices.body.invoices[0].invoiceID,
           { headers: { accept: 'application/pdf' } }
         )
@@ -963,12 +935,9 @@ class App {
 
     router.get("/email-invoice", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         const invoiceID = req.query.invoiceID
         // SEND Email
-        const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant, invoiceID, {})
+        const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant.tenantId, invoiceID, {})
 
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
@@ -985,11 +954,8 @@ class App {
 
     router.get("/invoices-filtered", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         const filteredInvoices = await xero.accountingApi.getInvoices(
-          req.session.activeTenant,
+          req.session.activeTenant.tenantId,
           new Date(2018),
           'Type=="ACCREC"',
           'reference DESC',
@@ -1022,10 +988,7 @@ class App {
 
     router.get("/attachment-invoice", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
-        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant, undefined, undefined, undefined, undefined, undefined, undefined, ['PAID']);
+        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId, undefined, undefined, undefined, undefined, undefined, undefined, ['PAID']);
 
         // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
         // CREATE ATTACHMENT
@@ -1034,7 +997,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant, totalInvoices.body.invoices[0].invoiceID, filename, true, readStream, {
+        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant.tenantId, totalInvoices.body.invoices[0].invoiceID, filename, true, readStream, {
           headers: {
             "Content-Type": contentType,
           },
@@ -1059,11 +1022,8 @@ class App {
       // currently works with DEMO COMPANY specific data.. Will need to create proper accounts
       // w/ cOGS codes to have this work with an empty Xero Org
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // GET ALL
-        const itemsGetResponse = await xero.accountingApi.getItems(req.session.activeTenant);
+        const itemsGetResponse = await xero.accountingApi.getItems(req.session.activeTenant.tenantId);
 
         // CREATE ONE or MORE ITEMS
         const item1: Item = {
@@ -1085,7 +1045,7 @@ class App {
         const newItems: Items = new Items();
         newItems.items = [item1]
 
-        const itemCreateResponse = await xero.accountingApi.createItems(req.session.activeTenant, newItems);
+        const itemCreateResponse = await xero.accountingApi.createItems(req.session.activeTenant.tenantId, newItems);
         const itemId = itemCreateResponse.body.items[0].itemID;
 
         // UPDATE OR CREATE ONE or MORE ITEMS - FORCE validation error on update
@@ -1093,18 +1053,18 @@ class App {
         const updateItems: Items = new Items();
         updateItems.items = [item1]
 
-        await xero.accountingApi.updateOrCreateItems(req.session.activeTenant, updateItems, false);
+        await xero.accountingApi.updateOrCreateItems(req.session.activeTenant.tenantId, updateItems, false);
 
         // GET ONE
-        const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant, itemsGetResponse.body.items[0].itemID)
+        const itemGetResponse = await xero.accountingApi.getItem(req.session.activeTenant.tenantId, itemsGetResponse.body.items[0].itemID)
 
         // UPDATE
         const itemUpdate: Item = { code: "Foo" + Helper.getRandomNumber(1000000), name: "Bar - updated", inventoryAssetAccountCode: item1.inventoryAssetAccountCode };
         const items: Items = { items: [itemUpdate] };
-        const itemUpdateResponse = await xero.accountingApi.updateItem(req.session.activeTenant, itemId, items);
+        const itemUpdateResponse = await xero.accountingApi.updateItem(req.session.activeTenant.tenantId, itemId, items);
 
         // DELETE
-        const itemDeleteResponse = await xero.accountingApi.deleteItem(req.session.activeTenant, itemId);
+        const itemDeleteResponse = await xero.accountingApi.deleteItem(req.session.activeTenant.tenantId, itemId);
 
         res.render("items", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1126,10 +1086,8 @@ class App {
 
     router.get("/journals", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getJournals(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getJournals(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -1148,10 +1106,8 @@ class App {
 
     router.get("/manualjournals", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getManualJournals(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getManualJournals(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -1170,10 +1126,8 @@ class App {
 
     router.get("/organisations", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getOrganisations(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getOrganisations(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -1192,10 +1146,8 @@ class App {
 
     router.get("/overpayments", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getOverpayments(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getOverpayments(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -1214,10 +1166,8 @@ class App {
 
     router.get("/payments", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const apiResponse = await xero.accountingApi.getPayments(req.session.activeTenant);
+        //GET ALL
+        const apiResponse = await xero.accountingApi.getPayments(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
@@ -1235,15 +1185,14 @@ class App {
     });
 
     router.get("/paymentservices", async (req: Request, res: Response) => {
+      // must request `paymentservices` scope from api@xero.com
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const getPaymentServicesResponse = await xero.accountingApi.getPaymentServices(req.session.activeTenant);
+        //GET ALL
+        const getPaymentServicesResponse = await xero.accountingApi.getPaymentServices(req.session.activeTenant.tenantId);
 
         // CREATE
         const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
-        const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant, paymentServices);
+        const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant.tenantId, paymentServices);
 
         res.render("paymentservices", {
           authenticated: this.authenticationData(req, res),
@@ -1261,14 +1210,12 @@ class App {
 
     router.get("/prepayments", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const getPrepaymentsResponse = await xero.accountingApi.getPrepayments(req.session.activeTenant);
+        //GET ALL
+        const getPrepaymentsResponse = await xero.accountingApi.getPrepayments(req.session.activeTenant.tenantId);
 
         // CREATE ALLOCATION
         // for that we'll need a contact
-        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
 
         // AND we'll need an INVOICE
         const invoices: Invoices = {
@@ -1296,7 +1243,7 @@ class App {
           ]
         };
 
-        const createInvoiceResponse = await xero.accountingApi.createInvoices(req.session.activeTenant, invoices);
+        const createInvoiceResponse = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, invoices);
         console.log(createInvoiceResponse.body);
 
         // AND we'll need a BANK TRANSACTION with PREPAYMENT
@@ -1315,7 +1262,7 @@ class App {
 
         newBankTransactions.bankTransactions = [newBankTransaction];
 
-        const newBankTransactionResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant, newBankTransactions);
+        const newBankTransactionResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant.tenantId, newBankTransactions);
         console.log(newBankTransactionResponse.body);
 
         // finally, allocate prepayment to invoice
@@ -1331,16 +1278,16 @@ class App {
 
         newAllocations.allocations = [allocation];
 
-        const prepaymentAllocationResponse = await xero.accountingApi.createPrepaymentAllocations(req.session.activeTenant, newBankTransactionResponse.body.bankTransactions[0].prepaymentID, newAllocations);
+        const prepaymentAllocationResponse = await xero.accountingApi.createPrepaymentAllocations(req.session.activeTenant.tenantId, newBankTransactionResponse.body.bankTransactions[0].prepaymentID, newAllocations);
         console.log(prepaymentAllocationResponse.body);
 
         // CREATE HISTORY
         // "Message": "The document with the supplied id was not found for this endpoint."
         // const historyRecords: HistoryRecords = { historyRecords: [{ details: "Hello World" }] };
-        // const prepaymentHistoryResponse = await xero.accountingApi.createPrepaymentHistory(req.session.activeTenant, newBankTransactionResponse.body.bankTransactions[0].prepaymentID, historyRecords);
+        // const prepaymentHistoryResponse = await xero.accountingApi.createPrepaymentHistory(req.session.activeTenant.tenantId, newBankTransactionResponse.body.bankTransactions[0].prepaymentID, historyRecords);
 
         // GET ONE
-        const getPrepaymentResponse = await xero.accountingApi.getPrepayment(req.session.activeTenant, newBankTransactionResponse.body.bankTransactions[0].prepaymentID);
+        const getPrepaymentResponse = await xero.accountingApi.getPrepayment(req.session.activeTenant.tenantId, newBankTransactionResponse.body.bankTransactions[0].prepaymentID);
         console.log(getPrepaymentResponse.body);
 
         res.render("prepayments", {
@@ -1361,14 +1308,12 @@ class App {
 
     router.get("/purchaseorders", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const getPurchaseOrdersResponse = await xero.accountingApi.getPurchaseOrders(req.session.activeTenant);
+        //GET ALL
+        const getPurchaseOrdersResponse = await xero.accountingApi.getPurchaseOrders(req.session.activeTenant.tenantId);
 
         // CREATE
         // first we need a contactID
-        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
         const contactID = getContactsResponse.body.contacts[0].contactID;
 
         const newPurchaseOrder: PurchaseOrder = {
@@ -1390,16 +1335,16 @@ class App {
         const purchaseOrders: PurchaseOrders = new PurchaseOrders();
         purchaseOrders.purchaseOrders = [newPurchaseOrder];
 
-        const createPurchaseOrderResponse = await xero.accountingApi.createPurchaseOrders(req.session.activeTenant, purchaseOrders);
+        const createPurchaseOrderResponse = await xero.accountingApi.createPurchaseOrders(req.session.activeTenant.tenantId, purchaseOrders);
 
         // GET ONE
-        const getPurchaseOrderResponse = await xero.accountingApi.getPurchaseOrder(req.session.activeTenant, createPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID);
+        const getPurchaseOrderResponse = await xero.accountingApi.getPurchaseOrder(req.session.activeTenant.tenantId, createPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID);
 
         // UPDATE
         const updatedPurchaseOrder = newPurchaseOrder;
         updatedPurchaseOrder.deliveryInstructions = "Don't forget the secret knock";
         purchaseOrders.purchaseOrders = [updatedPurchaseOrder];
-        const updatePurchaseOrderResponse = await xero.accountingApi.updatePurchaseOrder(req.session.activeTenant, getPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID, purchaseOrders);
+        const updatePurchaseOrderResponse = await xero.accountingApi.updatePurchaseOrder(req.session.activeTenant.tenantId, getPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID, purchaseOrders);
         console.log(updatePurchaseOrderResponse.body.purchaseOrders[0]);
 
         res.render("purchaseorders", {
@@ -1420,16 +1365,14 @@ class App {
 
     router.get("/receipts", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const getReceiptsResponse = await xero.accountingApi.getReceipts(req.session.activeTenant);
+        //GET ALL
+        const getReceiptsResponse = await xero.accountingApi.getReceipts(req.session.activeTenant.tenantId);
 
 
         // first we need a contactID and userID
-        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
         const contactID = getContactsResponse.body.contacts[0].contactID;
-        const getusersResponse = await xero.accountingApi.getUsers(req.session.activeTenant);
+        const getusersResponse = await xero.accountingApi.getUsers(req.session.activeTenant.tenantId);
         const userID = getusersResponse.body.users[0].userID;
 
         // {Receipts}
@@ -1461,16 +1404,16 @@ class App {
         };
 
         // CREATE
-        const createReceiptResponse = await xero.accountingApi.createReceipt(req.session.activeTenant, receipts);
+        const createReceiptResponse = await xero.accountingApi.createReceipt(req.session.activeTenant.tenantId, receipts);
 
         // GET ONE
-        const getReceiptResponse = await xero.accountingApi.getReceipt(req.session.activeTenant, createReceiptResponse.body.receipts[0].receiptID);
+        const getReceiptResponse = await xero.accountingApi.getReceipt(req.session.activeTenant.tenantId, createReceiptResponse.body.receipts[0].receiptID);
 
         const updatedReceipts: Receipts = receipts;
         updatedReceipts.receipts[0].lineItems[0].description = 'UPDATED - Foobar';
 
         // UPDATE
-        const updateReceiptResponse = await xero.accountingApi.updateReceipt(req.session.activeTenant, getReceiptResponse.body.receipts[0].receiptID, updatedReceipts);
+        const updateReceiptResponse = await xero.accountingApi.updateReceipt(req.session.activeTenant.tenantId, getReceiptResponse.body.receipts[0].receiptID, updatedReceipts);
 
         res.render("receipts", {
           authenticated: this.authenticationData(req, res),
@@ -1490,16 +1433,13 @@ class App {
 
     router.get("/reports", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // GET 1099 REPORT
         // optional parameters
         const reportYear = "2019";
-        const getTenNinetyNineResponse = await xero.accountingApi.getReportTenNinetyNine(req.session.activeTenant, reportYear);
+        const getTenNinetyNineResponse = await xero.accountingApi.getReportTenNinetyNine(req.session.activeTenant.tenantId, reportYear);
 
         // getting a contact first
-        const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
 
         // GET AGED PAYABLES BY CONTACT REPORT
         // required parameters
@@ -1508,7 +1448,7 @@ class App {
         const apbcDate = "2019-12-31";
         const apbcFromDate = "2019-01-01";
         const apbcToDate = "2019-12-31";
-        const getAgedPayablesByContactResponse = await xero.accountingApi.getReportAgedPayablesByContact(req.session.activeTenant, apbcContactID, apbcDate, apbcFromDate, apbcToDate);
+        const getAgedPayablesByContactResponse = await xero.accountingApi.getReportAgedPayablesByContact(req.session.activeTenant.tenantId, apbcContactID, apbcDate, apbcFromDate, apbcToDate);
 
         // GET AGED RECEIVABLES BY CONTACT REPORT
         // required parameters
@@ -1517,7 +1457,7 @@ class App {
         const arbcDate = "2019-12-31";
         const arbcFromDate = "2019-01-01";
         const arbcToDate = "2019-12-31";
-        const getAgedReceivablesByContactResponse = await xero.accountingApi.getReportAgedReceivablesByContact(req.session.activeTenant, arbcContactID, arbcDate, arbcFromDate, arbcToDate);
+        const getAgedReceivablesByContactResponse = await xero.accountingApi.getReportAgedReceivablesByContact(req.session.activeTenant.tenantId, arbcContactID, arbcDate, arbcFromDate, arbcToDate);
 
         // GET BALANCE SHEET REPORT
         // optional parameters
@@ -1528,22 +1468,22 @@ class App {
         const balsheetTrackingOptionID2 = undefined;
         const balsheetStandardLayout = true;
         const balsheetPaymentsOnly = false;
-        const getBalanceSheetResponse = await xero.accountingApi.getReportBalanceSheet(req.session.activeTenant, balsheetDate, balsheetPeriods, balsheetTimeframe, balsheetTrackingOptionID1, balsheetTrackingOptionID2, balsheetStandardLayout, balsheetPaymentsOnly);
+        const getBalanceSheetResponse = await xero.accountingApi.getReportBalanceSheet(req.session.activeTenant.tenantId, balsheetDate, balsheetPeriods, balsheetTimeframe, balsheetTrackingOptionID1, balsheetTrackingOptionID2, balsheetStandardLayout, balsheetPaymentsOnly);
 
         // GET BANK SUMMARY REPORT
         // optional parameters
         const banksumFromDate = "2019-01-01";
         const banksumToDate = "2019-12-31";
-        const getReportBankSummaryResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant, banksumFromDate, banksumToDate);
+        const getReportBankSummaryResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant.tenantId, banksumFromDate, banksumToDate);
 
         // GET BAS REPORT LIST
-        const getBASListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant);
+        const getBASListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant.tenantId);
         console.log(getBASListResponse.body.reports[0] || 'BAS REPORTS - This works for Australia based organisations only');
 
         // GET BAS REPORT - FOR AUSTRALIA ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
         // required parameters
         // const BASReportID: string = "00000000-0000-0000-0000-000000000000";
-        // const getBASResponse = await xero.accountingApi.getReportBASorGST(req.session.activeTenant, BASReportID);
+        // const getBASResponse = await xero.accountingApi.getReportBASorGST(req.session.activeTenant.tenantId, BASReportID);
         // console.log(getBASResponse.body.reports[0] || 'This works for Australia based organisations only');
 
         // GET BUDGET SUMMARY REPORT
@@ -1551,21 +1491,21 @@ class App {
         const bsDate = "2019-04-22"
         const bsPeriods = 6;
         const bsTimeframe = 3;
-        const getBudgetSummaryResponse = await xero.accountingApi.getReportBudgetSummary(req.session.activeTenant, bsDate, bsPeriods, bsTimeframe);
+        const getBudgetSummaryResponse = await xero.accountingApi.getReportBudgetSummary(req.session.activeTenant.tenantId, bsDate, bsPeriods, bsTimeframe);
 
         // GET EXECUTIVE SUMMARY REPORT
         // optional parameters
         const esDate = "2019-04-22";
-        const getExecutiveSummaryResponse = await xero.accountingApi.getReportExecutiveSummary(req.session.activeTenant, esDate);
+        const getExecutiveSummaryResponse = await xero.accountingApi.getReportExecutiveSummary(req.session.activeTenant.tenantId, esDate);
 
         // GET GST REPORT LIST
-        const getGSTListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant);
+        const getGSTListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant.tenantId);
         console.log(getGSTListResponse.body.reports[0] || 'GST REPORTS - This currently works for New Zealand based organisations only. Published GST Reports before 11 Nov 2013 will also be returned');
 
         // GET GST REPORT - FOR NEW ZEALAND ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
         // required parameters
         // const GSTReportID: string = "00000000-0000-0000-0000-000000000000";
-        // const getGSTResponse = await xero.accountingApi.getReportBASorGST(req.session.activeTenant, GSTReportID);
+        // const getGSTResponse = await xero.accountingApi.getReportBASorGST(req.session.activeTenant.tenantId, GSTReportID);
         // console.log(getGSTResponse.body.reports[0] || 'This works for NEW ZEALAND based organisations only');
 
         // GET PROFIT AND LOSS REPORT
@@ -1580,13 +1520,13 @@ class App {
         const plTrackingOptionID2 = undefined;
         const plStandardLayout = true;
         const plPaymentsOnly = false;
-        const getProfitAndLossResponse = await xero.accountingApi.getReportProfitAndLoss(req.session.activeTenant, plFromDate, plToDate, plPeriods, plTimeframe, plTrackingCategoryID, plTrackingOptionID, plTrackingCategoryID2, plTrackingOptionID2, plStandardLayout, plPaymentsOnly);
+        const getProfitAndLossResponse = await xero.accountingApi.getReportProfitAndLoss(req.session.activeTenant.tenantId, plFromDate, plToDate, plPeriods, plTimeframe, plTrackingCategoryID, plTrackingOptionID, plTrackingCategoryID2, plTrackingOptionID2, plStandardLayout, plPaymentsOnly);
 
         // GET TRIAL BALANCE REPORT
         // optional parameters
         const tbDate = "2019-04-22";
         const tbPaymentsOnly = false;
-        const getTrialBalanceResponse = await xero.accountingApi.getReportTrialBalance(req.session.activeTenant, tbDate, tbPaymentsOnly);
+        const getTrialBalanceResponse = await xero.accountingApi.getReportTrialBalance(req.session.activeTenant.tenantId, tbDate, tbPaymentsOnly);
 
         res.render("reports", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1613,10 +1553,8 @@ class App {
 
     router.get("/taxrates", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant);
+        //GET ALL
+        const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant.tenantId);
 
         const newTaxRate: TaxRate = {
           name: `Tax Rate Name ${Helper.getRandomNumber(1000000)}`,
@@ -1641,7 +1579,7 @@ class App {
         taxRates.taxRates = [newTaxRate];
 
         // CREATE
-        const createResponse = await xero.accountingApi.createTaxRates(req.session.activeTenant, taxRates);
+        const createResponse = await xero.accountingApi.createTaxRates(req.session.activeTenant.tenantId, taxRates);
 
         const updatedTaxRate: TaxRate = newTaxRate;
 
@@ -1650,7 +1588,7 @@ class App {
         taxRates.taxRates = [updatedTaxRate];
 
         // UPDATE
-        const updateResponse = await xero.accountingApi.updateTaxRate(req.session.activeTenant, taxRates);
+        const updateResponse = await xero.accountingApi.updateTaxRate(req.session.activeTenant.tenantId, taxRates);
 
         res.render("taxrates", {
           authenticated: this.authenticationData(req, res),
@@ -1669,11 +1607,8 @@ class App {
 
     router.get("/trackingcategories", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-
         // GET ALL
-        const getAllResponse = await xero.accountingApi.getTrackingCategories(req.session.activeTenant);
+        const getAllResponse = await xero.accountingApi.getTrackingCategories(req.session.activeTenant.tenantId);
 
         // New Tracking Category
         const trackingCategory: TrackingCategory = {
@@ -1688,17 +1623,17 @@ class App {
         };
 
         // CREATE
-        const createCategoryResponse = await xero.accountingApi.createTrackingCategory(req.session.activeTenant, trackingCategory);
-        await xero.accountingApi.createTrackingOptions(req.session.activeTenant, createCategoryResponse.body.trackingCategories[0].trackingCategoryID, trackingCategoryOption);
+        const createCategoryResponse = await xero.accountingApi.createTrackingCategory(req.session.activeTenant.tenantId, trackingCategory);
+        await xero.accountingApi.createTrackingOptions(req.session.activeTenant.tenantId, createCategoryResponse.body.trackingCategories[0].trackingCategoryID, trackingCategoryOption);
 
         // GET ONE
-        const getOneResponse = await xero.accountingApi.getTrackingCategory(req.session.activeTenant, createCategoryResponse.body.trackingCategories[0].trackingCategoryID);
+        const getOneResponse = await xero.accountingApi.getTrackingCategory(req.session.activeTenant.tenantId, createCategoryResponse.body.trackingCategories[0].trackingCategoryID);
 
         // UPDATE
-        const updateResponse = await xero.accountingApi.updateTrackingCategory(req.session.activeTenant, getOneResponse.body.trackingCategories[0].trackingCategoryID, { name: `${getOneResponse.body.trackingCategories[0].name} - updated` });
+        const updateResponse = await xero.accountingApi.updateTrackingCategory(req.session.activeTenant.tenantId, getOneResponse.body.trackingCategories[0].trackingCategoryID, { name: `${getOneResponse.body.trackingCategories[0].name} - updated` });
 
         // DELETE
-        const deleteResponse = await xero.accountingApi.deleteTrackingCategory(req.session.activeTenant, createCategoryResponse.body.trackingCategories[0].trackingCategoryID);
+        const deleteResponse = await xero.accountingApi.deleteTrackingCategory(req.session.activeTenant.tenantId, createCategoryResponse.body.trackingCategories[0].trackingCategoryID);
 
         res.render("trackingcategories", {
           authenticated: this.authenticationData(req, res),
@@ -1719,13 +1654,11 @@ class App {
 
     router.get("/users", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const getAllUsers = await xero.accountingApi.getUsers(req.session.activeTenant);
+        //GET ALL
+        const getAllUsers = await xero.accountingApi.getUsers(req.session.activeTenant.tenantId);
 
         // GET ONE USER
-        const getUser = await xero.accountingApi.getUser(req.session.activeTenant, getAllUsers.body.users[0].userID);
+        const getUser = await xero.accountingApi.getUser(req.session.activeTenant.tenantId, getAllUsers.body.users[0].userID);
         res.render("users", {
           authenticated: this.authenticationData(req, res),
           user: getUser.body.users[0].emailAddress,
@@ -1742,13 +1675,11 @@ class App {
 
     router.get("/quotes", async (req: Request, res: Response) => {
       try {
-        const tokenSet = req.session.tokenSet;
-        await xero.setTokenSet(tokenSet);
-        // GET ALL
-        const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant)
+        //GET ALL
+        const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant.tenantId)
 
         // CREATE QUOTE
-        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant);
+        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
         // CREATE QUOTES
@@ -1772,10 +1703,10 @@ class App {
           ]
         }
         console.log(quotes)
-        const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant, quotes, true)
+        const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant.tenantId, quotes, true)
 
         // GET ONE
-        const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant, getAllQuotes.body.quotes[0].quoteID);
+        const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant.tenantId, getAllQuotes.body.quotes[0].quoteID);
         res.render("quotes", {
           authenticated: this.authenticationData(req, res),
           count: getAllQuotes.body.quotes.length,
