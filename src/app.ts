@@ -2,6 +2,7 @@ require("dotenv").config();
 import * as bodyParser from "body-parser";
 import express from "express";
 import { Request, Response } from "express";
+import { TokenSet } from 'openid-client';
 import * as fs from "fs";
 import {
   Account,
@@ -43,7 +44,9 @@ import {
   Allocation,
   Allocations,
   HistoryRecords,
-  PaymentServices
+  PaymentServices,
+  XeroJwt,
+  XeroAccessToken
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -56,42 +59,6 @@ const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
 const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access";
-
-interface XeroJwt {
-  nbf: number
-  exp: number
-  iss: string,
-  aud: string
-  iat: number
-  at_hash: string
-  sid: string
-  sub: string
-  auth_time: number
-  idp: string
-  xero_userid: string
-  global_session_id: string
-  preferred_username: string
-  email: string
-  given_name: string
-  family_name: string
-  amr: string[]
-}
-
-interface XeroAccessToken {
-  nbf: number
-  exp: number
-  iss: string
-  aud: string
-  client_id: string
-  sub: string
-  auth_time: number
-  idp: string
-  xero_userid: string
-  global_session_id: string
-  jti: string
-  scope: string[]
-  amr: string[]
-}
 
 const xero = new XeroClient({
   clientId: client_id,
@@ -178,11 +145,30 @@ class App {
 
     router.get("/refresh-token", async (req: Request, res: Response) => {
       try {
+        // you can check to see if a token is expired
+        const tokenSet: TokenSet = await xero.readTokenSet();
+        if (tokenSet.expired()) {
+          console.log('token is currently expired: ', tokenSet)
+        } else {
+          console.log('tokenSet is not expired!')
+        }
 
-        // Refresh Token
+        // you can also refresh the token passing it explicitly to `refreshTokenUsingTokenSet`
+        // const tokenSet: any = {
+        //   id_token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFDQUY4RTY2NzcyRDZEQzAyOEQ2NzI2RkQwMjYxNTgxNTcwRUZDMTkiLCJ0eXAiOiJKV1QiLCJ4NXQiOiJISy1PWm5jdGJjQW8xbkp2MENZVmdWY09fQmsifQ.eyJuYmYiOjE1ODI2NTE5NzcsImV4cCI6MTU4MjY1MjI3NywiaXNzIjoiaHR0cHM6Ly9pZGVudGl0eS54ZXJvLmNvbSIsImF1ZCI6IjkwMkREMzIyNzY1NzRFRDE5OTYzOUQ5MjI2QTQyNUIxIiwiaWF0IjoxNTgyNjUxOTc3LCJhdF9oYXNoIjoiYW5nZUY3WUw3Um5wbXVoS2twdHNFZyIsInNpZCI6IjA2MjVmYTg3MWFjZmJlMzUyNzNkMzYzYjc0ZTM1MDIxIiwic3ViIjoiZGI0ZjBmMzdiNTg1NTMwZTkxZjNiOWNiYjUwMzQwZTgiLCJhdXRoX3RpbWUiOjE1ODI2NTE5NjksInhlcm9fdXNlcmlkIjoiZmFhODNlYzktZjZhNy00ODlmLTg5MTEtZTNmY2UwM2ExMTg2IiwiZ2xvYmFsX3Nlc3Npb25faWQiOiJmN2EzOWNlNmZkY2I0ZDgzYWY5ZjE5YmQxZWI5MjMyOCIsInByZWZlcnJlZF91c2VybmFtZSI6ImNocmlzLmtuaWdodEB4ZXJvLmNvbSIsImVtYWlsIjoiY2hyaXMua25pZ2h0QHhlcm8uY29tIiwiZ2l2ZW5fbmFtZSI6IkNocmlzdG9waGVyIiwiZmFtaWx5X25hbWUiOiJLbmlnaHQifQ.pfUrLPvggRppptGmkmHxKPRa9b8bMUxeFW_2UlWFtiCLfSHEmj84ccvDeslASGqL51r55cnMgDuxpkE7JlSA2M-mRi8Vsk3wzYKvhAukrZ4Zg4QRA7ZkxnQKG0kA47L1KoL8x7wzZmcMEJK3_L0pkWnknGvMPd5xY1YRBzd6lpTNn5ZPit37x9rfWKW-YEz0sClT01IZITbZ0BuLuaUyCcoaownoWd4qm2TzGsPSMB_7Yef1Ry06aIzYrYN3TpMCUNBuxG3ZULkpQ-o6cX3yGtIdXZh3aoXvmY-9vyYslH7A4wbpvcjR_fonMcfvmElElTiIdpwU_Y6_Ct3cF7HaJA',
+        //   access_token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFDQUY4RTY2NzcyRDZEQzAyOEQ2NzI2RkQwMjYxNTgxNTcwRUZDMTkiLCJ0eXAiOiJKV1QiLCJ4NXQiOiJISy1PWm5jdGJjQW8xbkp2MENZVmdWY09fQmsifQ.eyJuYmYiOjE1ODI2NTE5NzcsImV4cCI6MTU4MjY1Mzc3NywiaXNzIjoiaHR0cHM6Ly9pZGVudGl0eS54ZXJvLmNvbSIsImF1ZCI6Imh0dHBzOi8vaWRlbnRpdHkueGVyby5jb20vcmVzb3VyY2VzIiwiY2xpZW50X2lkIjoiOTAyREQzMjI3NjU3NEVEMTk5NjM5RDkyMjZBNDI1QjEiLCJzdWIiOiJkYjRmMGYzN2I1ODU1MzBlOTFmM2I5Y2JiNTAzNDBlOCIsImF1dGhfdGltZSI6MTU4MjY1MTk2OSwieGVyb191c2VyaWQiOiJmYWE4M2VjOS1mNmE3LTQ4OWYtODkxMS1lM2ZjZTAzYTExODYiLCJnbG9iYWxfc2Vzc2lvbl9pZCI6ImY3YTM5Y2U2ZmRjYjRkODNhZjlmMTliZDFlYjkyMzI4IiwianRpIjoiOGE4YzI1YzY1MjBhMzc1YTNmYTlmYmU5YWZmZjc4Y2UiLCJzY29wZSI6WyJlbWFpbCIsInByb2ZpbGUiLCJvcGVuaWQiLCJhY2NvdW50aW5nLnJlcG9ydHMucmVhZCIsImFjY291bnRpbmcuc2V0dGluZ3MiLCJhY2NvdW50aW5nLmF0dGFjaG1lbnRzIiwiYWNjb3VudGluZy50cmFuc2FjdGlvbnMiLCJhY2NvdW50aW5nLmpvdXJuYWxzLnJlYWQiLCJhY2NvdW50aW5nLmNvbnRhY3RzIiwib2ZmbGluZV9hY2Nlc3MiXX0.RXjyGewncufku5dnOLP2O9DMXijfrXC6GC8P7mEMQJMXcLKzeVUYq4HeOEfYSQARwrsMfqpYLbVKftiWVld5byX1WXXRqVxUr9sgXUffQDIT6waNTZUWcGngYSQpR8jViCMVK_rs_dfmADn3vMK0Yp2Q_bFvAav53bNQt1NFQkHFoXHuwQ3kXxwJl_KUzyul24-1OtNNQ2oIoNqdOS-ywdpUK43M0INdDfVJnuUWXmm0phtZMDMlWjtJi5zGGMEaDcmkyBHdXJ8iTtH1-H1VVILe5gnf79ru1feHMeoxDol4-0Y0H5wg619QkrSOcAcpXMWjUSkaLzvdFKTOUeDsKQ',
+        //   expires_at: 1582653777,
+        //   token_type: 'Bearer',
+        //   refresh_token: '967346becb2281acdd78ebe58ea7a0d158df3ff559f4c3edc39570170dd2128d',
+        //   scope: 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access',
+        //   session_state: '8eRA44tLwQiOiYVRQorTU5lGUJpMTb5eYNRID5P3UJk.b2bdfe6f9ff5253b1d634b9d423ed741'
+        // }
+        // await xero.refreshTokenUsingTokenSet(tokenSet)
+
+        // or you can use the default function that refreshes
+        // the tokenSet that is stored on the XeroClient
         await xero.refreshToken()
-        const newTokenSet = await xero.readTokenSet();
-        await xero.setTokenSet(newTokenSet);
+        const newTokenSet: TokenSet = await xero.readTokenSet();
 
         const decodedIdToken: XeroJwt = jwtDecode(newTokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(newTokenSet.access_token)
@@ -190,6 +176,8 @@ class App {
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
         req.session.tokenSet = newTokenSet;
+        req.session.allTenants = xero.tenants
+        req.session.activeTenant = xero.tenants[0]
 
         const authData = this.authenticationData(req, res)
 
@@ -208,6 +196,9 @@ class App {
 
     router.get("/logout", async (req: Request, res: Response) => {
       try {
+
+        await xero.disconnect(req.session.activeTenant.tenantId)
+
         req.session.decodedAccessToken = null
         req.session.tokenSet = null
         req.session.allTenants = null
@@ -232,18 +223,21 @@ class App {
       try {
         const url = process.env.REDIRECT_URI + req.originalUrl;
         // calling apiCallback will setup all the client with
-        // the meta information of each authorized tenant
-        const tokenSet = await xero.apiCallback(url);
+        // and return the orgData of each authorized tenant
+        const tokenFromCallback: TokenSet = await xero.apiCallback(url);
+
+        console.log('tokenSet: ',tokenFromCallback)
+        console.log('tokenSet: ',tokenFromCallback.id_token)
         // this is where you should associate & save
         // your tokenSet to a user in your Database
-        await xero.setTokenSet(tokenSet);
+        await xero.setTokenSet(tokenFromCallback);
 
-        const decodedIdToken: XeroJwt = jwtDecode(tokenSet.id_token);
-        const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
+        const decodedIdToken: XeroJwt = jwtDecode(tokenFromCallback.id_token);
+        const decodedAccessToken: XeroAccessToken = jwtDecode(tokenFromCallback.access_token)
 
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
-        req.session.tokenSet = tokenSet;
+        req.session.tokenSet = tokenFromCallback;
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
         const authData = this.authenticationData(req, res)
@@ -305,7 +299,6 @@ class App {
         });
 
         // GET ATTACHMENT BY FILENAME
-        console.log('await')
         const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(req.session.activeTenant.tenantId, accountId, filename, contentType);
         fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByFilenameResponse.body, (err) => {
           if (err) { throw err; }
@@ -1032,15 +1025,13 @@ class App {
           purchaseDetails: {
             unitPrice: 375.5000,
             taxType: "NONE",
-            accountCode: "500",
-            cOGSAccountCode: "500"
+            accountCode: "500"
           },
           salesDetails: {
             unitPrice: 520.9900,
             taxType: "NONE",
             accountCode: "400",
-          },
-          inventoryAssetAccountCode: "630"
+          }
         };
         const newItems: Items = new Items();
         newItems.items = [item1]
@@ -1214,10 +1205,8 @@ class App {
         const getPrepaymentsResponse = await xero.accountingApi.getPrepayments(req.session.activeTenant.tenantId);
 
         // CREATE ALLOCATION
-        // for that we'll need a contact
+        // for that we'll need a contact & invoice
         const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
-
-        // AND we'll need an INVOICE
         const invoices: Invoices = {
           invoices: [
             {
@@ -1242,9 +1231,7 @@ class App {
             }
           ]
         };
-
         const createInvoiceResponse = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, invoices);
-        console.log(createInvoiceResponse.body);
 
         // AND we'll need a BANK TRANSACTION with PREPAYMENT
         const newBankTransaction: BankTransaction = {
@@ -1259,11 +1246,8 @@ class App {
         };
 
         const newBankTransactions: BankTransactions = new BankTransactions();
-
         newBankTransactions.bankTransactions = [newBankTransaction];
-
         const newBankTransactionResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant.tenantId, newBankTransactions);
-        console.log(newBankTransactionResponse.body);
 
         // finally, allocate prepayment to invoice
         const allocation: Allocation = {
@@ -1275,11 +1259,8 @@ class App {
         };
 
         const newAllocations: Allocations = new Allocations();
-
         newAllocations.allocations = [allocation];
-
         const prepaymentAllocationResponse = await xero.accountingApi.createPrepaymentAllocations(req.session.activeTenant.tenantId, newBankTransactionResponse.body.bankTransactions[0].prepaymentID, newAllocations);
-        console.log(prepaymentAllocationResponse.body);
 
         // CREATE HISTORY
         // "Message": "The document with the supplied id was not found for this endpoint."
@@ -1288,7 +1269,6 @@ class App {
 
         // GET ONE
         const getPrepaymentResponse = await xero.accountingApi.getPrepayment(req.session.activeTenant.tenantId, newBankTransactionResponse.body.bankTransactions[0].prepaymentID);
-        console.log(getPrepaymentResponse.body);
 
         res.render("prepayments", {
           authenticated: this.authenticationData(req, res),
@@ -1334,7 +1314,6 @@ class App {
 
         const purchaseOrders: PurchaseOrders = new PurchaseOrders();
         purchaseOrders.purchaseOrders = [newPurchaseOrder];
-
         const createPurchaseOrderResponse = await xero.accountingApi.createPurchaseOrders(req.session.activeTenant.tenantId, purchaseOrders);
 
         // GET ONE
@@ -1367,7 +1346,6 @@ class App {
       try {
         //GET ALL
         const getReceiptsResponse = await xero.accountingApi.getReceipts(req.session.activeTenant.tenantId);
-
 
         // first we need a contactID and userID
         const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
@@ -1408,7 +1386,6 @@ class App {
 
         // GET ONE
         const getReceiptResponse = await xero.accountingApi.getReceipt(req.session.activeTenant.tenantId, createReceiptResponse.body.receipts[0].receiptID);
-
         const updatedReceipts: Receipts = receipts;
         updatedReceipts.receipts[0].lineItems[0].description = 'UPDATED - Foobar';
 
@@ -1574,17 +1551,13 @@ class App {
             }
           ]
         };
-
         const taxRates: TaxRates = new TaxRates();
         taxRates.taxRates = [newTaxRate];
 
         // CREATE
         const createResponse = await xero.accountingApi.createTaxRates(req.session.activeTenant.tenantId, taxRates);
-
         const updatedTaxRate: TaxRate = newTaxRate;
-
         updatedTaxRate.status = TaxRate.StatusEnum.DELETED;
-
         taxRates.taxRates = [updatedTaxRate];
 
         // UPDATE
@@ -1702,7 +1675,6 @@ class App {
             quote
           ]
         }
-        console.log(quotes)
         const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant.tenantId, quotes, true)
 
         // GET ONE

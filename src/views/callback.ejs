@@ -17,7 +17,7 @@
       <div class='body-wrapper'>
         <div class='body-content'>
           <% if (authenticated.decodedIdToken && authenticated.decodedAccessToken) { %>
-            <h4 id='authenticated'>You are authenticated with: <span><%= authenticated.activeTenant.meta.name %></span></h4>
+            <h4 id='authenticated'>You are authenticated with: <span><%= authenticated.activeTenant.orgData.name %></span></h4>
             <hr>
             <h4>Access Token Data:</h2>
               <pre>
