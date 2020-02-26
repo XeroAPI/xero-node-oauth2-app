@@ -81,8 +81,6 @@ class App {
     this.app.set("views", path.join(__dirname, "views"));
     this.app.set("view engine", "ejs");
     this.app.use(express.static(path.join(__dirname, "public")));
-
-    xero.initialize()
   }
 
   private config(): void {
@@ -104,6 +102,8 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
+      await xero.initialize();
+
       try {
         const authData = this.authenticationData(req, res)
         res.render("home", {
@@ -219,21 +219,19 @@ class App {
 
     router.get("/callback", async (req: Request, res: Response) => {
       try {
-        const url = process.env.REDIRECT_URI + req.originalUrl;
         // calling apiCallback will setup all the client with
         // and return the orgData of each authorized tenant
-        const tokenFromCallback: TokenSet = await xero.apiCallback(url);
+        const tokenSet: TokenSet = await xero.apiCallback(req.url);
 
         // this is where you should associate & save
-        // your tokenSet to a user in your Database
-        await xero.setTokenSet(tokenFromCallback);
+        // your `tokenSet` to a user in your Database
 
-        const decodedIdToken: XeroJwt = jwtDecode(tokenFromCallback.id_token);
-        const decodedAccessToken: XeroAccessToken = jwtDecode(tokenFromCallback.access_token)
+        const decodedIdToken: XeroJwt = jwtDecode(tokenSet.id_token);
+        const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
 
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
-        req.session.tokenSet = tokenFromCallback;
+        req.session.tokenSet = tokenSet;
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
         const authData = this.authenticationData(req, res)

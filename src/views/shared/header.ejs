@@ -12,9 +12,11 @@
 
   <% if (loggedIn) { %>
     <div class='nav-settings'>
-      <a href="/disconnect">
-        <input type="submit" class="select-input" value="Disconnect Tenant">
-      </a>
+      <% if (authenticated.allTenants.length > 1) { %>
+        <a href="/disconnect">
+          <input type="submit" class="select-input" value="Disconnect Tenant">
+        </a>
+      <% } %>
     </div>
     <div class='nav-settings'>
       <a href="/refresh-token">

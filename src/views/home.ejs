@@ -13,7 +13,7 @@
             <h4>Active Tenant:</h2>
             <pre>
               <code class='language-javascript'>
-                <%- JSON.stringify(authenticated.activeTenant.orgData, null, 2).replace(/[{}]/g, '') %>
+                <%- JSON.stringify(authenticated.activeTenant.orgData, null, 2).replace(/[{}]/g, '').substring(0, 300) + ' ...' %>
               </code>
             </pre>
             <hr>
