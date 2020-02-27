@@ -12,6 +12,13 @@
 
   <% if (loggedIn) { %>
     <div class='nav-settings'>
+      <% if (authenticated.allTenants.length > 1) { %>
+        <a href="/disconnect">
+          <input type="submit" class="select-input" value="Disconnect Tenant">
+        </a>
+      <% } %>
+    </div>
+    <div class='nav-settings'>
       <a href="/refresh-token">
         <input type="submit" class="select-input" value="Refresh Token">
       </a>
@@ -20,8 +27,8 @@
       <form method='POST' action="/change_organisation">
         <select name='active_org_id' class="select-box">
           <% for(var i=0; i < authenticated.allTenants.length; i++) { %>
-            <% var selected = authenticated.allTenants[i] === authenticated.activeTenant ? "selected" : "" %>
-            <option <%=selected %> value=<%= authenticated.allTenants[i] %>> <%= authenticated.allTenants[i] %></option>
+            <% var selected = authenticated.allTenants[i].tenantId === authenticated.activeTenant.tenantId ? "selected" : "" %>
+            <option <%= selected %> value=<%= authenticated.allTenants[i].tenantId %>> <%= authenticated.allTenants[i].orgData.name %></option>
             <% } %>
           </select>
           <input type="submit" class="select-input" value="Change Org">

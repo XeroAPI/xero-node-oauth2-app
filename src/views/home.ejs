@@ -8,7 +8,14 @@
       <div class='body-wrapper'>
         <div class='body-content'>
           <% if (authenticated.decodedIdToken && authenticated.decodedAccessToken) { %>
-            <h4 id='authenticated'>You are authenticated with: <span><%= authenticated.activeTenant %></span></h4>
+            <h4 id='authenticated'>You are authenticated with: <span><%= authenticated.activeTenant.orgData.name %></span></h4>
+            <hr>
+            <h4>Active Tenant:</h2>
+            <pre>
+              <code class='language-javascript'>
+                <%- JSON.stringify(authenticated.activeTenant.orgData, null, 2).replace(/[{}]/g, '').substring(0, 300) + ' ...' %>
+              </code>
+            </pre>
             <hr>
             <h4>Access Token Data:</h2>
             <pre>
