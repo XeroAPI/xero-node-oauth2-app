@@ -44,22 +44,9 @@ import {
   TrackingCategories,
   TrackingCategory,
   TrackingOption,
-<<<<<<< HEAD
-  CurrencyCode,
-  Receipt,
-  Receipts,
-  PurchaseOrder,
-  PurchaseOrders,
-  Prepayment,
-  Allocation,
-  Allocations,
-  HistoryRecords,
-  PaymentServices,
   XeroIdToken,
-  XeroAccessToken
-=======
+  XeroAccessToken,
   XeroClient,
->>>>>>> master
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
