@@ -45,7 +45,7 @@ import {
   Allocations,
   HistoryRecords,
   PaymentServices,
-  XeroJwt,
+  XeroIdToken,
   XeroAccessToken
 } from "xero-node";
 import Helper from "./helper";
@@ -73,6 +73,7 @@ if (!client_id || !client_secret || !redirectUrl) {
 
 class App {
   public app: express.Application;
+  public consentUrl: Promise<string>
 
   constructor() {
     this.app = express();
@@ -81,6 +82,8 @@ class App {
     this.app.set("views", path.join(__dirname, "views"));
     this.app.set("view engine", "ejs");
     this.app.use(express.static(path.join(__dirname, "public")));
+
+    this.consentUrl = xero.buildConsentUrl()
   }
 
   private config(): void {
@@ -102,13 +105,43 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
-      await xero.initialize();
-
       try {
         const authData = this.authenticationData(req, res)
         res.render("home", {
           consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: authData
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/callback", async (req: Request, res: Response) => {
+      try {
+        // calling apiCallback will setup all the client with
+        // and return the orgData of each authorized tenant
+        const tokenSet: TokenSet = await xero.apiCallback(req.url);
+        await xero.updateTenants()
+
+        // this is where you can save your
+        // `tokenSet` to a user in your Database
+        const decodedIdToken: XeroIdToken = jwtDecode(tokenSet.id_token);
+        const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
+
+        req.session.decodedIdToken = decodedIdToken
+        req.session.decodedAccessToken = decodedAccessToken
+        req.session.tokenSet = tokenSet;
+        req.session.allTenants = xero.tenants
+        req.session.activeTenant = xero.tenants[0]
+        const authData = this.authenticationData(req, res)
+
+        res.render("callback", {
+          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -142,31 +175,18 @@ class App {
 
     router.get("/refresh-token", async (req: Request, res: Response) => {
       try {
-        // you can check to see if a token is expired
-        const tokenSet: TokenSet = await xero.readTokenSet();
+        const tokenSet = await xero.readTokenSet();
         if (tokenSet.expired()) {
           console.log('token is currently expired: ', tokenSet)
         } else {
           console.log('tokenSet is not expired!')
         }
+        const newTokenSet = await xero.refreshToken()
+
         // you can also refresh the token passing it explicitly to `refreshTokenUsingTokenSet`
-        // const tokenSet: any = {
-        //   id_token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFDQUY4RTY2NzcyRDZEQzAyOEQ2NzI2RkQwMjYxNTgxNTcwRUZDMTkiLCJ0eXAiOiJKV1QiLCJ4NXQiOiJISy1PWm5jdGJjQW8xbkp2MENZVmdWY09fQmsifQ.eyJuYmYiOjE1ODI2NTE5NzcsImV4cCI6MTU4MjY1MjI3NywiaXNzIjoiaHR0cHM6Ly9pZGVudGl0eS54ZXJvLmNvbSIsImF1ZCI6IjkwMkREMzIyNzY1NzRFRDE5OTYzOUQ5MjI2QTQyNUIxIiwiaWF0IjoxNTgyNjUxOTc3LCJhdF9oYXNoIjoiYW5nZUY3WUw3Um5wbXVoS2twdHNFZyIsInNpZCI6IjA2MjVmYTg3MWFjZmJlMzUyNzNkMzYzYjc0ZTM1MDIxIiwic3ViIjoiZGI0ZjBmMzdiNTg1NTMwZTkxZjNiOWNiYjUwMzQwZTgiLCJhdXRoX3RpbWUiOjE1ODI2NTE5NjksInhlcm9fdXNlcmlkIjoiZmFhODNlYzktZjZhNy00ODlmLTg5MTEtZTNmY2UwM2ExMTg2IiwiZ2xvYmFsX3Nlc3Npb25faWQiOiJmN2EzOWNlNmZkY2I0ZDgzYWY5ZjE5YmQxZWI5MjMyOCIsInByZWZlcnJlZF91c2VybmFtZSI6ImNocmlzLmtuaWdodEB4ZXJvLmNvbSIsImVtYWlsIjoiY2hyaXMua25pZ2h0QHhlcm8uY29tIiwiZ2l2ZW5fbmFtZSI6IkNocmlzdG9waGVyIiwiZmFtaWx5X25hbWUiOiJLbmlnaHQifQ.pfUrLPvggRppptGmkmHxKPRa9b8bMUxeFW_2UlWFtiCLfSHEmj84ccvDeslASGqL51r55cnMgDuxpkE7JlSA2M-mRi8Vsk3wzYKvhAukrZ4Zg4QRA7ZkxnQKG0kA47L1KoL8x7wzZmcMEJK3_L0pkWnknGvMPd5xY1YRBzd6lpTNn5ZPit37x9rfWKW-YEz0sClT01IZITbZ0BuLuaUyCcoaownoWd4qm2TzGsPSMB_7Yef1Ry06aIzYrYN3TpMCUNBuxG3ZULkpQ-o6cX3yGtIdXZh3aoXvmY-9vyYslH7A4wbpvcjR_fonMcfvmElElTiIdpwU_Y6_Ct3cF7HaJA',
-        //   access_token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFDQUY4RTY2NzcyRDZEQzAyOEQ2NzI2RkQwMjYxNTgxNTcwRUZDMTkiLCJ0eXAiOiJKV1QiLCJ4NXQiOiJISy1PWm5jdGJjQW8xbkp2MENZVmdWY09fQmsifQ.eyJuYmYiOjE1ODI2NTE5NzcsImV4cCI6MTU4MjY1Mzc3NywiaXNzIjoiaHR0cHM6Ly9pZGVudGl0eS54ZXJvLmNvbSIsImF1ZCI6Imh0dHBzOi8vaWRlbnRpdHkueGVyby5jb20vcmVzb3VyY2VzIiwiY2xpZW50X2lkIjoiOTAyREQzMjI3NjU3NEVEMTk5NjM5RDkyMjZBNDI1QjEiLCJzdWIiOiJkYjRmMGYzN2I1ODU1MzBlOTFmM2I5Y2JiNTAzNDBlOCIsImF1dGhfdGltZSI6MTU4MjY1MTk2OSwieGVyb191c2VyaWQiOiJmYWE4M2VjOS1mNmE3LTQ4OWYtODkxMS1lM2ZjZTAzYTExODYiLCJnbG9iYWxfc2Vzc2lvbl9pZCI6ImY3YTM5Y2U2ZmRjYjRkODNhZjlmMTliZDFlYjkyMzI4IiwianRpIjoiOGE4YzI1YzY1MjBhMzc1YTNmYTlmYmU5YWZmZjc4Y2UiLCJzY29wZSI6WyJlbWFpbCIsInByb2ZpbGUiLCJvcGVuaWQiLCJhY2NvdW50aW5nLnJlcG9ydHMucmVhZCIsImFjY291bnRpbmcuc2V0dGluZ3MiLCJhY2NvdW50aW5nLmF0dGFjaG1lbnRzIiwiYWNjb3VudGluZy50cmFuc2FjdGlvbnMiLCJhY2NvdW50aW5nLmpvdXJuYWxzLnJlYWQiLCJhY2NvdW50aW5nLmNvbnRhY3RzIiwib2ZmbGluZV9hY2Nlc3MiXX0.RXjyGewncufku5dnOLP2O9DMXijfrXC6GC8P7mEMQJMXcLKzeVUYq4HeOEfYSQARwrsMfqpYLbVKftiWVld5byX1WXXRqVxUr9sgXUffQDIT6waNTZUWcGngYSQpR8jViCMVK_rs_dfmADn3vMK0Yp2Q_bFvAav53bNQt1NFQkHFoXHuwQ3kXxwJl_KUzyul24-1OtNNQ2oIoNqdOS-ywdpUK43M0INdDfVJnuUWXmm0phtZMDMlWjtJi5zGGMEaDcmkyBHdXJ8iTtH1-H1VVILe5gnf79ru1feHMeoxDol4-0Y0H5wg619QkrSOcAcpXMWjUSkaLzvdFKTOUeDsKQ',
-        //   expires_at: 1582653777,
-        //   token_type: 'Bearer',
-        //   refresh_token: '967346becb2281acdd78ebe58ea7a0d158df3ff559f4c3edc39570170dd2128d',
-        //   scope: 'openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions offline_access',
-        //   session_state: '8eRA44tLwQiOiYVRQorTU5lGUJpMTb5eYNRID5P3UJk.b2bdfe6f9ff5253b1d634b9d423ed741'
-        // }
         // await xero.refreshTokenUsingTokenSet(tokenSet)
 
-        // or you can use the default function that refreshes
-        // the tokenSet that is stored on the XeroClient
-        await xero.refreshToken()
-        const newTokenSet: TokenSet = await xero.readTokenSet();
-
-        const decodedIdToken: XeroJwt = jwtDecode(newTokenSet.id_token);
+        const decodedIdToken: XeroIdToken = jwtDecode(newTokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(newTokenSet.access_token)
 
         req.session.decodedIdToken = decodedIdToken
@@ -193,7 +213,9 @@ class App {
     router.get("/disconnect", async (req: Request, res: Response) => {
       try {
         const updatedTokenSet: TokenSet = await xero.disconnect(req.session.activeTenant.id)
-        const decodedIdToken: XeroJwt = jwtDecode(updatedTokenSet.id_token);
+        await xero.updateTenants()
+
+        const decodedIdToken: XeroIdToken = jwtDecode(updatedTokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(updatedTokenSet.access_token)
 
         req.session.decodedIdToken = decodedIdToken
@@ -207,38 +229,6 @@ class App {
         res.render("home", {
           consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: authData
-        });
-      } catch (e) {
-        res.status(res.statusCode);
-        res.render("shared/error", {
-          consentUrl: await xero.buildConsentUrl(),
-          error: e
-        });
-      }
-    });
-
-    router.get("/callback", async (req: Request, res: Response) => {
-      try {
-        // calling apiCallback will setup all the client with
-        // and return the orgData of each authorized tenant
-        const tokenSet: TokenSet = await xero.apiCallback(req.url);
-
-        // this is where you should associate & save
-        // your `tokenSet` to a user in your Database
-
-        const decodedIdToken: XeroJwt = jwtDecode(tokenSet.id_token);
-        const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
-
-        req.session.decodedIdToken = decodedIdToken
-        req.session.decodedAccessToken = decodedAccessToken
-        req.session.tokenSet = tokenSet;
-        req.session.allTenants = xero.tenants
-        req.session.activeTenant = xero.tenants[0]
-        const authData = this.authenticationData(req, res)
-
-        res.render("callback", {
-          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
-          authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
         res.status(res.statusCode);
