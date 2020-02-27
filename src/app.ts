@@ -127,7 +127,7 @@ class App {
         const tokenSet: TokenSet = await xero.apiCallback(req.url);
         await xero.updateTenants()
 
-        // this is where you can save your
+        // this is where you can associate & save your
         // `tokenSet` to a user in your Database
         const decodedIdToken: XeroIdToken = jwtDecode(tokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
