@@ -1678,6 +1678,17 @@ class App {
           ]
         }
         const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant.tenantId, quotes, true)
+        const quoteId = createQuotes.body.quotes[0].quoteID
+        
+        const filename = "xero-dev.png";
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
+        const readStream = fs.createReadStream(pathToUpload);
+        const contentType = mime.lookup(filename);
+        const addQuoteAttachment = await xero.accountingApi.createQuoteAttachmentByFileName(req.session.activeTenant.tenantId, quoteId, filename, readStream, {
+          headers: {
+            'Content-Type': contentType
+          }
+        });
 
         // GET ONE
         const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant.tenantId, getAllQuotes.body.quotes[0].quoteID);
@@ -1685,7 +1696,8 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: getAllQuotes.body.quotes.length,
           getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber,
-          createdQuotesId: createQuotes.body.quotes[0].quoteID
+          createdQuotesId: quoteId,
+          addQuoteAttachment: addQuoteAttachment.response['body']
         });
       } catch (e) {
         res.status(res.statusCode);

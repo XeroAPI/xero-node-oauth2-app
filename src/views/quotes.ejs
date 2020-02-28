@@ -13,6 +13,10 @@
             <p><strong>Read all Quotes - count:</strong> <%= count %></p>
             <p><strong>Read one Quote - quote number :</strong> <%= getOneQuoteNumber %></p>
             <p><strong>Created quote:</strong> <%= createdQuotesId %></p>
+            <p><strong>Attached:</strong></p>
+            <pre>
+              <code class='language-javascript'><%- JSON.stringify(addQuoteAttachment, null, 2) %></code>
+            </pre>
         </div>
       </div>
     </div>
