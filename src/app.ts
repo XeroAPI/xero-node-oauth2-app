@@ -803,7 +803,7 @@ class App {
           brandingThemeID: brandingTheme.body.brandingThemes[0].brandingThemeID,
           url: "https://deeplink-to-your-site.com",
           hasAttachments: true,
-          currencyCode: CurrencyCode.USD,
+          currencyCode: req.session.activeTenant.baseCurrency,
           status: Invoice.StatusEnum.SUBMITTED,
           lineAmountTypes: LineAmountTypes.Inclusive,
           subTotal: 87.11,
@@ -834,8 +834,7 @@ class App {
         newInvoices.invoices = [invoice1, invoice1];
 
         // CREATE ONE OR MORE INVOICES
-        const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, newInvoices, false)
-
+        const createdInvoice = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, newInvoices, false);
         // Since we are using summarizeErrors = false we get 200 OK statuscode
         // Our array of created invoices include those that succeeded and those with validation errors.
         // loop over the invoices and if it has an error, loop over the error messages
@@ -872,7 +871,7 @@ class App {
         await xero.accountingApi.updateOrCreateInvoices(req.session.activeTenant.tenantId, updateInvoices, false)
 
         // GET ONE
-        const getInvoice = await xero.accountingApi.getInvoice(req.session.activeTenant.tenantId, createdInvoice.body.invoices[0].invoiceID)
+        const getInvoice = await xero.accountingApi.getInvoice(req.session.activeTenant.tenantId, createdInvoice.body.invoices[0].invoiceID);
         const invoiceId = getInvoice.body.invoices[0].invoiceID
 
         // UPDATE
@@ -1121,13 +1120,14 @@ class App {
     router.get("/organisations", async (req: Request, res: Response) => {
       try {
         //GET ALL
-        const apiResponse = await xero.accountingApi.getOrganisations(req.session.activeTenant.tenantId);
-        // CREATE
-        // GET ONE
-        // UPDATE
+        const getOrganizationsResponse = await xero.accountingApi.getOrganisations(req.session.activeTenant.tenantId);
+
+        // GET ORG CIS SETTINGS - UK only
+        // const getOrgCISSettingsResponse = await xero.accountingApi.getOrganisationCISSettings(req.session.activeTenant.tenantId, getOrganizationsResponse.body.organisations[0].organisationID);
+
         res.render("organisations", {
           authenticated: this.authenticationData(req, res),
-          orgs: apiResponse.body.organisations
+          orgs: getOrganizationsResponse.body.organisations
         });
       } catch (e) {
         res.status(res.statusCode);
