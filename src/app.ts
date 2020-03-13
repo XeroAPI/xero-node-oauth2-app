@@ -30,6 +30,7 @@ import {
   LineAmountTypes,
   LineItem,
   Payment,
+  Payments,
   PaymentServices,
   Prepayment,
   PurchaseOrder,
@@ -1140,13 +1141,75 @@ class App {
     router.get("/overpayments", async (req: Request, res: Response) => {
       try {
         //GET ALL
-        const apiResponse = await xero.accountingApi.getOverpayments(req.session.activeTenant.tenantId);
-        // CREATE
+        const getOverpaymentsResponse = await xero.accountingApi.getOverpayments(req.session.activeTenant.tenantId);
+
+        // CREATE ALLOCATION
+        // for that we'll need a contact
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
+        const invoices: Invoices = {
+          invoices: [
+            {
+              type: Invoice.TypeEnum.ACCPAY,
+              contact: {
+                contactID: getContactsResponse.body.contacts[0].contactID
+              },
+              lineItems: [
+                {
+                  description: "Acme Tires",
+                  quantity: 2.0,
+                  unitAmount: 20.0,
+                  accountCode: "500",
+                  taxType: "NONE",
+                  lineAmount: 40.0
+                }
+              ],
+              date: "2019-03-11",
+              dueDate: "2018-12-10",
+              reference: "Website Design",
+              status: Invoice.StatusEnum.AUTHORISED
+            }
+          ]
+        };
+        const createInvoiceResponse = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, invoices);
+
+        // AND we'll need a BANK TRANSACTION with OVERPAYMENT
+        const newBankTransaction: BankTransaction = {
+          type: BankTransaction.TypeEnum.SPENDOVERPAYMENT,
+          contact: {
+            contactID: getContactsResponse.body.contacts[0].contactID
+          },
+          lineItems: [{ description: "Forgot to cancel the auto payment", lineAmount: 40.0 }],
+          bankAccount: {
+            code: "090"
+          }
+        };
+
+        const newBankTransactions: BankTransactions = new BankTransactions();
+        newBankTransactions.bankTransactions = [newBankTransaction];
+        const newBankTransactionResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant.tenantId, newBankTransactions);
+
+        // finally, allocate overpayment to invoice
+        const allocation: Allocation = {
+          amount: 20.50,
+          invoice: {
+            invoiceID: createInvoiceResponse.body.invoices[0].invoiceID
+          },
+          date: "2020-03-13"
+        };
+
+        const newAllocations: Allocations = new Allocations();
+        newAllocations.allocations = [allocation];
+        const overpaymentAllocationResponse = await xero.accountingApi.createOverpaymentAllocations(req.session.activeTenant.tenantId, newBankTransactionResponse.body.bankTransactions[0].overpaymentID, newAllocations);
+
         // GET ONE
-        // UPDATE
+        const getOverpaymentResponse = await xero.accountingApi.getOverpayment(req.session.activeTenant.tenantId, newBankTransactionResponse.body.bankTransactions[0].overpaymentID);
+
         res.render("overpayments", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.overpayments.length
+          count: getOverpaymentsResponse.body.overpayments.length,
+          overpayment: newBankTransactionResponse.body.bankTransactions[0].overpaymentID,
+          allocation: overpaymentAllocationResponse.body.allocations[0].amount,
+          getOne: getOverpaymentResponse.body.overpayments[0].contact.name
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1160,13 +1223,66 @@ class App {
     router.get("/payments", async (req: Request, res: Response) => {
       try {
         //GET ALL
-        const apiResponse = await xero.accountingApi.getPayments(req.session.activeTenant.tenantId);
+        const getPaymentsResponse = await xero.accountingApi.getPayments(req.session.activeTenant.tenantId);
+
         // CREATE
+        // for that we'll need a contact & invoice
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
+        const invoices: Invoices = {
+          invoices: [
+            {
+              type: Invoice.TypeEnum.ACCREC,
+              contact: {
+                contactID: getContactsResponse.body.contacts[0].contactID
+              },
+              lineItems: [
+                {
+                  description: "Acme Tires",
+                  quantity: 2.0,
+                  unitAmount: 20.0,
+                  accountCode: "500",
+                  taxType: "NONE",
+                  lineAmount: 40.0
+                }
+              ],
+              date: "2019-03-11",
+              dueDate: "2018-12-10",
+              reference: "Website Design",
+              status: Invoice.StatusEnum.AUTHORISED
+            }
+          ]
+        };
+
+        const createInvoiceResponse = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, invoices);
+
+        const payments: Payments = {
+          payments: [
+            {
+              invoice: {
+                invoiceID: createInvoiceResponse.body.invoices[0].invoiceID
+              },
+              account: {
+                code: "090"
+              },
+              date: "2020-03-12",
+              amount: 3.50
+            },
+          ]
+        };
+
+        const createPaymentResponse = await xero.accountingApi.createPayments(req.session.activeTenant.tenantId, payments);
+
         // GET ONE
-        // UPDATE
+        const getPaymentResponse = await xero.accountingApi.getPayment(req.session.activeTenant.tenantId, createPaymentResponse.body.payments[0].paymentID);
+
+        // DELETE
+        // spec needs to be updated, it's trying to modify a payment but that throws a validation error
+
         res.render("payments", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.payments.length
+          count: getPaymentsResponse.body.payments.length,
+          newPayment: createPaymentResponse.body.payments[0].paymentID,
+          getPayment: getPaymentResponse.body.payments[0].invoice.contact.name
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1679,7 +1795,7 @@ class App {
         }
         const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant.tenantId, quotes, true)
         const quoteId = createQuotes.body.quotes[0].quoteID
-        
+
         const filename = "xero-dev.png";
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
         const readStream = fs.createReadStream(pathToUpload);

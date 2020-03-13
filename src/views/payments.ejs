@@ -1,15 +1,19 @@
 <!doctype html>
 <html>
-  <%- include('shared/head') -%>
-  <body>
-    <%- include('shared/nav') -%>
-    <div class='core-content'>
-      <%- include('shared/header') -%>
-      <div class='body-wrapper'>
-        <div class='body-content'>
-          <p>Payments success: Count: <%= count %></p>
-        </div>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Payments success: Count: <%= count %></p>
+        <p>Payments success: Create - PaymentID: <%= newPayment %></p>
+        <p>Payments success: Get - Invoice Contact Name: <%= getPayment %></p>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>

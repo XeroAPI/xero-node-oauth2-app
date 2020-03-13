@@ -1,15 +1,20 @@
 <!doctype html>
 <html>
-  <%- include('shared/head') -%>
-  <body>
-    <%- include('shared/nav') -%>
-    <div class='core-content'>
-      <%- include('shared/header') -%>
-      <div class='body-wrapper'>
-        <div class='body-content'>
-          <p>Over payments success: Count: <%= count %></p>
-        </div>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Over payments success: Count: <%= count %></p>
+        <p>Over payments success: Create: <%= overpayment %></p>
+        <p>Over payments success: Allocate: <%= allocation %></p>
+        <p>Over payments success: Get One: <%= getOne %></p>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>
