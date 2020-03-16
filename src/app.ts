@@ -140,8 +140,6 @@ class App {
         req.session.activeTenant = xero.tenants[0]
         const authData = this.authenticationData(req, res)
 
-        console.log('authData: ',authData)
-
         res.render("callback", {
           consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
@@ -218,15 +216,20 @@ class App {
         const updatedTokenSet: TokenSet = await xero.disconnect(req.session.activeTenant.id)
         await xero.updateTenants()
 
-        const decodedIdToken: XeroIdToken = jwtDecode(updatedTokenSet.id_token);
-        const decodedAccessToken: XeroAccessToken = jwtDecode(updatedTokenSet.access_token)
-
-        req.session.decodedIdToken = decodedIdToken
-        req.session.decodedAccessToken = decodedAccessToken
-        req.session.tokenSet = updatedTokenSet;
-        req.session.allTenants = xero.tenants
-        req.session.activeTenant = xero.tenants[0]
-
+        if (xero.tenants.length > 0){
+          const decodedIdToken: XeroIdToken = jwtDecode(updatedTokenSet.id_token);
+          const decodedAccessToken: XeroAccessToken = jwtDecode(updatedTokenSet.access_token)
+          req.session.decodedIdToken = decodedIdToken
+          req.session.decodedAccessToken = decodedAccessToken
+          req.session.tokenSet = updatedTokenSet;
+          req.session.allTenants = xero.tenants
+          req.session.activeTenant = xero.tenants[0]
+        } else {
+          req.session.decodedIdToken= undefined
+          req.session.decodedAccessToken = undefined
+          req.session.allTenants = undefined
+          req.session.activeTenant = undefined
+        }
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
@@ -705,8 +708,6 @@ class App {
     router.get("/currencies", async (req: Request, res: Response) => {
       try {
         //GET ALL
-        const token = await xero.accountingApi.accessToken
-        console.log('token: ',token)
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
