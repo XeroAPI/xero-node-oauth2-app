@@ -51,6 +51,8 @@ import {
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
+import { Asset } from "xero-node/dist/gen/model/assets/asset";
+import { AssetType, Assets } from "xero-node/dist/gen/model/assets/models";
 
 const session = require("express-session");
 const path = require("path");
@@ -1831,21 +1833,42 @@ class App {
 
     router.get("/assets", async (req: Request, res: Response) => {
       try {
+        // GET ASSETT SETTINGS
+        const getAssetSettings = await xero.assetApi.getAssetSettings(req.session.activeTenant.tenantId)
+        console.log('getAssetSettings: ',getAssetSettings)
+
+        // GET ASSETTYPES
+        const getAssetTypes = await xero.assetApi.getAssetTypes(req.session.activeTenant.tenantId)
+        console.log('getAssetTypes: ',getAssetTypes)
+        
         // GET ASSETS
-
-        const token = await xero.accountingApi
-        console.log('token: ',token)
-
-        const assetToken = await xero.assetApi
-        console.log('assettoken: ',assetToken)
-
-        const getAssets = await xero.assetApi.getAssets(req.session.activeTenant.tenantId, 'Registered')
-
+        const getAssets = await xero.assetApi.getAssets(req.session.activeTenant.tenantId, Asset.AssetStatusEnum.Registered) // Asset.AssetStatusEnum.Registered
         console.log('getAssets: ',getAssets)
+
+        // CREATE ASSET
+        const asset: Asset = {
+          assetName: 'new asset',
+          assetNumber: 'Asset: ' + Helper.getRandomNumber(1000000),
+          purchaseDate: "",
+          purchasePrice: 24568,
+          disposalPrice: 200.23,
+          assetStatus: Asset.AssetStatusEnum.Registered
+        }
+
+        const createAsset = await xero.assetApi.createAsset(req.session.activeTenant.tenantId, asset)
+        console.log('createAsset: ',createAsset)
+
+        // GET ASSET
+        const getAsset = await xero.assetApi.getAssetById(req.session.activeTenant.tenantId, createAsset.body.assetId)
+        console.log('getAsset: ',getAsset)
 
         res.render("assets", {
           authenticated: this.authenticationData(req, res),
-          count: getAssets.body
+          assetSettings: getAssetSettings.body,
+          assetTypes: getAssetTypes.body,
+          getAsset: getAsset.body.assetName,
+          createAsset: createAsset.body.assetNumber,
+          assets: getAssets.body.items
         });
       } catch (e) {
         res.status(res.statusCode);
