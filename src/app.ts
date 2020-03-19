@@ -52,7 +52,7 @@ import {
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
-import { AssetType, Assets } from "xero-node/dist/gen/model/assets/models";
+import { AssetStatus } from "xero-node/dist/gen/model/assets/models";
 
 const session = require("express-session");
 const path = require("path");
@@ -1835,32 +1835,22 @@ class App {
       try {
         // GET ASSETT SETTINGS
         const getAssetSettings = await xero.assetApi.getAssetSettings(req.session.activeTenant.tenantId)
-        console.log('getAssetSettings: ',getAssetSettings)
 
         // GET ASSETTYPES
         const getAssetTypes = await xero.assetApi.getAssetTypes(req.session.activeTenant.tenantId)
-        console.log('getAssetTypes: ',getAssetTypes)
-        
-        // GET ASSETS
-        const getAssets = await xero.assetApi.getAssets(req.session.activeTenant.tenantId, Asset.AssetStatusEnum.Registered) // Asset.AssetStatusEnum.Registered
-        console.log('getAssets: ',getAssets)
-
+      
         // CREATE ASSET
         const asset: Asset = {
-          assetName: 'new asset',
-          assetNumber: 'Asset: ' + Helper.getRandomNumber(1000000),
-          purchaseDate: "",
-          purchasePrice: 24568,
-          disposalPrice: 200.23,
-          assetStatus: Asset.AssetStatusEnum.Registered
+          assetName: `AssetName: ${Helper.getRandomNumber(1000000)}`,
+          assetNumber: `Asset: ${Helper.getRandomNumber(1000000)}`
         }
-
         const createAsset = await xero.assetApi.createAsset(req.session.activeTenant.tenantId, asset)
-        console.log('createAsset: ',createAsset)
 
         // GET ASSET
         const getAsset = await xero.assetApi.getAssetById(req.session.activeTenant.tenantId, createAsset.body.assetId)
-        console.log('getAsset: ',getAsset)
+
+        // GET ASSETS
+        const getAssets = await xero.assetApi.getAssets(req.session.activeTenant.tenantId, AssetStatus.REGISTERED)
 
         res.render("assets", {
           authenticated: this.authenticationData(req, res),
