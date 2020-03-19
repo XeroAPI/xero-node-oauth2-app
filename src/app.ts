@@ -1833,7 +1833,7 @@ class App {
 
     router.get("/assets", async (req: Request, res: Response) => {
       try {
-        // GET ASSETT SETTINGS
+        // GET ASSET SETTINGS
         const getAssetSettings = await xero.assetApi.getAssetSettings(req.session.activeTenant.tenantId)
 
         // GET ASSETTYPES
