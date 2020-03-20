@@ -7,7 +7,7 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <% if (authenticated.decodedIdToken && authenticated.decodedAccessToken) { %>
+          <% if (authenticated.decodedIdToken && authenticated.decodedAccessToken && authenticated.activeTenant) { %>
             <h4 id='authenticated'>You are authenticated with: <span><%= authenticated.activeTenant.orgData.name %></span></h4>
             <hr>
             <h4>Active Tenant:</h2>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+            <a href='https://developer.xero.com/documentation/assets-api/overview' target='_blank'>
+              <h4>https://developer.xero.com/documentation/assets-api/overview</h4>
+            </a>
+            <p><strong>Assets Settings:</strong> <%- JSON.stringify(assetSettings, null, 2).replace(/[{}]/g, '') %></p>
+            <p><strong>Create Asset:</strong> <%= createAsset %></p>
+            <p><strong>Get One Assets:</strong> <%= getAsset %></p>
+            <p><strong>Get All Assets:</strong> <%- JSON.stringify(assets, null, 2).replace(/[{}]/g, '') %></p>
+            <p><strong>AssetTypes:</strong></p>
+            <%- JSON.stringify(assetTypes, null, 2).replace(/[{}]/g, '') %>
+          </div>
+      </div>
+    </div>
+  </body>
+</html>
