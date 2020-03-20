@@ -1,15 +1,30 @@
 <!doctype html>
 <html>
-  <%- include('shared/head') -%>
-  <body>
-    <%- include('shared/nav') -%>
-    <div class='core-content'>
-      <%- include('shared/header') -%>
-      <div class='body-wrapper'>
-        <div class='body-content'>
-          <p>Manual Journals success: Count: <%= count %></p>
-        </div>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Manual Journals success: Count: <%= count %></p>
+        <p>Manual Journals success: Create: <%= create %></p>
+        <p>Manual Journals success: Create Attachments by File Name: </p>
+        <pre>
+            <code class='language-javascript'><%- JSON.stringify(mjAttachmentByFileName, null, 2) %></code>
+        </pre>
+        <p>Manual Journals success: Get One: <%= getMJ %></p>
+        <p>Manual Journals success: Get Attachments: </p>
+        <pre>
+            <code class='language-javascript'><%- JSON.stringify(getMJAttachments, null, 2) %></code>
+        </pre>
+        <p>Manual Journals success: Get Attachments by File Name: buffered</p>
+        <p>Manual Journals success: Get Attachments by ID: buffered</p>
+        <p>Manual Journals success: Update: <%= updateMJ %></p>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>

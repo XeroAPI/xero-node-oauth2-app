@@ -1103,7 +1103,6 @@ class App {
       try {
         //GET ALL
         const getManualJournalsResponse = await xero.accountingApi.getManualJournals(req.session.activeTenant.tenantId);
-
         // CREATE
         const manualJournals: ManualJournals = {
           manualJournals: [
@@ -1124,7 +1123,6 @@ class App {
             }
           ]
         };
-
         const createManualJournalResponse = await xero.accountingApi.createManualJournals(req.session.activeTenant.tenantId, manualJournals);
 
         // CREATE MANUAL JOARNAL ATTACHMENT BY FILENAME
@@ -1137,34 +1135,43 @@ class App {
         // import * as fs from "fs";
         const body = fs.createReadStream(pathToUpload); // {fs.ReadStream} read the file
         const contentType = mime.lookup(fileName);
-        const createManualJournalAttachmentByFileNameResponse: any = await xero.accountingApi.createManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, createManualJournalResponse.body.manualJournals[0].manualJournalID, fileName, body, {
+        const journalId = createManualJournalResponse.body.manualJournals[0].manualJournalID;
+        const createManualJournalAttachmentByFileNameResponse: any = await xero.accountingApi.createManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, journalId, fileName, body, {
           headers: {
             "Content-Type": contentType,
           }
         });
 
         // GET ONE
-        const getManualJournalResponse = await xero.accountingApi.getManualJournal(req.session.activeTenant.tenantId, createManualJournalResponse.body.manualJournals[0].manualJournalID);
-        console.log(1)
+        const getManualJournalResponse = await xero.accountingApi.getManualJournal(req.session.activeTenant.tenantId, journalId);
+
         // GET MANUAL JOURNAL ATTACHMENTS
-        const getManualJournalAttachmentsResponse = await xero.accountingApi.getManualJournalAttachments(req.session.activeTenant.tenantId, createManualJournalResponse.body.manualJournals[0].manualJournalID);
-        console.log(2)
+        const getManualJournalAttachmentsResponse = await xero.accountingApi.getManualJournalAttachments(req.session.activeTenant.tenantId, journalId);
+
         // GET MANUAL JOURNAL ATTACHMENT BY FILENAME
-        const getManualJournalAttachmentByFileNameResponse = await xero.accountingApi.getManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, createManualJournalResponse.body.manualJournals[0].manualJournalID, fileName, contentType);
-        console.log(3)
+        const getManualJournalAttachmentByFileNameResponse = await xero.accountingApi.getManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, journalId, fileName, contentType);
+
         // GET MANUAL JOURNAL ATTACHMENT BY ID
-        const getManualJournalAttachmentByIdResponse = await xero.accountingApi.getManualJournalAttachmentById(req.session.activeTenant.tenantId, createManualJournalResponse.body.manualJournals[0].manualJournalID, getManualJournalResponse.body.manualJournals[0].attachments[0].attachmentID, contentType);
-        console.log(4)
+        const getManualJournalAttachmentByIdResponse = await xero.accountingApi.getManualJournalAttachmentById(req.session.activeTenant.tenantId, journalId, getManualJournalResponse.body.manualJournals[0].attachments[0].attachmentID, contentType);
+
         manualJournals.manualJournals[0].journalLines[0].description = "edited";
 
-        const updateManualJournalResponse = await xero.accountingApi.updateManualJournal(req.session.activeTenant.tenantId, createManualJournalResponse.body.manualJournals[0].manualJournalID, manualJournals);
-        console.log(5)
-        const updateManualJournalAttachmentByFileNameResponse = await xero.accountingApi.updateManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, createManualJournalResponse.body.manualJournals[0].manualJournalID, fileName, body);
-        console.log(6)
-        // UPDATE
+        // UPDATE MANUAL JOURNAL
+        const updateManualJournalResponse = await xero.accountingApi.updateManualJournal(req.session.activeTenant.tenantId, journalId, manualJournals);
+
+        // UPDATE MANUAL JOURNAL ATTACHMENT BY FILENAME
+        // const updateManualJournalAttachmentByFileNameResponse = await xero.accountingApi.updateManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, journalId, fileName, body);
+
         res.render("manualjournals", {
           authenticated: this.authenticationData(req, res),
-          count: getManualJournalsResponse.body.manualJournals.length
+          count: getManualJournalsResponse.body.manualJournals.length,
+          create: createManualJournalResponse.body.manualJournals[0].manualJournalID,
+          mjAttachmentByFileName: JSON.parse(createManualJournalAttachmentByFileNameResponse.response['body']),
+          getMJ: getManualJournalResponse.body.manualJournals[0].narration,
+          getMJAttachments: JSON.parse(getManualJournalAttachmentsResponse.response['body']),
+          getMJAttachmentByFileName: getManualJournalAttachmentByFileNameResponse.response['body'],
+          getMJAttachmentById: getManualJournalAttachmentByIdResponse.response['body'],
+          updateMJ: updateManualJournalResponse.body.manualJournals[0].journalLines[0].description,
         });
       } catch (e) {
         res.status(res.statusCode);
