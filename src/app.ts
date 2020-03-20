@@ -553,18 +553,15 @@ class App {
 
         // GET ONE
         const getBrandingThemeResponse = await xero.accountingApi.getBrandingTheme(req.session.activeTenant, getBrandingThemesResponse.body.brandingThemes[0].brandingThemeID);
-        console.log(getBrandingThemeResponse.body);
 
         // CREATE BRANDING THEME PAYMENT SERVICE
         // first we'll need a payment service
         const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
         const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant, paymentServices);
         const createBrandingThemePaymentServicesResponse = await xero.accountingApi.createBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID, { paymentServiceID: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID });
-        console.log(createBrandingThemePaymentServicesResponse.body);
 
         // GET BRANDING THEME PAYMENT SERVICES
         const getBrandingThemePaymentServicesResponse = await xero.accountingApi.getBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID);
-        console.log(getBrandingThemePaymentServicesResponse.body);
 
         res.render("brandingthemes", {
           authenticated: this.authenticationData(req, res),
@@ -1004,7 +1001,6 @@ class App {
             "Content-Type": contentType,
           },
         });
-        console.log('fileAttached: ', fileAttached)
 
         res.render("attachment-invoice", {
           authenticated: this.authenticationData(req, res),
@@ -1449,7 +1445,6 @@ class App {
         updatedPurchaseOrder.deliveryInstructions = "Don't forget the secret knock";
         purchaseOrders.purchaseOrders = [updatedPurchaseOrder];
         const updatePurchaseOrderResponse = await xero.accountingApi.updatePurchaseOrder(req.session.activeTenant.tenantId, getPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID, purchaseOrders);
-        console.log(updatePurchaseOrderResponse.body.purchaseOrders[0]);
 
         res.render("purchaseorders", {
           authenticated: this.authenticationData(req, res),
