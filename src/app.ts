@@ -48,6 +48,8 @@ import {
   XeroIdToken,
   XeroAccessToken,
   XeroClient,
+  ManualJournals,
+  ManualJournal,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -1100,13 +1102,76 @@ class App {
     router.get("/manualjournals", async (req: Request, res: Response) => {
       try {
         //GET ALL
-        const apiResponse = await xero.accountingApi.getManualJournals(req.session.activeTenant.tenantId);
+        const getManualJournalsResponse = await xero.accountingApi.getManualJournals(req.session.activeTenant.tenantId);
         // CREATE
+        const manualJournals: ManualJournals = {
+          manualJournals: [
+            {
+              date: "2020-03-13",
+              status: ManualJournal.StatusEnum.DRAFT,
+              narration: "Accrued expenses - prepaid insurance adjustment for March 2020",
+              journalLines: [
+                {
+                  lineAmount: 55.00,
+                  accountCode: "433"
+                },
+                {
+                  lineAmount: -55.00,
+                  accountCode: "620"
+                }
+              ]
+            }
+          ]
+        };
+        const createManualJournalResponse = await xero.accountingApi.createManualJournals(req.session.activeTenant.tenantId, manualJournals);
+
+        // CREATE MANUAL JOARNAL ATTACHMENT BY FILENAME
+        const fileName = "xero-dev.png";  // {String} The name of the file being attached to a ManualJournal 
+        const path = require("path");
+        const mime = require("mime-types");
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png"); // determine the path to your file
+
+        // You'll need to add the import below to read your file
+        // import * as fs from "fs";
+        const body = fs.createReadStream(pathToUpload); // {fs.ReadStream} read the file
+        const contentType = mime.lookup(fileName);
+        const journalId = createManualJournalResponse.body.manualJournals[0].manualJournalID;
+        const createManualJournalAttachmentByFileNameResponse: any = await xero.accountingApi.createManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, journalId, fileName, body, {
+          headers: {
+            "Content-Type": contentType,
+          }
+        });
+
         // GET ONE
-        // UPDATE
+        const getManualJournalResponse = await xero.accountingApi.getManualJournal(req.session.activeTenant.tenantId, journalId);
+
+        // GET MANUAL JOURNAL ATTACHMENTS
+        const getManualJournalAttachmentsResponse = await xero.accountingApi.getManualJournalAttachments(req.session.activeTenant.tenantId, journalId);
+
+        // GET MANUAL JOURNAL ATTACHMENT BY FILENAME
+        const getManualJournalAttachmentByFileNameResponse = await xero.accountingApi.getManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, journalId, fileName, contentType);
+
+        // GET MANUAL JOURNAL ATTACHMENT BY ID
+        const getManualJournalAttachmentByIdResponse = await xero.accountingApi.getManualJournalAttachmentById(req.session.activeTenant.tenantId, journalId, getManualJournalResponse.body.manualJournals[0].attachments[0].attachmentID, contentType);
+
+        manualJournals.manualJournals[0].journalLines[0].description = "edited";
+
+        // UPDATE MANUAL JOURNAL
+        const updateManualJournalResponse = await xero.accountingApi.updateManualJournal(req.session.activeTenant.tenantId, journalId, manualJournals);
+
+        // UPDATE MANUAL JOURNAL ATTACHMENT BY FILENAME
+        // const updateManualJournalAttachmentByFileNameResponse = await xero.accountingApi.updateManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, journalId, fileName, body);
+
         res.render("manualjournals", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.manualJournals.length
+          count: getManualJournalsResponse.body.manualJournals.length,
+          create: createManualJournalResponse.body.manualJournals[0].manualJournalID,
+          mjAttachmentByFileName: JSON.parse(createManualJournalAttachmentByFileNameResponse.response['body']),
+          getMJ: getManualJournalResponse.body.manualJournals[0].narration,
+          getMJAttachments: JSON.parse(getManualJournalAttachmentsResponse.response['body']),
+          getMJAttachmentByFileName: getManualJournalAttachmentByFileNameResponse.response['body'],
+          getMJAttachmentById: getManualJournalAttachmentByIdResponse.response['body'],
+          updateMJ: updateManualJournalResponse.body.manualJournals[0].journalLines[0].description,
         });
       } catch (e) {
         res.status(res.statusCode);
