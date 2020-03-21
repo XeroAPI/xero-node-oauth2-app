@@ -50,6 +50,8 @@ import {
   XeroClient,
   ManualJournals,
   ManualJournal,
+  Currencies,
+  Currency,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -220,7 +222,7 @@ class App {
         const updatedTokenSet: TokenSet = await xero.disconnect(req.session.activeTenant.id)
         await xero.updateTenants()
 
-        if (xero.tenants.length > 0){
+        if (xero.tenants.length > 0) {
           const decodedIdToken: XeroIdToken = jwtDecode(updatedTokenSet.id_token);
           const decodedAccessToken: XeroAccessToken = jwtDecode(updatedTokenSet.access_token)
           req.session.decodedIdToken = decodedIdToken
@@ -229,7 +231,7 @@ class App {
           req.session.allTenants = xero.tenants
           req.session.activeTenant = xero.tenants[0]
         } else {
-          req.session.decodedIdToken= undefined
+          req.session.decodedIdToken = undefined
           req.session.decodedAccessToken = undefined
           req.session.allTenants = undefined
           req.session.activeTenant = undefined
@@ -710,12 +712,16 @@ class App {
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant.tenantId);
-        // CREATE
-        // GET ONE
-        // UPDATE
+        // CREATE - only works once per currency code
+        const newCurrency: Currency = {
+          code: CurrencyCode.GBP,
+        };
+        const createCurrencyResponse = await xero.accountingApi.createCurrency(req.session.activeTenant.tenantId, newCurrency);
+
         res.render("currencies", {
           authenticated: this.authenticationData(req, res),
-          currencies: apiResponse.body.currencies
+          currencies: apiResponse.body.currencies,
+          newCurrency: createCurrencyResponse.body.currencies[0].description
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1898,7 +1904,7 @@ class App {
 
         // GET ASSETTYPES
         const getAssetTypes = await xero.assetApi.getAssetTypes(req.session.activeTenant.tenantId)
-      
+
         // CREATE ASSET
         const asset: Asset = {
           assetName: `AssetName: ${Helper.getRandomNumber(1000000)}`,
