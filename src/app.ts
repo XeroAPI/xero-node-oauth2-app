@@ -50,6 +50,7 @@ import {
   XeroClient,
   ManualJournals,
   ManualJournal,
+  LinkedTransaction,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -220,7 +221,7 @@ class App {
         const updatedTokenSet: TokenSet = await xero.disconnect(req.session.activeTenant.id)
         await xero.updateTenants()
 
-        if (xero.tenants.length > 0){
+        if (xero.tenants.length > 0) {
           const decodedIdToken: XeroIdToken = jwtDecode(updatedTokenSet.id_token);
           const decodedAccessToken: XeroAccessToken = jwtDecode(updatedTokenSet.access_token)
           req.session.decodedIdToken = decodedIdToken
@@ -229,7 +230,7 @@ class App {
           req.session.allTenants = xero.tenants
           req.session.activeTenant = xero.tenants[0]
         } else {
-          req.session.decodedIdToken= undefined
+          req.session.decodedIdToken = undefined
           req.session.decodedAccessToken = undefined
           req.session.allTenants = undefined
           req.session.activeTenant = undefined
@@ -1102,6 +1103,81 @@ class App {
       }
     });
 
+    router.get("/linked-transactions", async (req: Request, res: Response) => {
+      try {
+        //GET ALL
+        const getLinkedTransactionsResponse = await xero.accountingApi.getLinkedTransactions(req.session.activeTenant.tenantId);
+
+        // CREATE
+        // we need a source invoice, a target invoice, and a contact for each
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
+
+        const invoices: Invoices = {
+          invoices: [
+            {
+              type: Invoice.TypeEnum.ACCPAY,
+              contact: {
+                contactID: getContactsResponse.body.contacts[0].contactID
+              },
+              lineItems: [
+                {
+                  description: "source invoice line item description",
+                  quantity: 10,
+                  unitAmount: 3.50,
+                }
+              ],
+              status: Invoice.StatusEnum.AUTHORISED
+            },
+            {
+              type: Invoice.TypeEnum.ACCREC,
+              contact: {
+                contactID: getContactsResponse.body.contacts[1].contactID
+              },
+              lineItems: [
+                {
+                  description: "target invoice line item description",
+                  quantity: 15,
+                  unitAmount: 5.30,
+                }
+              ],
+              status: Invoice.StatusEnum.AUTHORISED
+            }
+          ]
+        };
+
+        const createInvoicesResponse = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, invoices);
+
+        const linkedTransaction: LinkedTransaction = {
+          sourceTransactionID: createInvoicesResponse.body.invoices[0].invoiceID,
+          sourceLineItemID: createInvoicesResponse.body.invoices[0].lineItems[0].lineItemID,
+          contactID: createInvoicesResponse.body.invoices[1].contact.contactID,
+          targetTransactionID: createInvoicesResponse.body.invoices[1].invoiceID,
+          targetLineItemID: createInvoicesResponse.body.invoices[1].lineItems[0].lineItemID
+        };
+
+        const createLinkedTransactionsResponse = await xero.accountingApi.createLinkedTransaction(req.session.activeTenant.tenantId, linkedTransaction);
+        console.log(createLinkedTransactionsResponse.body.linkedTransactions);
+
+        // GET ONE
+        // const getLinkedTransactionsResponse = await xero.accountingApi.getLinkedTransaction(req.session.activeTenant.tenantId);
+        // UPDATE
+        // const getLinkedTransactionsResponse = await xero.accountingApi.updateLinkedTransaction(req.session.activeTenant.tenantId);
+        // DELETE
+        // const getLinkedTransactionsResponse = await xero.accountingApi.deleteLinkedTransaction(req.session.activeTenant.tenantId);
+
+        res.render("linked-transactions", {
+          authenticated: this.authenticationData(req, res),
+          count: getLinkedTransactionsResponse.body.linkedTransactions.length
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
     router.get("/manualjournals", async (req: Request, res: Response) => {
       try {
         //GET ALL
@@ -1898,7 +1974,7 @@ class App {
 
         // GET ASSETTYPES
         const getAssetTypes = await xero.assetApi.getAssetTypes(req.session.activeTenant.tenantId)
-      
+
         // CREATE ASSET
         const asset: Asset = {
           assetName: `AssetName: ${Helper.getRandomNumber(1000000)}`,
