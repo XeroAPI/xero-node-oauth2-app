@@ -50,6 +50,7 @@ import {
   XeroClient,
   ManualJournals,
   ManualJournal,
+  Employees,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -220,7 +221,7 @@ class App {
         const updatedTokenSet: TokenSet = await xero.disconnect(req.session.activeTenant.id)
         await xero.updateTenants()
 
-        if (xero.tenants.length > 0){
+        if (xero.tenants.length > 0) {
           const decodedIdToken: XeroIdToken = jwtDecode(updatedTokenSet.id_token);
           const decodedAccessToken: XeroAccessToken = jwtDecode(updatedTokenSet.access_token)
           req.session.decodedIdToken = decodedIdToken
@@ -229,7 +230,7 @@ class App {
           req.session.allTenants = xero.tenants
           req.session.activeTenant = xero.tenants[0]
         } else {
-          req.session.decodedIdToken= undefined
+          req.session.decodedIdToken = undefined
           req.session.decodedAccessToken = undefined
           req.session.allTenants = undefined
           req.session.activeTenant = undefined
@@ -729,33 +730,42 @@ class App {
     router.get("/employees", async (req: Request, res: Response) => {
       try {
         //GET ALL
-        const apiResponse = await xero.accountingApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeesResponse = await xero.accountingApi.getEmployees(req.session.activeTenant.tenantId);
+        console.log(getEmployeesResponse.body.employees);
+
         // CREATE
+        const employees: Employees = {
+          employees: [
+            {
+              firstName: "First" + Helper.getRandomNumber(1000),
+              lastName: "Last" + Helper.getRandomNumber(1000)
+            }
+          ]
+        }
+        const createEmployeesResponse = await xero.accountingApi.createEmployees(req.session.activeTenant.tenantId, employees);
+        console.log(createEmployeesResponse.body.employees);
+
         // GET ONE
+        const getEmployeeResponse = await xero.accountingApi.getEmployee(req.session.activeTenant.tenantId, createEmployeesResponse.body.employees[0].employeeID);
+        console.log(getEmployeeResponse.body.employees);
+
         // UPDATE
+        // const updatedEmployees: Employees = {
+        //   employees: [
+        //     {
+        //       firstName: getEmployeeResponse.body.employees[0].firstName,
+        //       lastName: getEmployeeResponse.body.employees[0].lastName,
+        //       externalLink: {
+        //         url: "http://twitter.com/#!/search/First+Last"
+        //       }
+        //     }
+        //   ]
+        // }
+        // const updateEmployeeResponse = await xero.accountingApi.updateEmployee(req.session.activeTenant.tenantId, getEmployeeResponse.body.employees[0].employeeID, updatedEmployees);
+        // console.log(updateEmployeeResponse.body.employees);
         res.render("employees", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.employees.length
-        });
-      } catch (e) {
-        res.status(res.statusCode);
-        res.render("shared/error", {
-          consentUrl: await xero.buildConsentUrl(),
-          error: e
-        });
-      }
-    });
-
-    router.get("/expenseclaims", async (req: Request, res: Response) => {
-      try {
-        //GET ALL
-        const apiResponse = await xero.accountingApi.getExpenseClaims(req.session.activeTenant.tenantId);
-        // CREATE
-        // GET ONE
-        // UPDATE
-        res.render("expenseclaims", {
-          authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.expenseClaims.length
+          count: getEmployeesResponse.body.employees.length
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -770,12 +780,11 @@ class App {
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getInvoiceReminders(req.session.activeTenant.tenantId);
-        // CREATE
-        // GET ONE
-        // UPDATE
+        console.log(apiResponse.body.invoiceReminders);
         res.render("invoicereminders", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.invoiceReminders.length
+          count: apiResponse.body.invoiceReminders.length,
+          enabled: apiResponse.body.invoiceReminders[0].enabled
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1086,9 +1095,7 @@ class App {
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getJournals(req.session.activeTenant.tenantId);
-        // CREATE
-        // GET ONE
-        // UPDATE
+
         res.render("journals", {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.journals.length
@@ -1898,7 +1905,7 @@ class App {
 
         // GET ASSETTYPES
         const getAssetTypes = await xero.assetApi.getAssetTypes(req.session.activeTenant.tenantId)
-      
+
         // CREATE ASSET
         const asset: Asset = {
           assetName: `AssetName: ${Helper.getRandomNumber(1000000)}`,
