@@ -731,41 +731,40 @@ class App {
       try {
         //GET ALL
         const getEmployeesResponse = await xero.accountingApi.getEmployees(req.session.activeTenant.tenantId);
-        console.log(getEmployeesResponse.body.employees);
 
         // CREATE
+        const firstName = "First" + Helper.getRandomNumber(1000)
+        const lastName = "Last" + Helper.getRandomNumber(1000)
         const employees: Employees = {
           employees: [
             {
-              firstName: "First" + Helper.getRandomNumber(1000),
-              lastName: "Last" + Helper.getRandomNumber(1000)
+              firstName: firstName,
+              lastName: firstName
             }
           ]
         }
         const createEmployeesResponse = await xero.accountingApi.createEmployees(req.session.activeTenant.tenantId, employees);
-        console.log(createEmployeesResponse.body.employees);
 
         // GET ONE
         const getEmployeeResponse = await xero.accountingApi.getEmployee(req.session.activeTenant.tenantId, createEmployeesResponse.body.employees[0].employeeID);
-        console.log(getEmployeeResponse.body.employees);
 
         // UPDATE
-        // const updatedEmployees: Employees = {
-        //   employees: [
-        //     {
-        //       firstName: getEmployeeResponse.body.employees[0].firstName,
-        //       lastName: getEmployeeResponse.body.employees[0].lastName,
-        //       externalLink: {
-        //         url: "http://twitter.com/#!/search/First+Last"
-        //       }
-        //     }
-        //   ]
-        // }
-        // const updateEmployeeResponse = await xero.accountingApi.updateEmployee(req.session.activeTenant.tenantId, getEmployeeResponse.body.employees[0].employeeID, updatedEmployees);
-        // console.log(updateEmployeeResponse.body.employees);
+        const updatedEmployees: Employees = {
+          employees: [{
+            firstName: firstName,
+            lastName: firstName,
+            externalLink: {
+              url: "http://twitter.com/#!/search/First+Last"
+            }
+          }]
+        }
+        const updateEmployeeResponse = await xero.accountingApi.updateOrCreateEmployees(req.session.activeTenant.tenantId, updatedEmployees);
         res.render("employees", {
           authenticated: this.authenticationData(req, res),
-          count: getEmployeesResponse.body.employees.length
+          count: getEmployeesResponse.body.employees.length,
+          createdEmployeeId: createEmployeesResponse.body.employees[0].employeeID,
+          getEmployeeName: getEmployeeResponse.body.employees[0].firstName,
+          updatedEmployeeId: updateEmployeeResponse.body.employees[0].employeeID
         });
       } catch (e) {
         res.status(res.statusCode);
