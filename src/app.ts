@@ -51,6 +51,7 @@ import {
   ManualJournals,
   ManualJournal,
   Employees,
+  Currency,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -711,12 +712,16 @@ class App {
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant.tenantId);
-        // CREATE
-        // GET ONE
-        // UPDATE
+        // CREATE - only works once per currency code
+        const newCurrency: Currency = {
+          code: CurrencyCode.GBP,
+        };
+        const createCurrencyResponse = await xero.accountingApi.createCurrency(req.session.activeTenant.tenantId, newCurrency);
+
         res.render("currencies", {
           authenticated: this.authenticationData(req, res),
-          currencies: apiResponse.body.currencies
+          currencies: apiResponse.body.currencies,
+          newCurrency: createCurrencyResponse.body.currencies[0].description
         });
       } catch (e) {
         res.status(res.statusCode);
