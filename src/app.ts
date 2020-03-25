@@ -57,6 +57,7 @@ import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus } from "xero-node/dist/gen/model/assets/models";
+import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus } from 'xero-node/dist/gen/model/projects/models';
 
 const session = require("express-session");
 const path = require("path");
@@ -65,7 +66,7 @@ const mime = require("mime-types");
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
-const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions assets assets.read offline_access";
+const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions assets assets.read projects projects.read offline_access";
 
 const xero = new XeroClient({
   clientId: client_id,
@@ -1930,6 +1931,125 @@ class App {
           getAsset: getAsset.body.assetName,
           createAsset: createAsset.body.assetNumber,
           assets: getAssets.body.items
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/projects", async (req: Request, res: Response) => {
+      try {
+        //GET ALL
+        const getAllResponse = await xero.projectApi.getProjects(req.session.activeTenant.tenantId);
+
+        // CREATE
+        // we'll need a contact first
+        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
+
+        const newProject: ProjectCreateOrUpdate = {
+          contactId: contactsResponse.body.contacts[0].contactID,
+          name: 'New Project ' + Helper.getRandomNumber(1000),
+          deadlineUtc: new Date(),
+          estimateAmount: 3.50
+        };
+
+        const createResponse = await xero.projectApi.createProject(req.session.activeTenant.tenantId, newProject);
+        console.log(createResponse.body);
+
+        // GET ONE
+        const getResponse = await xero.projectApi.getProject(req.session.activeTenant.tenantId, createResponse.body.projectId);
+
+        // UPDATE
+        const updateProject: ProjectCreateOrUpdate = {
+          name: createResponse.body.name,
+          deadlineUtc: createResponse.body.deadlineUtc,
+          estimateAmount: 350.00
+        };
+
+        const updateResponse = await xero.projectApi.updateProject(req.session.activeTenant.tenantId, createResponse.body.projectId, updateProject);
+        console.log(updateResponse.body || updateResponse.response.statusCode);
+
+        // PATCH
+        const patch: ProjectPatch = {
+          status: ProjectStatus.CLOSED
+        };
+
+        const patchResponse = await xero.projectApi.patchProject(req.session.activeTenant.tenantId, createResponse.body.projectId, patch);
+        console.log(patchResponse.body || patchResponse.response.statusCode);
+
+        res.render("projects", {
+          authenticated: this.authenticationData(req, res),
+          count: getAllResponse.body.pagination.itemCount,
+          create: createResponse.body.projectId,
+          get: getResponse.body.name,
+          update: updateResponse.response.statusCode,
+          patch: patchResponse.response.statusCode
+
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/project-users", async (req: Request, res: Response) => {
+      try {
+        // GET PROJECT USERS
+        const getProjectUsersResponse = await xero.projectApi.getProjectUsers(req.session.activeTenant.tenantId);
+        console.log(getProjectUsersResponse.body);
+
+        res.render("project-users", {
+          authenticated: this.authenticationData(req, res),
+          users: getProjectUsersResponse.body.items,
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/tasks", async (req: Request, res: Response) => {
+      try {
+        //GET ALL
+        const projectId = "";
+        const apiResponse = await xero.projectApi.getTasks(req.session.activeTenant.tenantId, projectId);
+        // CREATE
+        // GET ONE
+        // UPDATE
+        res.render("tasks", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.pagination.itemCount,
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/time", async (req: Request, res: Response) => {
+      try {
+        //GET ALL
+        const projectId = "";
+        const apiResponse = await xero.projectApi.getTimeEntries(req.session.activeTenant.tenantId, projectId);
+        // CREATE
+        // GET ONE
+        // UPDATE
+        res.render("time", {
+          authenticated: this.authenticationData(req, res),
+          count: apiResponse.body.pagination.itemCount,
         });
       } catch (e) {
         res.status(res.statusCode);
