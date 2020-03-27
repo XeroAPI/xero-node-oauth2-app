@@ -21,7 +21,9 @@ import {
   ContactGroups,
   ContactPerson,
   Contacts,
+  Currency,
   CurrencyCode,
+  Employees,
   HistoryRecords,
   Invoice,
   Invoices,
@@ -29,6 +31,10 @@ import {
   Items,
   LineAmountTypes,
   LineItem,
+  LinkedTransaction,
+  LinkedTransactions,
+  ManualJournal,
+  ManualJournals,
   Payment,
   Payments,
   PaymentServices,
@@ -45,13 +51,9 @@ import {
   TrackingCategories,
   TrackingCategory,
   TrackingOption,
-  XeroIdToken,
   XeroAccessToken,
   XeroClient,
-  ManualJournals,
-  ManualJournal,
-  Employees,
-  Currency,
+  XeroIdToken,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -1104,6 +1106,101 @@ class App {
         res.render("journals", {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.journals.length
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/linked-transactions", async (req: Request, res: Response) => {
+      try {
+        //GET ALL
+        const getLinkedTransactionsResponse = await xero.accountingApi.getLinkedTransactions(req.session.activeTenant.tenantId);
+
+        // CREATE
+        // we need a source invoice, a target invoice, accounts, and contacts
+        const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + AccountType.EXPENSE + '"';
+        const getAccountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId, null, where);
+        const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
+
+        const invoices: Invoices = {
+          invoices: [
+            {
+              type: Invoice.TypeEnum.ACCPAY,
+              contact: {
+                contactID: getContactsResponse.body.contacts[0].contactID
+              },
+              lineItems: [
+                {
+                  description: "source invoice line item description",
+                  quantity: 10,
+                  unitAmount: 3.50,
+                  taxType: "NONE",
+                  accountCode: getAccountsResponse.body.accounts[0].code
+                }
+              ],
+              dueDate: "2025-03-27",
+              status: Invoice.StatusEnum.AUTHORISED
+            },
+            {
+              type: Invoice.TypeEnum.ACCREC,
+              contact: {
+                contactID: getContactsResponse.body.contacts[1].contactID
+              },
+              lineItems: [
+                {
+                  description: "target invoice line item description",
+                  quantity: 15,
+                  unitAmount: 5.30,
+                  taxType: "NONE",
+                  accountCode: getAccountsResponse.body.accounts[0].code
+                }
+              ],
+              dueDate: "2025-03-27",
+              status: Invoice.StatusEnum.AUTHORISED
+            }
+          ]
+        };
+
+        const createInvoicesResponse = await xero.accountingApi.createInvoices(req.session.activeTenant.tenantId, invoices);
+
+        const newLinkedTransaction: LinkedTransaction = {
+          sourceTransactionID: createInvoicesResponse.body.invoices[0].invoiceID,
+          sourceLineItemID: createInvoicesResponse.body.invoices[0].lineItems[0].lineItemID
+        };
+
+        const createLinkedTransactionResponse = await xero.accountingApi.createLinkedTransaction(req.session.activeTenant.tenantId, newLinkedTransaction);
+
+        // GET ONE
+        const getLinkedTransactionResponse = await xero.accountingApi.getLinkedTransaction(req.session.activeTenant.tenantId, createLinkedTransactionResponse.body.linkedTransactions[0].linkedTransactionID);
+
+        // UPDATE
+        const updateLinkedTransactions: LinkedTransactions = {
+          linkedTransactions: [
+            {
+              linkedTransactionID: createLinkedTransactionResponse.body.linkedTransactions[0].linkedTransactionID,
+              contactID: createInvoicesResponse.body.invoices[1].contact.contactID,
+              targetTransactionID: createInvoicesResponse.body.invoices[1].invoiceID,
+              targetLineItemID: createInvoicesResponse.body.invoices[1].lineItems[0].lineItemID
+            }
+          ]
+        };
+        const updateLinkedTransactionResponse = await xero.accountingApi.updateLinkedTransaction(req.session.activeTenant.tenantId, createLinkedTransactionResponse.body.linkedTransactions[0].linkedTransactionID, updateLinkedTransactions);
+
+        // DELETE
+        const deleteLinkedTransactionResponse = await xero.accountingApi.deleteLinkedTransaction(req.session.activeTenant.tenantId, createLinkedTransactionResponse.body.linkedTransactions[0].linkedTransactionID);
+
+        res.render("linked-transactions", {
+          authenticated: this.authenticationData(req, res),
+          count: getLinkedTransactionsResponse.body.linkedTransactions.length,
+          create: createLinkedTransactionResponse.body.linkedTransactions[0].linkedTransactionID,
+          get: getLinkedTransactionResponse.body.linkedTransactions[0],
+          update: updateLinkedTransactionResponse.body.linkedTransactions[0],
+          deleted: deleteLinkedTransactionResponse.response.statusCode
         });
       } catch (e) {
         res.status(res.statusCode);

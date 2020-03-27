@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Linked Transactions success: Count: <%= count %></p>
+        <p>Linked Transactions success: Create: <%= create %></p>
+        <p><strong>Linked Transactions success: Get:</strong></p>
+        <pre>
+            <code class='language-javascript'><%- JSON.stringify(get, null, 2) %></code>
+        </pre>
+        <p><strong>Linked Transactions success: Update:</strong></p>
+        <pre>
+            <code class='language-javascript'><%- JSON.stringify(update, null, 2) %></code>
+        </pre>
+        <p>Linked Transactions success: Delete: <%= deleted %></p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
