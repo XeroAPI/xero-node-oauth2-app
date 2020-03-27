@@ -13,7 +13,7 @@
 
           <% if ((typeof(createdInvoice) !== 'undefined' && createdInvoice && typeof(createdInvoice) !== 'undefined')) { %>
             <p>Created Invoice Number: $<%= createdInvoice.reference %></p>
-            <p>Created Invoice Total: $<%= createdInvoice.total %></p>
+            <p>Created Invoice: <%- JSON.stringify(createdInvoice, null, 2).replace(/[{}]/g, '') %></p>
             <p>Updated Invoice: $<%= updatedInvoice.reference %></p>
             <p>Get Invoice: <%= invoiceId %></p>
             <p>Total Invoices: <%= count %></p>
