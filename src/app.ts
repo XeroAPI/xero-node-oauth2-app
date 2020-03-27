@@ -1109,7 +1109,9 @@ class App {
         const getLinkedTransactionsResponse = await xero.accountingApi.getLinkedTransactions(req.session.activeTenant.tenantId);
 
         // CREATE
-        // we need a source invoice, a target invoice, and a contact for each
+        // we need a source invoice, a target invoice, accounts, and contacts
+        const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + AccountType.EXPENSE + '"';
+        const getAccountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId, null, where);
         const getContactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
 
         const invoices: Invoices = {
@@ -1124,8 +1126,11 @@ class App {
                   description: "source invoice line item description",
                   quantity: 10,
                   unitAmount: 3.50,
+                  taxType: "NONE",
+                  accountCode: getAccountsResponse.body.accounts[0].code
                 }
               ],
+              dueDate: "2025-03-27",
               status: Invoice.StatusEnum.AUTHORISED
             },
             {
@@ -1138,8 +1143,11 @@ class App {
                   description: "target invoice line item description",
                   quantity: 15,
                   unitAmount: 5.30,
+                  taxType: "NONE",
+                  accountCode: getAccountsResponse.body.accounts[0].code
                 }
               ],
+              dueDate: "2025-03-27",
               status: Invoice.StatusEnum.AUTHORISED
             }
           ]
