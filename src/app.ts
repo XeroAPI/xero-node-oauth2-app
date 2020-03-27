@@ -1964,7 +1964,7 @@ class App {
             setTimeout(resolve, ms);
           });
         };
-
+        // Projects API DB transaction intermittently needs a few seconds to persist record in the database
         await sleep(3000);
 
         // GET ONE
