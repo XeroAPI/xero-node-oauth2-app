@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <a href='https://developer.xero.com/documentation/projects/overview-projects' target='_blank'>
+          <h4>https://developer.xero.com/documentation/projects/overview-projects</h4>
+        </a>
+        <p><strong>Time Entries:</strong> <%= count %></p>
+        <p><strong>Time Entry Create:</strong> <%= create %></p>
+        <p><strong>Time Entry Get:</strong> <%= get %></p>
+        <p><strong>Time Entry Update:</strong> <%= update %></p>
+        <p><strong>Time Entry Delete:</strong> <%= deleted %></p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

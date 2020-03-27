@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <a href='https://developer.xero.com/documentation/projects/overview-projects' target='_blank'>
+          <h4>https://developer.xero.com/documentation/projects/overview-projects</h4>
+        </a>
+        <p><strong>Get Project Users:</strong></p>
+        <pre>
+            <code class='language-javascript'><%- JSON.stringify(users, null, 2) %></code>
+        </pre>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
