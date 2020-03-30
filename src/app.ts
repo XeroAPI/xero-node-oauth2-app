@@ -2043,6 +2043,9 @@ class App {
         //GET ALL
         const getAllResponse = await xero.projectApi.getProjects(req.session.activeTenant.tenantId);
 
+        //GET MULTIPLE SPECIFIED
+        const getMultipleSpecifiedResponse = await xero.projectApi.getProjects(req.session.activeTenant.tenantId, [getAllResponse.body.items[0].projectId, getAllResponse.body.items[1].projectId]);
+
         // CREATE
         // we'll need a contact first
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
