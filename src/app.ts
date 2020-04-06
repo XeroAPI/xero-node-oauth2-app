@@ -54,6 +54,8 @@ import {
   XeroAccessToken,
   XeroClient,
   XeroIdToken,
+  CreditNotes,
+  CreditNote,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
@@ -694,13 +696,50 @@ class App {
     router.get("/creditnotes", async (req: Request, res: Response) => {
       try {
         //GET ALL
-        const apiResponse = await xero.accountingApi.getCreditNotes(req.session.activeTenant.tenantId);
+        const getCreditNotesResponse = await xero.accountingApi.getCreditNotes(req.session.activeTenant.tenantId);
+
+        const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
+
+        const newCreditNotes: CreditNotes = {
+          creditNotes: [
+            {
+              type: CreditNote.TypeEnum.ACCPAYCREDIT,
+              status: CreditNote.StatusEnum.AUTHORISED,
+              contact: {
+                contactID: contactsGetResponse.body.contacts[0].contactID
+              },
+              date: "2020-04-06",
+              lineAmountTypes: LineAmountTypes.Exclusive,
+              lineItems: [
+                {
+                  description: "MacBook - White",
+                  quantity: 1.0000,
+                  unitAmount: 1995.00,
+                  accountCode: "720"
+                }
+              ]
+            }
+          ]
+        };
+        const createCreditNotesResponse = await xero.accountingApi.createCreditNotes(req.session.activeTenant.tenantId, newCreditNotes);
+        console.log(createCreditNotesResponse.body);
+        // const apiResponse = await xero.accountingApi.createCreditNoteHistory(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.createCreditNoteAllocation(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.createCreditNoteAttachmentByFileName(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.updateCreditNote(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.updateCreditNoteAttachmentByFileName(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.getCreditNote(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.getCreditNoteHistory(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.getCreditNoteAttachments(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.getCreditNoteAttachmentById(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.getCreditNoteAttachmentByFileName(req.session.activeTenant.tenantId);
+        // const apiResponse = await xero.accountingApi.getCreditNoteAsPdf(req.session.activeTenant.tenantId);
         // CREATE
         // GET ONE
         // UPDATE
         res.render("creditnotes", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.creditNotes.length
+          count: getCreditNotesResponse.body.creditNotes.length
         });
       } catch (e) {
         res.status(res.statusCode);
