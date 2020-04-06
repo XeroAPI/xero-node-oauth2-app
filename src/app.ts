@@ -1636,6 +1636,28 @@ class App {
       }
     });
 
+    router.get("/purchase-order-as-pdf", async (req: Request, res: Response) => {
+      try {
+        // GET ALL
+        const getPurchaseOrdersResponse = await xero.accountingApi.getPurchaseOrders(req.session.activeTenant.tenantId);
+        // GET one as PDF
+        const getAsPdf = await xero.accountingApi.getPurchaseOrderAsPdf(
+          req.session.activeTenant.tenantId,
+          getPurchaseOrdersResponse.body.purchaseOrders[0].purchaseOrderID,
+          { headers: { accept: 'application/pdf' } }
+        )
+        res.setHeader('Content-Disposition', 'attachment; filename=purchase-order-as-pdf.pdf');
+        res.contentType("application/pdf");
+        res.send(getAsPdf.body);
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
     router.get("/receipts", async (req: Request, res: Response) => {
       try {
         //GET ALL
