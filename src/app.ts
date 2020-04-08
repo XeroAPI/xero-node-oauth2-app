@@ -1638,6 +1638,28 @@ class App {
       }
     });
 
+    router.get("/purchase-order-as-pdf", async (req: Request, res: Response) => {
+      try {
+        // GET ALL
+        const getPurchaseOrdersResponse = await xero.accountingApi.getPurchaseOrders(req.session.activeTenant.tenantId);
+        // GET one as PDF
+        const getAsPdf = await xero.accountingApi.getPurchaseOrderAsPdf(
+          req.session.activeTenant.tenantId,
+          getPurchaseOrdersResponse.body.purchaseOrders[0].purchaseOrderID,
+          { headers: { accept: 'application/pdf' } }
+        )
+        res.setHeader('Content-Disposition', 'attachment; filename=purchase-order-as-pdf.pdf');
+        res.contentType("application/pdf");
+        res.send(getAsPdf.body);
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
     router.get("/receipts", async (req: Request, res: Response) => {
       try {
         //GET ALL
@@ -2017,11 +2039,9 @@ class App {
           assetStatus: AssetStatus.Draft
         }
         const createAsset = await xero.assetApi.createAsset(req.session.activeTenant.tenantId, asset)
-        console.log('createAsset: ',createAsset)
 
         // GET ASSET
         const getAsset = await xero.assetApi.getAssetById(req.session.activeTenant.tenantId, createAsset.body.assetId)
-        console.log('getAsset: ',getAsset)
 
         // GET ASSETS
         const getAssets = await xero.assetApi.getAssets(req.session.activeTenant.tenantId, AssetStatusQueryParam.DRAFT)
