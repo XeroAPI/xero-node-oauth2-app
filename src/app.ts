@@ -58,7 +58,7 @@ import {
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
-import { AssetStatus } from "xero-node/dist/gen/model/assets/models";
+import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
 
 const session = require("express-session");
@@ -105,6 +105,7 @@ class App {
   authenticationData(req, _res) {
     return {
       decodedIdToken: req.session.decodedIdToken,
+      tokenSet: req.session.tokenSet,
       decodedAccessToken: req.session.decodedAccessToken,
       allTenants: req.session.allTenants,
       activeTenant: req.session.activeTenant
@@ -142,6 +143,7 @@ class App {
         const decodedIdToken: XeroIdToken = jwtDecode(tokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
 
+        req.session.tokenSet = tokenSet
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
         req.session.tokenSet = tokenSet;
@@ -2011,15 +2013,18 @@ class App {
         // CREATE ASSET
         const asset: Asset = {
           assetName: `AssetName: ${Helper.getRandomNumber(1000000)}`,
-          assetNumber: `Asset: ${Helper.getRandomNumber(1000000)}`
+          assetNumber: `Asset: ${Helper.getRandomNumber(1000000)}`,
+          assetStatus: AssetStatus.Draft
         }
         const createAsset = await xero.assetApi.createAsset(req.session.activeTenant.tenantId, asset)
+        console.log('createAsset: ',createAsset)
 
         // GET ASSET
         const getAsset = await xero.assetApi.getAssetById(req.session.activeTenant.tenantId, createAsset.body.assetId)
+        console.log('getAsset: ',getAsset)
 
         // GET ASSETS
-        const getAssets = await xero.assetApi.getAssets(req.session.activeTenant.tenantId, AssetStatus.REGISTERED)
+        const getAssets = await xero.assetApi.getAssets(req.session.activeTenant.tenantId, AssetStatusQueryParam.DRAFT)
 
         res.render("assets", {
           authenticated: this.authenticationData(req, res),
@@ -2045,6 +2050,7 @@ class App {
 
         //GET MULTIPLE SPECIFIED
         const getMultipleSpecifiedResponse = await xero.projectApi.getProjects(req.session.activeTenant.tenantId, [getAllResponse.body.items[0].projectId, getAllResponse.body.items[1].projectId]);
+        console.log('getMultipleSpecifiedResponse: ',getMultipleSpecifiedResponse.body.items)
 
         // CREATE
         // we'll need a contact first
