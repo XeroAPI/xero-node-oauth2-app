@@ -193,10 +193,23 @@ class App {
         } else {
           console.log('tokenSet is not expired!')
         }
-        const newTokenSet = await xero.refreshToken()
-
-        // you can also refresh the token passing it explicitly to `refreshTokenUsingTokenSet`
-        // await xero.refreshTokenUsingTokenSet(tokenSet)
+        await xero.refreshToken()
+        
+        // const tokenSet = {
+        //   id_token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFDQUY4RTY2NzcyRDZEQzAyOEQ2NzI2RkQwMjYxNTgxNTcwRUZDMTkiLCJ0eXAiOiJKV1QiLCJ4NXQiOiJISy1PWm5jdGJjQW8xbkp2MENZVmdWY09fQmsifQ.eyJuYmYiOjE1ODY0NjE2OTMsImV4cCI6MTU4NjQ2MTk5MywiaXNzIjoiaHR0cHM6Ly9pZGVudGl0eS54ZXJvLmNvbSIsImF1ZCI6IjkwMkREMzIyNzY1NzRFRDE5OTYzOUQ5MjI2QTQyNUIxIiwiaWF0IjoxNTg2NDYxNjkzLCJhdF9oYXNoIjoiSkJsWjBUdHNOMExQSlNra3Vmc3VnUSIsInN1YiI6ImRiNGYwZjM3YjU4NTUzMGU5MWYzYjljYmI1MDM0MGU4IiwiYXV0aF90aW1lIjoxNTg2NDU2NzM1LCJ4ZXJvX3VzZXJpZCI6ImZhYTgzZWM5LWY2YTctNDg5Zi04OTExLWUzZmNlMDNhMTE4NiIsImdsb2JhbF9zZXNzaW9uX2lkIjoiZjEzZTgyZDk1MGY5NDA0NWI0ZmZkYjZkYTUxYmVjNTAiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJjaHJpcy5rbmlnaHRAeGVyby5jb20iLCJlbWFpbCI6ImNocmlzLmtuaWdodEB4ZXJvLmNvbSIsImdpdmVuX25hbWUiOiJDaHJpc3RvcGhlciIsImZhbWlseV9uYW1lIjoiS25pZ2h0In0.JqnfjcdXrfCIfDhHn9Niphck9Nux36bGG78rl9QeBr8nI8fXqDBzd7zGNiXiADxB4XP0QKX5fZS_0_3kH0q0Uw2mk-mZaLu8uLsRSDJ1O9_DwJ46auza9DNMYP56eeIuzZ8Tpoha2IUPVC-lkLUE6d7m5ZkevYMFl33zANf0GnaEdJSUv0JabcIFdCpnlQlkxXiWitQBF7TQC6ZwyHML3Gbcq94b1AsEoWZNwPMDaIZ06jn0fyQUJgXqfAq_RLnqIJj3_DAfLt02tM3iktgYqS-yJHpRigtrPw8Tkk1YcV6HfJXfcldbOlESvbPTq-fS3HOYdzUNwNoe-S5czivm9Q',
+        //   access_token: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFDQUY4RTY2NzcyRDZEQzAyOEQ2NzI2RkQwMjYxNTgxNTcwRUZDMTkiLCJ0eXAiOiJKV1QiLCJ4NXQiOiJISy1PWm5jdGJjQW8xbkp2MENZVmdWY09fQmsifQ.eyJuYmYiOjE1ODY0NjE2OTMsImV4cCI6MTU4NjQ2MzQ5MywiaXNzIjoiaHR0cHM6Ly9pZGVudGl0eS54ZXJvLmNvbSIsImF1ZCI6Imh0dHBzOi8vaWRlbnRpdHkueGVyby5jb20vcmVzb3VyY2VzIiwiY2xpZW50X2lkIjoiOTAyREQzMjI3NjU3NEVEMTk5NjM5RDkyMjZBNDI1QjEiLCJzdWIiOiJkYjRmMGYzN2I1ODU1MzBlOTFmM2I5Y2JiNTAzNDBlOCIsImF1dGhfdGltZSI6MTU4NjQ1NjczNSwieGVyb191c2VyaWQiOiJmYWE4M2VjOS1mNmE3LTQ4OWYtODkxMS1lM2ZjZTAzYTExODYiLCJnbG9iYWxfc2Vzc2lvbl9pZCI6ImYxM2U4MmQ5NTBmOTQwNDViNGZmZGI2ZGE1MWJlYzUwIiwianRpIjoiZWY2NTI1YzYzMGRhZGRkYzM2OTlmZmFlZWExMDNlNjkiLCJzY29wZSI6WyJlbWFpbCIsInByb2ZpbGUiLCJvcGVuaWQiLCJhY2NvdW50aW5nLnJlcG9ydHMucmVhZCIsImFjY291bnRpbmcuYXR0YWNobWVudHMucmVhZCIsImZpbGVzIiwicHJvamVjdHMucmVhZCIsInByb2plY3RzIiwiYWNjb3VudGluZy5zZXR0aW5ncyIsImFjY291bnRpbmcuc2V0dGluZ3MucmVhZCIsImFjY291bnRpbmcuYXR0YWNobWVudHMiLCJhY2NvdW50aW5nLnRyYW5zYWN0aW9ucyIsImFjY291bnRpbmcuam91cm5hbHMucmVhZCIsImFjY291bnRpbmcudHJhbnNhY3Rpb25zLnJlYWQiLCJhc3NldHMucmVhZCIsImFzc2V0cyIsImFjY291bnRpbmcuY29udGFjdHMiLCJhY2NvdW50aW5nLmNvbnRhY3RzLnJlYWQiLCJvZmZsaW5lX2FjY2VzcyJdfQ.IPCGb1fbRpaL2p4SXdVtLxthA3x9iIv-hqjf-gKlmWTzejReRJ4lYG9I5a0i2B_FGNJ4G9ElEuRmAjLNCtzoS0_OwUwZb5zN48hvEiopynNj6HAwP6B9dygCau-fy2kzvMu876Uobt3Ly7lIpB0geMmsHfTwzAQOWZjgWoTAw3ttH8kV6QJMaod8mxTx2g7PPn5bQ8G_PWKv7iMInSLiUmjhI55SVq0JL7rz_EwXS5IGSEAjH3Hxp_2hi6qD4TkQ0c6jIRXbN20pxJ1ixznSf1VUZbK-GvtUGDhcVBjQQHOEJpS1zPETLCt8n1WTUUR_cVyT82LmaaNFiHviCpUo6w',
+        //   expires_in: 1800,
+        //   token_type: 'Bearer',
+        //   refresh_token: '98f5771ce46fd5396b202f69b0459263bfa02fc1b674a229819b6358c19747bb',
+        //   scope: 'email profile openid accounting.reports.read accounting.attachments.read files projects.read projects accounting.settings accounting.settings.read accounting.attachments accounting.transactions accounting.journals.read accounting.transactions.read assets.read assets accounting.contacts accounting.contacts.read offline_access'
+        // }
+        // for users who prefer to not leverage the openid-client
+        // you can initialize an empty client, and refresh any saved access_tokens
+        // by passing the client, secret, and refresh_token to refreshWithRefreshToken
+        const newXeroClient = new XeroClient()
+        console.log('0:')
+        const newTokenSet = await newXeroClient.refreshWithRefreshToken(client_id, client_secret, tokenSet.refresh_token)
+        console.log('6: ', newTokenSet)
 
         const decodedIdToken: XeroIdToken = jwtDecode(newTokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(newTokenSet.access_token)
