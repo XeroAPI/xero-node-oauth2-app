@@ -1,15 +1,28 @@
 <!doctype html>
 <html>
-  <%- include('shared/head') -%>
-  <body>
-    <%- include('shared/nav') -%>
-    <div class='core-content'>
-      <%- include('shared/header') -%>
-      <div class='body-wrapper'>
-        <div class='body-content'>
-          <p>Credit Notes success: Count: <%= count %></p>
-        </div>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Credit Notes success: Count: <%= count %></p>
+        <p>Credit Notes success: Create: <%= create %></p>
+        <p>Credit Notes success: Update: <%= update %></p>
+        <p>Credit Notes success: Create History Record: <%= createHistoryRecord %></p>
+        <p>Credit Notes success: Create Allocation: <%= createAllocation %></p>
+        <p>Credit Notes success: Create Attachment By File Name: <%= createAttachmentByFileName %></p>
+        <p>Credit Notes success: Get One: <%= getOne %></p>
+        <p>Credit Notes success: Get History Records (count): <%= historyRecords %></p>
+        <p>Credit Notes success: Get Attachments (count): <%= attachmentsCount %></p>
+        <p>Credit Notes success: Get Attachment By ID: buffer</p>
+        <p>Credit Notes success: Get Attachment By File Name: buffer</p>
+        <p>Credit Notes success: Get Attachment As PDF: buffer</p>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>
