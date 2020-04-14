@@ -193,9 +193,11 @@ class App {
         } else {
           console.log('tokenSet is not expired!')
         }
+        // you can refresh the token using the fully initialized client levereging openid-client
         await xero.refreshToken()
         
-        // If you already generated a valid access token, you can initialize an empty client and refresh any saved access_tokens by passing the client, secret, and refresh_token to refreshWithRefreshToken()
+        // or if you already generated a tokenSet and have a valid (< 60 days refresh token),
+        // you can initialize an empty client and refresh by passing the client, secret, and refresh_token
         const newXeroClient = new XeroClient()
         const newTokenSet = await newXeroClient.refreshWithRefreshToken(client_id, client_secret, tokenSet.refresh_token)
 
@@ -2071,7 +2073,6 @@ class App {
 
         //GET MULTIPLE SPECIFIED
         const getMultipleSpecifiedResponse = await xero.projectApi.getProjects(req.session.activeTenant.tenantId, [getAllResponse.body.items[0].projectId, getAllResponse.body.items[1].projectId]);
-        console.log('getMultipleSpecifiedResponse: ',getMultipleSpecifiedResponse.body.items)
 
         // CREATE
         // we'll need a contact first
