@@ -56,12 +56,14 @@ import {
   XeroIdToken,
   CreditNotes,
   CreditNote,
+  Employee,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
+import { Employee as AUPayrollEmployee, HomeAddress } from 'xero-node/dist/gen/model/payroll-au/models';
 
 const session = require("express-session");
 const path = require("path");
@@ -109,8 +111,30 @@ class App {
       decodedIdToken: req.session.decodedIdToken,
       tokenSet: req.session.tokenSet,
       decodedAccessToken: req.session.decodedAccessToken,
+      accessTokenExpires: this.timeSince(req.session.decodedAccessToken),
       allTenants: req.session.allTenants,
       activeTenant: req.session.activeTenant
+    }
+  }
+
+  timeSince(token) {
+    if (token) {
+      const timestamp = token['exp']
+      const now: any = new Date()
+      const secondsPast: any = (now.getTime() - timestamp) / 1000;
+      if (secondsPast < 60) {
+        return parseInt(secondsPast) + 's';
+      }
+      if (secondsPast < 3600) {
+        const sec2: any = secondsPast / 60
+        return parseInt(sec2) + 'm';
+      }
+      if (secondsPast <= 86400) {
+        const sec3: any = secondsPast / 60
+        return parseInt(sec3) + 'h';
+      }
+    } else {
+      return ''
     }
   }
 
@@ -148,7 +172,7 @@ class App {
         req.session.tokenSet = tokenSet
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
-        req.session.tokenSet = tokenSet;
+        req.session.tokenSet = tokenSet
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
         const authData = this.authenticationData(req, res)
@@ -208,7 +232,7 @@ class App {
 
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
-        req.session.tokenSet = newTokenSet;
+        req.session.tokenSet = newTokenSet
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
 
@@ -237,7 +261,7 @@ class App {
           const decodedAccessToken: XeroAccessToken = jwtDecode(updatedTokenSet.access_token)
           req.session.decodedIdToken = decodedIdToken
           req.session.decodedAccessToken = decodedAccessToken
-          req.session.tokenSet = updatedTokenSet;
+          req.session.tokenSet = updatedTokenSet
           req.session.allTenants = xero.tenants
           req.session.activeTenant = xero.tenants[0]
         } else {
@@ -260,6 +284,8 @@ class App {
         });
       }
     });
+
+    // ******************************************************************************************************************** ACCOUNTING API
 
     router.get("/accounts", async (req: Request, res: Response) => {
       try {
@@ -815,12 +841,10 @@ class App {
           req.session.activeTenant.tenantId,
           createCreditNotesResponse.body.creditNotes[0].creditNoteID,
           filename,
+          readStream,
           true,
-          readStream, {
-          headers: {
-            'Content-Type': contentType
-          }
-        });
+          { headers: { 'Content-Type': contentType } }
+        );
 
         // UPDATE CREDIT NOTE ATTACHMENT BY FILE NAME
         // const updateCreditNoteAttachmentByFileNameResponse = await xero.accountingApi.updateCreditNoteAttachmentByFileName(
@@ -887,15 +911,15 @@ class App {
         //GET ALL
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant.tenantId);
         // CREATE - only works once per currency code
-        const newCurrency: Currency = {
-          code: CurrencyCode.GBP,
-        };
-        const createCurrencyResponse = await xero.accountingApi.createCurrency(req.session.activeTenant.tenantId, newCurrency);
+        // const newCurrency: Currency = {
+        //   code: CurrencyCode.GBP,
+        // };
+        // const createCurrencyResponse = await xero.accountingApi.createCurrency(req.session.activeTenant.tenantId, newCurrency);
 
         res.render("currencies", {
           authenticated: this.authenticationData(req, res),
-          currencies: apiResponse.body.currencies,
-          newCurrency: createCurrencyResponse.body.currencies[0].description
+          currencies: apiResponse.body.currencies
+          // newCurrency: createCurrencyResponse.body.currencies[0].description
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1185,7 +1209,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant.tenantId, totalInvoices.body.invoices[0].invoiceID, filename, true, readStream, {
+        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant.tenantId, totalInvoices.body.invoices[0].invoiceID, filename, readStream, true, {
           headers: {
             "Content-Type": contentType,
           },
@@ -2193,6 +2217,8 @@ class App {
       }
     });
 
+    // ******************************************************************************************************************** ASSETS API
+
     router.get("/assets", async (req: Request, res: Response) => {
       try {
         // GET ASSET SETTINGS
@@ -2231,6 +2257,8 @@ class App {
         });
       }
     });
+
+    // ******************************************************************************************************************** PROJECTS API
 
     router.get("/projects", async (req: Request, res: Response) => {
       try {
@@ -2394,6 +2422,189 @@ class App {
         });
       }
     });
+
+    // ******************************************************************************************************************** payroll-au
+    router.get("/payroll-au-employees", async (req: Request, res: Response) => {
+      try {
+        // since we already have an Employee model in the Accounting API scope, we've imported and renamed like so:
+        // import { Employee as AUPayrollEmployee } from 'xero-node/dist/gen/model/payroll-au/models';
+        const homeAddress: HomeAddress = {
+          addressLine1: '1234 Big Walk Way.'
+        }
+        const employee: AUPayrollEmployee = {
+          firstName: 'Charlie',
+          lastName: 'Chaplin',
+          dateOfBirth: '1889-04-16',
+          homeAddress: homeAddress
+        }
+        const createEmployee = await xero.payrollAUApi.createEmployee(req.session.activeTenant.id, [employee])
+        // getEmployee
+        // getEmployees
+        // updateEmployee
+        
+        res.render("payroll-au-employee", {
+          authenticated: this.authenticationData(req, res),
+          payrollEmployee: createEmployee.body.employees
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/leave-application", async (req: Request, res: Response) => {
+      try {
+        // createLeaveApplication
+        // getLeaveApplication
+        // getLeaveApplications
+        // updateLeaveApplication
+        
+        res.render("leave-application", {
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/pay-item", async (req: Request, res: Response) => {
+      try {
+        // createPayItem
+        // getPayItems
+        
+        res.render("pay-item", {
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/pay-run", async (req: Request, res: Response) => {
+      try {
+        // createPayRun
+        // getPayRun
+        // getPayRuns
+        // updatePayRun
+        
+        res.render("pay-run", {
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/payroll-calendar", async (req: Request, res: Response) => {
+      try {
+        // createPayrollCalendar
+        // getPayrollCalendar
+        // getPayrollCalendars
+
+        res.render("payroll-calendar", {
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/superfund", async (req: Request, res: Response) => {
+      try {
+        // createSuperfund
+        // getSuperfund
+        // getSuperfundProducts
+        // getSuperfunds
+        // updateSuperfund
+
+        res.render("superfund", {
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/timesheet", async (req: Request, res: Response) => {
+      try {
+        // createTimesheet
+        // getTimesheet
+        // getTimesheets
+        // updateTimesheet
+
+        res.render("timesheet", {
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/payslip", async (req: Request, res: Response) => {
+      try {
+        // getPayslip
+        // updatePayslipByID
+
+        res.render("payslip", {
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/payroll-au-settings", async (req: Request, res: Response) => {
+      try {
+        // getSettings
+
+        res.render("payroll-au-settings", {
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+
+    // ******************************************************************************************************************** BANKFEEDS API
+
+    // ... TODO ...
+
 
     this.app.use(session({
       secret: "something crazy",
