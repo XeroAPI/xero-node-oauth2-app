@@ -72,7 +72,7 @@ const mime = require("mime-types");
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
-const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions assets assets.read projects projects.read offline_access";
+const scopes = "openid profile email offline_access bankfeeds accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions assets assets.read projects projects.read payroll.employees payroll.employees.read payroll.payruns payroll.payruns.read payroll.payslip payroll.payslip.read payroll.timesheets payroll.timesheets.read payroll.settings payroll.settings.read";
 
 const xero = new XeroClient({
   clientId: client_id,
@@ -120,19 +120,8 @@ class App {
   timeSince(token) {
     if (token) {
       const timestamp = token['exp']
-      const now: any = new Date()
-      const secondsPast: any = (now.getTime() - timestamp) / 1000;
-      if (secondsPast < 60) {
-        return parseInt(secondsPast) + 's';
-      }
-      if (secondsPast < 3600) {
-        const sec2: any = secondsPast / 60
-        return parseInt(sec2) + 'm';
-      }
-      if (secondsPast <= 86400) {
-        const sec3: any = secondsPast / 60
-        return parseInt(sec3) + 'h';
-      }
+      const myDate = new Date( timestamp * 1000)
+      return myDate.toLocaleString()
     } else {
       return ''
     }
@@ -881,7 +870,6 @@ class App {
 
         // GET CREDIT NOTE AS PDF
         const getCreditNoteAsPdfResponse = await xero.accountingApi.getCreditNoteAsPdf(req.session.activeTenant.tenantId, createCreditNotesResponse.body.creditNotes[0].creditNoteID);
-        console.log(getCreditNoteAsPdfResponse);
         res.render("creditnotes", {
           authenticated: this.authenticationData(req, res),
           count: getCreditNotesResponse.body.creditNotes.length,
@@ -982,7 +970,6 @@ class App {
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getInvoiceReminders(req.session.activeTenant.tenantId);
-        console.log(apiResponse.body.invoiceReminders);
         res.render("invoicereminders", {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.invoiceReminders.length,
@@ -2425,6 +2412,7 @@ class App {
 
     // ******************************************************************************************************************** payroll-au
     router.get("/payroll-au-employees", async (req: Request, res: Response) => {
+
       try {
         // since we already have an Employee model in the Accounting API scope, we've imported and renamed like so:
         // import { Employee as AUPayrollEmployee } from 'xero-node/dist/gen/model/payroll-au/models';
@@ -2448,6 +2436,7 @@ class App {
         });
       } catch (e) {
         res.status(res.statusCode);
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
           error: e
@@ -2603,7 +2592,44 @@ class App {
 
     // ******************************************************************************************************************** BANKFEEDS API
 
-    // ... TODO ...
+    router.get("/bankfeed-connections", async (req: Request, res: Response) => {
+      try {
+        // createFeedConnections
+        // deleteFeedConnections
+        // getFeedConnection
+        
+        const bankfeeds = await xero.bankFeedsApi.getFeedConnections(req.session.activeTenant.tenantId)
+    
+        res.render("bankfeed-connections", {
+          authenticated: this.authenticationData(req, res),
+          bankfeeds: bankfeeds
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+    
+    router.get("/bankfeed-statements", async (req: Request, res: Response) => {
+      try {
+        // createStatements
+        // getStatement
+        // getStatements
+    
+        res.render("bankfeed-statements", {
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
 
 
     this.app.use(session({
