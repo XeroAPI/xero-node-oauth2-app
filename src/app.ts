@@ -815,8 +815,8 @@ class App {
           req.session.activeTenant.tenantId,
           createCreditNotesResponse.body.creditNotes[0].creditNoteID,
           filename,
-          true,
-          readStream, {
+          readStream,
+          true, {
           headers: {
             'Content-Type': contentType
           }
@@ -1185,7 +1185,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant.tenantId, totalInvoices.body.invoices[0].invoiceID, filename, true, readStream, {
+        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant.tenantId, totalInvoices.body.invoices[0].invoiceID, filename, readStream, true, {
           headers: {
             "Content-Type": contentType,
           },
@@ -1276,7 +1276,7 @@ class App {
 
         res.render("journals", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.journals.length
+          journals: apiResponse.body.journals
         });
       } catch (e) {
         res.status(res.statusCode);

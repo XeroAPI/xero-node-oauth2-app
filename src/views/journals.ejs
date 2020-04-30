@@ -7,7 +7,10 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Journals success: Count: <%= count %></p>
+          <p>Journals: <%=  %></p>
+          <% for(var i=0; i < journals.length; i++) { %>
+            <p><i><%= JSON.stringify(journals[i]) %></i></p>
+          <% } %>
         </div>
       </div>
     </div>
