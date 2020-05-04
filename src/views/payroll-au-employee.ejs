@@ -7,7 +7,8 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p><strong>Created Payroll Employee:</strong> <%= payrollEmployee %></p>
+          <p><strong>Created Employee:</strong> <%- JSON.stringify(createdEmployee, null, 2) %></p>
+          <p><strong>Get Payroll Employees:</strong> <%- JSON.stringify(getEmployees, null, 2) %></p>
         </div>
       </div>
     </div>
