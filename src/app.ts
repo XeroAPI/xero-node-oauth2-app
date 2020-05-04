@@ -1098,6 +1098,28 @@ class App {
       }
     });
 
+
+    router.get("/invoices-test", async (req: Request, res: Response) => {
+      try {
+        const query = 'Reference=="my-reference"';
+        const order = 'Date';
+        // GET ALL
+        const invoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId, null, query, order);
+        console.log('invoices')
+
+        res.render("invoices-test", {
+          authenticated: this.authenticationData(req, res),
+          invoices: invoices,
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
     router.get("/invoice-as-pdf", async (req: Request, res: Response) => {
       try {
         // GET ALL

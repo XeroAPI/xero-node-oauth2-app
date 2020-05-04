@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <a href='https://developer.xero.com/documentation/api/invoices' target='_blank'>
+            <h4>Invoices</h4>
+          </a>
+          <h3>count: <%= invoices.body.invoices.length %></h3>
+          <p><%- JSON.stringify(invoices, null, 2).replace(/[{}]/g, '') %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
