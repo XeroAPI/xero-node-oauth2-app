@@ -62,6 +62,7 @@ import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
+import { IncomingMessage } from "http";
 
 const session = require("express-session");
 const path = require("path");
@@ -1105,7 +1106,7 @@ class App {
         const order = 'Date';
         // GET ALL
         const invoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId, null, query, order);
-        console.log('invoices')
+        console.log('invoices: ',invoices)
 
         res.render("invoices-test", {
           authenticated: this.authenticationData(req, res),
