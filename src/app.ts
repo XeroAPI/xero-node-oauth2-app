@@ -63,7 +63,7 @@ import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
-import { Employee as AUPayrollEmployee, HomeAddress } from 'xero-node/dist/gen/model/payroll-au/models';
+import { Employee as AUPayrollEmployee, HomeAddress, State } from 'xero-node/dist/gen/model/payroll-au/models';
 import { FeedConnections, FeedConnection, CountryCode } from 'xero-node/dist/gen/model/bankfeeds/models';
 
 const session = require("express-session");
@@ -74,6 +74,7 @@ const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
 const scopes = "openid profile email offline_access bankfeeds accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions assets assets.read projects projects.read payroll.employees payroll.employees.read payroll.payruns payroll.payruns.read payroll.payslip payroll.payslip.read payroll.timesheets payroll.timesheets.read payroll.settings payroll.settings.read";
+// bankfeeds
 
 const xero = new XeroClient({
   clientId: client_id,
@@ -2418,26 +2419,34 @@ class App {
         // since we already have an Employee model in the Accounting API scope, we've imported and renamed like so:
         // import { Employee as AUPayrollEmployee } from 'xero-node/dist/gen/model/payroll-au/models';
         const homeAddress: HomeAddress = {
-          addressLine1: '1234 Big Walk Way.'
+          addressLine1: "1",
+          city: "Island Bay",
+          region: State.QLD,
+          postalCode: "6023",
+          country: "AUSTRALIA"
         }
         const employee: AUPayrollEmployee = {
           firstName: 'Charlie',
           lastName: 'Chaplin',
-          dateOfBirth: '1889-04-16',
+          dateOfBirth: "/Date(320284900000+0000)/",
           homeAddress: homeAddress
         }
-        const createEmployee = await xero.payrollAUApi.createEmployee(req.session.activeTenant.id, [employee])
+        const createEmployee = await xero.payrollAUApi.createEmployee(req.session.activeTenant.tenantId, [employee])
+
+        const getEmployees = await xero.payrollAUApi.getEmployees(req.session.activeTenant.tenantId)
+
         // getEmployee
-        // getEmployees
+
         // updateEmployee
 
         res.render("payroll-au-employee", {
           authenticated: this.authenticationData(req, res),
-          payrollEmployee: createEmployee.body.employees
+          getEmployees: getEmployees.body.employees,
+          createdEmployee: createEmployee.body.employees[0]
         });
       } catch (e) {
-        res.status(res.statusCode);
         console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
+        res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
           error: e
