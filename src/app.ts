@@ -64,6 +64,7 @@ import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
 import { Employee as AUPayrollEmployee, HomeAddress } from 'xero-node/dist/gen/model/payroll-au/models';
+import { FeedConnections, FeedConnection, CountryCode } from 'xero-node/dist/gen/model/bankfeeds/models';
 
 const session = require("express-session");
 const path = require("path");
@@ -120,7 +121,7 @@ class App {
   timeSince(token) {
     if (token) {
       const timestamp = token['exp']
-      const myDate = new Date( timestamp * 1000)
+      const myDate = new Date(timestamp * 1000)
       return myDate.toLocaleString()
     } else {
       return ''
@@ -210,7 +211,7 @@ class App {
         }
         // you can refresh the token using the fully initialized client levereging openid-client
         await xero.refreshToken()
-        
+
         // or if you already generated a tokenSet and have a valid (< 60 days refresh token),
         // you can initialize an empty client and refresh by passing the client, secret, and refresh_token
         const newXeroClient = new XeroClient()
@@ -1136,7 +1137,7 @@ class App {
       try {
         const invoiceID = req.query.invoiceID
         // SEND Email
-        const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant.tenantId, invoiceID, {})
+        const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant.tenantId, <string>invoiceID, {})
 
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
@@ -2429,7 +2430,7 @@ class App {
         // getEmployee
         // getEmployees
         // updateEmployee
-        
+
         res.render("payroll-au-employee", {
           authenticated: this.authenticationData(req, res),
           payrollEmployee: createEmployee.body.employees
@@ -2450,7 +2451,7 @@ class App {
         // getLeaveApplication
         // getLeaveApplications
         // updateLeaveApplication
-        
+
         res.render("leave-application", {
           authenticated: this.authenticationData(req, res)
         });
@@ -2467,7 +2468,7 @@ class App {
       try {
         // createPayItem
         // getPayItems
-        
+
         res.render("pay-item", {
           authenticated: this.authenticationData(req, res)
         });
@@ -2486,7 +2487,7 @@ class App {
         // getPayRun
         // getPayRuns
         // updatePayRun
-        
+
         res.render("pay-run", {
           authenticated: this.authenticationData(req, res)
         });
@@ -2594,15 +2595,50 @@ class App {
 
     router.get("/bankfeed-connections", async (req: Request, res: Response) => {
       try {
+        // getFeedConnections
+        const getBankfeedsResponse = await xero.bankFeedsApi.getFeedConnections(req.session.activeTenant.tenantId);
+
         // createFeedConnections
-        // deleteFeedConnections
+        const feedConnections: FeedConnections = {
+          items: [
+            {
+              accountToken: `10000${Helper.getRandomNumber(999)}`,
+              accountNumber: `${Helper.getRandomNumber(10000)}`,
+              accountName: `Account ${Helper.getRandomNumber(1000)}`,
+              accountType: FeedConnection.AccountTypeEnum.BANK,
+              currency: CurrencyCode.USD,
+              country: CountryCode.US,
+            }
+          ]
+        };
+        const createBankfeedResponse = await xero.bankFeedsApi.createFeedConnections(req.session.activeTenant.tenantId, feedConnections);
+
+        const sleep = (ms) => {
+          return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+          });
+        };
+
+        await sleep(3000);
+
         // getFeedConnection
-        
-        const bankfeeds = await xero.bankFeedsApi.getFeedConnections(req.session.activeTenant.tenantId)
-    
+        const getBankfeedResponse = await xero.bankFeedsApi.getFeedConnection(req.session.activeTenant.tenantId, createBankfeedResponse.body.items[0].id);
+
+        // deleteFeedConnections
+        const deleteConnection: FeedConnections = {
+          items: [
+            {
+              id: getBankfeedResponse.body.id
+            }
+          ]
+        };
+        const deleteBankfeedResponse = await xero.bankFeedsApi.deleteFeedConnections(req.session.activeTenant.tenantId, deleteConnection);
         res.render("bankfeed-connections", {
           authenticated: this.authenticationData(req, res),
-          bankfeeds: bankfeeds
+          bankfeeds: getBankfeedsResponse.body.items.length,
+          created: createBankfeedResponse.body.items[0].id,
+          get: getBankfeedResponse.body.accountName,
+          deleted: deleteBankfeedResponse.response.statusCode
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2612,13 +2648,13 @@ class App {
         });
       }
     });
-    
+
     router.get("/bankfeed-statements", async (req: Request, res: Response) => {
       try {
         // createStatements
         // getStatement
         // getStatements
-    
+
         res.render("bankfeed-statements", {
           authenticated: this.authenticationData(req, res)
         });
