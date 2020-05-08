@@ -477,13 +477,11 @@ class App {
           type: AccountType.BANK,
           bankAccountNumber: Helper.getRandomNumber(209087654321051).toString(),
         };
-        console.log('first we here ')
         const created1 = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account1);
         const created2 = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account2);
         const acc1 = created1.body.accounts[0]
         const acc2 = created2.body.accounts[0]
 
-        console.log('here: ')
         // CREATE
         const bankTransfer: BankTransfer = {
           fromBankAccount: {
@@ -498,7 +496,6 @@ class App {
         }
         const bankTransfers: BankTransfers = { bankTransfers: [bankTransfer] }
         const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant.tenantId, bankTransfers);
-      
         // GET ONE
         const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant.tenantId, createBankTransfer.body.bankTransfers[0].bankTransferID)
 
@@ -597,26 +594,29 @@ class App {
     router.get("/brandingthemes", async (req: Request, res: Response) => {
       try {
         // GET ALL
+        console.log('here')
         const getBrandingThemesResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
+        console.log('getBrandingThemesResponse: ',getBrandingThemesResponse)
 
         // GET ONE
+        console.log('here get one?')
         const getBrandingThemeResponse = await xero.accountingApi.getBrandingTheme(req.session.activeTenant, getBrandingThemesResponse.body.brandingThemes[0].brandingThemeID);
 
         // CREATE BRANDING THEME PAYMENT SERVICE
-        // first we'll need a payment service
-        const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
-        const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant, paymentServices);
-        const createBrandingThemePaymentServicesResponse = await xero.accountingApi.createBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID, { paymentServiceID: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID });
+        //  * Requires a private `paymentservices` scope. Contact api@xero.com if needed *
+        // const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
+        // const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant, paymentServices);
+        // const createBrandingThemePaymentServicesResponse = await xero.accountingApi.createBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID, { paymentServiceID: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID });
 
         // GET BRANDING THEME PAYMENT SERVICES
-        const getBrandingThemePaymentServicesResponse = await xero.accountingApi.getBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID);
+        // const getBrandingThemePaymentServicesResponse = await xero.accountingApi.getBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID);
 
         res.render("brandingthemes", {
           authenticated: this.authenticationData(req, res),
           brandingThemesCount: getBrandingThemesResponse.body.brandingThemes.length,
           brandingTheme: getBrandingThemeResponse.body.brandingThemes[0].name,
-          createBrandingThemePaymentService: createBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceID,
-          getBrandingThemePaymentService: getBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceName
+          createBrandingThemePaymentService: 'ref code: createBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceID',
+          getBrandingThemePaymentService: 'ref code: getBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceName'
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1159,7 +1159,7 @@ class App {
       try {
         const invoiceID = req.query.invoiceID
         // SEND Email
-        const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant.tenantId, <string>invoiceID, {})
+        const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant.tenantId, invoiceID, {})
 
         res.render("invoices", {
           authenticated: this.authenticationData(req, res),
@@ -1310,7 +1310,7 @@ class App {
 
         res.render("journals", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.journals.length
+          journals: apiResponse.body.journals
         });
       } catch (e) {
         res.status(res.statusCode);
