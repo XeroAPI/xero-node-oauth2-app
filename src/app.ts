@@ -64,7 +64,7 @@ import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
 import { Employee as AUPayrollEmployee, HomeAddress, State } from 'xero-node/dist/gen/model/payroll-au/models';
-import { FeedConnections, FeedConnection, CountryCode } from 'xero-node/dist/gen/model/bankfeeds/models';
+import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator } from 'xero-node/dist/gen/model/bankfeeds/models';
 
 const session = require("express-session");
 const path = require("path");
@@ -2634,6 +2634,7 @@ class App {
           ]
         };
         const deleteBankfeedResponse = await xero.bankFeedsApi.deleteFeedConnections(req.session.activeTenant.tenantId, deleteConnection);
+
         res.render("bankfeed-connections", {
           authenticated: this.authenticationData(req, res),
           bankfeeds: getBankfeedsResponse.body.items.length,
@@ -2652,12 +2653,77 @@ class App {
 
     router.get("/bankfeed-statements", async (req: Request, res: Response) => {
       try {
-        // createStatements
-        // getStatement
         // getStatements
+        const getStatementsResponse = await xero.bankFeedsApi.getStatements(req.session.activeTenant.tenantId);
+
+        // createStatements
+        // we're going to need a feed connection first
+        // createFeedConnections
+        const feedConnections: FeedConnections = {
+          items: [
+            {
+              accountToken: `10000${Helper.getRandomNumber(999)}`,
+              accountNumber: `${Helper.getRandomNumber(10000)}`,
+              accountName: `Account ${Helper.getRandomNumber(1000)}`,
+              accountType: FeedConnection.AccountTypeEnum.BANK,
+              currency: CurrencyCode.USD,
+              country: CountryCode.US,
+            }
+          ]
+        };
+        const createBankfeedResponse = await xero.bankFeedsApi.createFeedConnections(req.session.activeTenant.tenantId, feedConnections);
+
+        const sleep = (ms) => {
+          return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+          });
+        };
+
+        await sleep(3000);
+
+        const statements: Statements = {
+          items: [
+            {
+              feedConnectionId: createBankfeedResponse.body.items[0].id,
+              startDate: "2020-05-06",
+              endDate: "2020-05-07",
+              startBalance: {
+                amount: 100,
+                creditDebitIndicator: CreditDebitIndicator.DEBIT
+              },
+              endBalance: {
+                amount: 90,
+                creditDebitIndicator: CreditDebitIndicator.DEBIT
+              },
+              statementLines: [
+                {
+                  postedDate: "2020-05-06",
+                  description: "Description for statement line 1",
+                  amount: 5,
+                  creditDebitIndicator: CreditDebitIndicator.CREDIT,
+                  transactionId: "transaction-id-1",
+                },
+                {
+                  postedDate: "2020-05-06",
+                  description: "Description for statement line 2",
+                  amount: 5,
+                  creditDebitIndicator: CreditDebitIndicator.CREDIT,
+                  transactionId: "transaction-id-2",
+                }
+              ]
+            }
+          ]
+        };
+        const createStatementResponse = await xero.bankFeedsApi.createStatements(req.session.activeTenant.tenantId, statements);
+
+        // getStatement
+        const getStatementResponse = await xero.bankFeedsApi.getStatement(req.session.activeTenant.tenantId, createStatementResponse.body.items[0].id);
 
         res.render("bankfeed-statements", {
-          authenticated: this.authenticationData(req, res)
+          authenticated: this.authenticationData(req, res),
+          count: getStatementsResponse.body.items.length,
+          created: createStatementResponse.body.items[0].id,
+          get: getStatementResponse.body
         });
       } catch (e) {
         res.status(res.statusCode);

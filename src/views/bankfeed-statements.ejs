@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p><strong>Statements: Count:</strong> <%= count %></p>
+        <p><strong>Statements: Create:</strong> <%= created %></p>
+        <p><strong>Statements: Get:</strong></p>
+        <pre>
+          <code class='language-javascript'><%- JSON.stringify(get, null, 2) %></code>
+        </pre>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
