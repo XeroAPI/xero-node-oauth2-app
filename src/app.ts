@@ -56,12 +56,15 @@ import {
   XeroIdToken,
   CreditNotes,
   CreditNote,
+  Employee,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
+import { Employee as AUPayrollEmployee, HomeAddress, State } from 'xero-node/dist/gen/model/payroll-au/models';
+import { FeedConnections, FeedConnection, CountryCode, Statement } from 'xero-node/dist/gen/model/bankfeeds/models';
 
 const session = require("express-session");
 const path = require("path");
@@ -70,7 +73,8 @@ const mime = require("mime-types");
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
-const scopes = "openid profile email accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions assets assets.read projects projects.read offline_access";
+const scopes = "openid profile email offline_access bankfeeds accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions assets assets.read projects projects.read payroll.employees payroll.employees.read payroll.payruns payroll.payruns.read payroll.payslip payroll.payslip.read payroll.timesheets payroll.timesheets.read payroll.settings payroll.settings.read";
+// bankfeeds
 
 const xero = new XeroClient({
   clientId: client_id,
@@ -82,6 +86,12 @@ const xero = new XeroClient({
 if (!client_id || !client_secret || !redirectUrl) {
   throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
 }
+
+const sleep = (ms) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+};
 
 class App {
   public app: express.Application;
@@ -109,8 +119,19 @@ class App {
       decodedIdToken: req.session.decodedIdToken,
       tokenSet: req.session.tokenSet,
       decodedAccessToken: req.session.decodedAccessToken,
+      accessTokenExpires: this.timeSince(req.session.decodedAccessToken),
       allTenants: req.session.allTenants,
       activeTenant: req.session.activeTenant
+    }
+  }
+
+  timeSince(token) {
+    if (token) {
+      const timestamp = token['exp']
+      const myDate = new Date(timestamp * 1000)
+      return myDate.toLocaleString()
+    } else {
+      return ''
     }
   }
 
@@ -148,10 +169,19 @@ class App {
         req.session.tokenSet = tokenSet
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
-        req.session.tokenSet = tokenSet;
+        req.session.tokenSet = tokenSet
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
         const authData = this.authenticationData(req, res)
+
+        // TODO - persist token to a file, and read tokenSet from that if it is not expired
+
+        // fs.writeFile("/tokenSet.json", token, function(err) {
+        //     if(err) {
+        //         return console.log(err);
+        //     }
+        //     console.log("The file was saved!");
+        // }); 
 
         res.render("callback", {
           consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
@@ -197,7 +227,7 @@ class App {
         }
         // you can refresh the token using the fully initialized client levereging openid-client
         await xero.refreshToken()
-        
+
         // or if you already generated a tokenSet and have a valid (< 60 days refresh token),
         // you can initialize an empty client and refresh by passing the client, secret, and refresh_token
         const newXeroClient = new XeroClient()
@@ -208,7 +238,7 @@ class App {
 
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
-        req.session.tokenSet = newTokenSet;
+        req.session.tokenSet = newTokenSet
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
 
@@ -237,7 +267,7 @@ class App {
           const decodedAccessToken: XeroAccessToken = jwtDecode(updatedTokenSet.access_token)
           req.session.decodedIdToken = decodedIdToken
           req.session.decodedAccessToken = decodedAccessToken
-          req.session.tokenSet = updatedTokenSet;
+          req.session.tokenSet = updatedTokenSet
           req.session.allTenants = xero.tenants
           req.session.activeTenant = xero.tenants[0]
         } else {
@@ -260,6 +290,8 @@ class App {
         });
       }
     });
+
+    // ******************************************************************************************************************** ACCOUNTING API
 
     router.get("/accounts", async (req: Request, res: Response) => {
       try {
@@ -464,7 +496,6 @@ class App {
         }
         const bankTransfers: BankTransfers = { bankTransfers: [bankTransfer] }
         const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant.tenantId, bankTransfers);
-
         // GET ONE
         const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant.tenantId, createBankTransfer.body.bankTransfers[0].bankTransferID)
 
@@ -563,26 +594,29 @@ class App {
     router.get("/brandingthemes", async (req: Request, res: Response) => {
       try {
         // GET ALL
+        console.log('here')
         const getBrandingThemesResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
+        console.log('getBrandingThemesResponse: ',getBrandingThemesResponse)
 
         // GET ONE
+        console.log('here get one?')
         const getBrandingThemeResponse = await xero.accountingApi.getBrandingTheme(req.session.activeTenant, getBrandingThemesResponse.body.brandingThemes[0].brandingThemeID);
 
         // CREATE BRANDING THEME PAYMENT SERVICE
-        // first we'll need a payment service
-        const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
-        const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant, paymentServices);
-        const createBrandingThemePaymentServicesResponse = await xero.accountingApi.createBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID, { paymentServiceID: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID });
+        //  * Requires a private `paymentservices` scope. Contact api@xero.com if needed *
+        // const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
+        // const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant, paymentServices);
+        // const createBrandingThemePaymentServicesResponse = await xero.accountingApi.createBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID, { paymentServiceID: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID });
 
         // GET BRANDING THEME PAYMENT SERVICES
-        const getBrandingThemePaymentServicesResponse = await xero.accountingApi.getBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID);
+        // const getBrandingThemePaymentServicesResponse = await xero.accountingApi.getBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID);
 
         res.render("brandingthemes", {
           authenticated: this.authenticationData(req, res),
           brandingThemesCount: getBrandingThemesResponse.body.brandingThemes.length,
           brandingTheme: getBrandingThemeResponse.body.brandingThemes[0].name,
-          createBrandingThemePaymentService: createBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceID,
-          getBrandingThemePaymentService: getBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceName
+          createBrandingThemePaymentService: 'ref code: createBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceID',
+          getBrandingThemePaymentService: 'ref code: getBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceName'
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -815,12 +849,10 @@ class App {
           req.session.activeTenant.tenantId,
           createCreditNotesResponse.body.creditNotes[0].creditNoteID,
           filename,
+          readStream,
           true,
-          readStream, {
-          headers: {
-            'Content-Type': contentType
-          }
-        });
+          { headers: { 'Content-Type': contentType } }
+        );
 
         // UPDATE CREDIT NOTE ATTACHMENT BY FILE NAME
         // const updateCreditNoteAttachmentByFileNameResponse = await xero.accountingApi.updateCreditNoteAttachmentByFileName(
@@ -857,7 +889,6 @@ class App {
 
         // GET CREDIT NOTE AS PDF
         const getCreditNoteAsPdfResponse = await xero.accountingApi.getCreditNoteAsPdf(req.session.activeTenant.tenantId, createCreditNotesResponse.body.creditNotes[0].creditNoteID);
-        console.log(getCreditNoteAsPdfResponse);
         res.render("creditnotes", {
           authenticated: this.authenticationData(req, res),
           count: getCreditNotesResponse.body.creditNotes.length,
@@ -886,16 +917,17 @@ class App {
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant.tenantId);
+        
         // CREATE - only works once per currency code
-        const newCurrency: Currency = {
-          code: CurrencyCode.GBP,
-        };
-        const createCurrencyResponse = await xero.accountingApi.createCurrency(req.session.activeTenant.tenantId, newCurrency);
+        // const newCurrency: Currency = {
+        //   code: CurrencyCode.GBP,
+        // };
+        // const createCurrencyResponse = await xero.accountingApi.createCurrency(req.session.activeTenant.tenantId, newCurrency);
 
         res.render("currencies", {
           authenticated: this.authenticationData(req, res),
-          currencies: apiResponse.body.currencies,
-          newCurrency: createCurrencyResponse.body.currencies[0].description
+          currencies: apiResponse.body.currencies
+          // newCurrency: createCurrencyResponse.body.currencies[0].description
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -958,7 +990,6 @@ class App {
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getInvoiceReminders(req.session.activeTenant.tenantId);
-        console.log(apiResponse.body.invoiceReminders);
         res.render("invoicereminders", {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.invoiceReminders.length,
@@ -985,6 +1016,9 @@ class App {
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
         const selfContact = contactsResponse.body.contacts.filter(contact => contact.emailAddress === req.session.decodedIdToken.email);
 
+        const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + AccountType.EXPENSE + '"';
+        const getAccountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId, null, where);
+
         const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: {
@@ -1010,14 +1044,14 @@ class App {
               taxType: "NONE",
               quantity: 20,
               unitAmount: 100.00,
-              accountCode: "500"
+              accountCode: getAccountsResponse.body.accounts[0].code
             },
             {
               description: "Mega Consulting services",
               taxType: "NONE",
               quantity: 10,
               unitAmount: 500.00,
-              accountCode: "500"
+              accountCode: getAccountsResponse.body.accounts[0].code
             }
           ]
         }
@@ -1185,7 +1219,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant.tenantId, totalInvoices.body.invoices[0].invoiceID, filename, true, readStream, {
+        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant.tenantId, totalInvoices.body.invoices[0].invoiceID, filename, readStream, true, {
           headers: {
             "Content-Type": contentType,
           },
@@ -1276,7 +1310,7 @@ class App {
 
         res.render("journals", {
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.journals.length
+          journals: apiResponse.body.journals
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2193,6 +2227,8 @@ class App {
       }
     });
 
+    // ******************************************************************************************************************** ASSETS API
+
     router.get("/assets", async (req: Request, res: Response) => {
       try {
         // GET ASSET SETTINGS
@@ -2232,6 +2268,8 @@ class App {
       }
     });
 
+    // ******************************************************************************************************************** PROJECTS API
+
     router.get("/projects", async (req: Request, res: Response) => {
       try {
         //GET ALL
@@ -2252,12 +2290,6 @@ class App {
         };
 
         const createResponse = await xero.projectApi.createProject(req.session.activeTenant.tenantId, newProject);
-
-        const sleep = (ms) => {
-          return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-          });
-        };
         // Projects API DB transaction intermittently needs a few seconds to persist record in the database
         await sleep(3000);
 
@@ -2359,12 +2391,6 @@ class App {
         };
 
         const createTimeEntryResponse = await xero.projectApi.createTimeEntry(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, timeEntry);
-
-        const sleep = (ms) => {
-          return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-          });
-        };
 
         await sleep(3000);
 
