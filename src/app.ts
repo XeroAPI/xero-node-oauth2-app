@@ -497,9 +497,8 @@ class App {
           amount: '1000'
         }
         const bankTransfers: BankTransfers = { bankTransfers: [bankTransfer] }
-        console.log('ima here: ')
         const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant.tenantId, bankTransfers);
-        console.log('thennn aaima here: ')
+      
         // GET ONE
         const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant.tenantId, createBankTransfer.body.bankTransfers[0].bankTransferID)
 
@@ -1017,6 +1016,9 @@ class App {
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
         const selfContact = contactsResponse.body.contacts.filter(contact => contact.emailAddress === req.session.decodedIdToken.email);
 
+        const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + AccountType.EXPENSE + '"';
+        const getAccountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId, null, where);
+
         const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: {
@@ -1042,14 +1044,14 @@ class App {
               taxType: "NONE",
               quantity: 20,
               unitAmount: 100.00,
-              accountCode: "500"
+              accountCode: getAccountsResponse.body.accounts[0].code
             },
             {
               description: "Mega Consulting services",
               taxType: "NONE",
               quantity: 10,
               unitAmount: 500.00,
-              accountCode: "500"
+              accountCode: getAccountsResponse.body.accounts[0].code
             }
           ]
         }
