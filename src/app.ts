@@ -64,7 +64,7 @@ import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
 import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, EarningsType } from 'xero-node/dist/gen/model/payroll-au/models';
-import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator } from 'xero-node/dist/gen/model/bankfeeds/models';
+import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
 
 const session = require("express-session");
 const path = require("path");
@@ -2702,8 +2702,8 @@ class App {
               accountNumber: `${Helper.getRandomNumber(10000)}`,
               accountName: `Account ${Helper.getRandomNumber(1000)}`,
               accountType: FeedConnection.AccountTypeEnum.BANK,
-              currency: CurrencyCode.USD,
               country: CountryCode.US,
+              currency: BankfeedsCurrencyCode.USD
             }
           ]
         };
