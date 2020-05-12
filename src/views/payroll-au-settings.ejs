@@ -1,15 +1,20 @@
 <!doctype html>
 <html>
-  <%- include('shared/head') -%>
-  <body>
-    <%- include('shared/nav') -%>
-    <div class='core-content'>
-      <%- include('shared/header') -%>
-      <div class='body-wrapper'>
-        <div class='body-content'>
-          <p><strong>Payroll Settings:</strong> <%= payrollSettings %></p>
-        </div>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p><strong>Payroll Settings:</strong></p>
+        <pre>
+            <code class='language-javascript'><%- JSON.stringify(payrollSettings, null, 2) %></code>
+          </pre>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>

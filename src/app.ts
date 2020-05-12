@@ -63,7 +63,7 @@ import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
-import { Employee as AUPayrollEmployee, HomeAddress, State } from 'xero-node/dist/gen/model/payroll-au/models';
+import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, EarningsType } from 'xero-node/dist/gen/model/payroll-au/models';
 import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator } from 'xero-node/dist/gen/model/bankfeeds/models';
 
 const session = require("express-session");
@@ -2549,9 +2549,11 @@ class App {
 
     router.get("/timesheet", async (req: Request, res: Response) => {
       try {
+        // getTimesheets
+        const response = await xero.payrollAUApi.getTimesheets(req.session.activeTenant.tenantId);
+        console.log(response.body);
         // createTimesheet
         // getTimesheet
-        // getTimesheets
         // updateTimesheet
 
         res.render("timesheet", {
@@ -2570,6 +2572,38 @@ class App {
       try {
         // getPayslip
         // updatePayslipByID
+        // spec needs change to update payslip
+
+        // we need an earnings rate
+        const rateResponse = await xero.payrollAUApi.getPayItems(req.session.activeTenant.tenantId);
+        const earningsRate = rateResponse.body.payItems.earningsRates.filter(x => x.earningsType === EarningsType.ORDINARYTIMEEARNINGS);
+
+        // we need a payroll calendar
+        const calendarResponse = await xero.payrollAUApi.getPayrollCalendars(req.session.activeTenant.tenantId);
+
+        // we need to create an employee
+        const homeAddress: HomeAddress = {
+          addressLine1: "1",
+          city: "Island Bay",
+          region: State.QLD,
+          postalCode: "6023",
+          country: "AUSTRALIA"
+        };
+        const employee: AUPayrollEmployee = {
+          firstName: 'Bob',
+          lastName: `Smith ${Helper.getRandomNumber(1000)}`,
+          status: EmployeeStatus.ACTIVE,
+          gender: AUPayrollEmployee.GenderEnum.M,
+          email: 'first.last@acme.com',
+          dateOfBirth: '1990-04-20',
+          phone: '555-555-5555',
+          startDate: '2020-01-13',
+          ordinaryEarningsRateID: earningsRate[0].earningsRateID,
+          payrollCalendarID: calendarResponse.body.payrollCalendars[0].payrollCalendarID,
+          homeAddress: homeAddress,
+        };
+        const createEmployeeResponse = await xero.payrollAUApi.createEmployee(req.session.activeTenant.tenantId, [employee]);
+        console.log(createEmployeeResponse.body);
 
         res.render("payslip", {
           authenticated: this.authenticationData(req, res)
@@ -2586,9 +2620,11 @@ class App {
     router.get("/payroll-au-settings", async (req: Request, res: Response) => {
       try {
         // getSettings
+        const getPayrollSettingsResponse = await xero.payrollAUApi.getSettings(req.session.activeTenant.tenantId);
 
         res.render("payroll-au-settings", {
-          authenticated: this.authenticationData(req, res)
+          authenticated: this.authenticationData(req, res),
+          payrollSettings: getPayrollSettingsResponse.body
         });
       } catch (e) {
         res.status(res.statusCode);
