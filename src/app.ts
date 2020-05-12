@@ -87,6 +87,12 @@ if (!client_id || !client_secret || !redirectUrl) {
   throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
 }
 
+const sleep = (ms) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+};
+
 class App {
   public app: express.Application;
   public consentUrl: Promise<string>
@@ -2269,12 +2275,6 @@ class App {
         };
 
         const createResponse = await xero.projectApi.createProject(req.session.activeTenant.tenantId, newProject);
-
-        const sleep = (ms) => {
-          return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-          });
-        };
         // Projects API DB transaction intermittently needs a few seconds to persist record in the database
         await sleep(3000);
 
@@ -2376,12 +2376,6 @@ class App {
         };
 
         const createTimeEntryResponse = await xero.projectApi.createTimeEntry(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, timeEntry);
-
-        const sleep = (ms) => {
-          return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-          });
-        };
 
         await sleep(3000);
 
@@ -2643,8 +2637,11 @@ class App {
         // getFeedConnections
         const getBankfeedsResponse = await xero.bankFeedsApi.getFeedConnections(req.session.activeTenant.tenantId);
 
-        // createFeedConnections
-        const feedConnections: FeedConnections = {
+        // const feedConnections: FeedConnections = {
+
+        // ID is not able to be passed into create POST
+        // need to update spec
+        const feedConnections: any = {
           items: [
             {
               accountToken: `10000${Helper.getRandomNumber(999)}`,
@@ -2658,12 +2655,7 @@ class App {
         };
         const createBankfeedResponse = await xero.bankFeedsApi.createFeedConnections(req.session.activeTenant.tenantId, feedConnections);
 
-        const sleep = (ms) => {
-          return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-          });
-        };
-
+        // DB needs a bit of time to persist creation
         await sleep(3000);
 
         // getFeedConnection
