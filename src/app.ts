@@ -2422,23 +2422,24 @@ class App {
         const employee: AUPayrollEmployee = {
           firstName: 'Charlie',
           lastName: 'Chaplin',
-          dateOfBirth: "/Date(320284900000+0000)/",
+          dateOfBirth: xero.formatMsDate("1990-02-05"),
           homeAddress: homeAddress
         }
         
         const createEmployee = await xero.payrollAUApi.createEmployee(req.session.activeTenant.tenantId, [employee])
 
         const getEmployees = await xero.payrollAUApi.getEmployees(req.session.activeTenant.tenantId)
-        console.log('getEmployees: ',getEmployees)
 
-        // getEmployee
+        const updatedEmployee = employee
+        updatedEmployee.firstName = 'Chuck'
 
-        // updateEmployee
-
+        const updateEmployee = await xero.payrollAUApi.updateEmployee(req.session.activeTenant.tenantId, getEmployees.body.employees[0].employeeID, [updatedEmployee])
+        
         res.render("payroll-au-employee", {
           authenticated: this.authenticationData(req, res),
           getEmployees: getEmployees.body.employees,
-          createdEmployee: createEmployee.body.employees[0]
+          createdEmployee: createEmployee.body.employees[0],
+          updateEmployee: updateEmployee.body.employees[0]
         });
       } catch (e) {
         console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
@@ -2638,8 +2639,6 @@ class App {
       try {
         // getFeedConnections
         const getBankfeedsResponse = await xero.bankFeedsApi.getFeedConnections(req.session.activeTenant.tenantId);
-
-        // const feedConnections: FeedConnections = {
 
         // ID is not able to be passed into create POST
         // need to update spec
