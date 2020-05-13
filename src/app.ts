@@ -2425,9 +2425,11 @@ class App {
           dateOfBirth: "/Date(320284900000+0000)/",
           homeAddress: homeAddress
         }
+        
         const createEmployee = await xero.payrollAUApi.createEmployee(req.session.activeTenant.tenantId, [employee])
 
         const getEmployees = await xero.payrollAUApi.getEmployees(req.session.activeTenant.tenantId)
+        console.log('getEmployees: ',getEmployees)
 
         // getEmployee
 
@@ -2648,7 +2650,7 @@ class App {
               accountNumber: `${Helper.getRandomNumber(10000)}`,
               accountName: `Account ${Helper.getRandomNumber(1000)}`,
               accountType: FeedConnection.AccountTypeEnum.BANK,
-              currency: CurrencyCode.USD,
+              currency: BankfeedsCurrencyCode.USD,
               country: CountryCode.US,
             }
           ]
