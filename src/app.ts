@@ -65,8 +65,10 @@ import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/ass
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
 import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, EarningsType } from 'xero-node/dist/gen/model/payroll-au/models';
 import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
+import { disconnect } from "cluster";
 
 const session = require("express-session");
+var FileStore = require('session-file-store')(session);
 const path = require("path");
 const mime = require("mime-types");
 
@@ -139,10 +141,16 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
+      if(req.session.tokenSet) { // if no tokenSet was set
+        await xero.setTokenSet(req.session.tokenSet)
+        await xero.updateTenants()
+      }
+
       try {
         const authData = this.authenticationData(req, res)
+
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: authData
         });
       } catch (e) {
@@ -175,7 +183,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("callback", {
-          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
@@ -187,7 +195,6 @@ class App {
       }
     });
 
-    // OAuth2 now authenticates at the user level instead of the organisation level
     router.post("/change_organisation", async (req: Request, res: Response) => {
       try {
         const activeOrgId = req.body.active_org_id
@@ -196,7 +203,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
@@ -211,7 +218,8 @@ class App {
     router.get("/refresh-token", async (req: Request, res: Response) => {
       try {
         const tokenSet = await xero.readTokenSet();
-        if (tokenSet.expired()) {
+        const now = new Date().getTime()
+        if (tokenSet.expires_in > now) {
           console.log('token is currently expired: ', tokenSet)
         } else {
           console.log('tokenSet is not expired!')
@@ -223,7 +231,6 @@ class App {
         // you can initialize an empty client and refresh by passing the client, secret, and refresh_token
         const newXeroClient = new XeroClient()
         const newTokenSet = await newXeroClient.refreshWithRefreshToken(client_id, client_secret, tokenSet.refresh_token)
-
         const decodedIdToken: XeroIdToken = jwtDecode(newTokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(newTokenSet.access_token)
 
@@ -236,7 +243,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
@@ -270,7 +277,7 @@ class App {
         const authData = this.authenticationData(req, res)
 
         res.render("home", {
-          consentUrl: authData.decodedAccessToken ? undefined : await xero.buildConsentUrl(),
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: authData
         });
       } catch (e) {
@@ -434,6 +441,7 @@ class App {
         const bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(req.session.activeTenant.tenantId, bankTransactionId, bankTransactions);
 
         res.render("banktransactions", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           bankTransactionsCount: bankTransactionsGetResponse.body.bankTransactions.length,
           createID: bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID,
@@ -492,6 +500,7 @@ class App {
         const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant.tenantId, createBankTransfer.body.bankTransfers[0].bankTransferID)
 
         res.render("banktranfers", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           allBankTransfers: getBankTransfersResult.body.bankTransfers,
           createBankTransferId: createBankTransfer.body.bankTransfers[0].bankTransferID,
@@ -570,6 +579,7 @@ class App {
         const apiResponse = await xero.accountingApi.getBatchPayments(req.session.activeTenant.tenantId);
 
         res.render("batchpayments", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           createBatchPayment: createBatchPayment.body.batchPayments[0].batchPaymentID,
           count: apiResponse.body.batchPayments.length
@@ -586,26 +596,27 @@ class App {
     router.get("/brandingthemes", async (req: Request, res: Response) => {
       try {
         // GET ALL
-        const getBrandingThemesResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant);
+        const getBrandingThemesResponse = await xero.accountingApi.getBrandingThemes(req.session.activeTenant.tenantId);
 
         // GET ONE
-        const getBrandingThemeResponse = await xero.accountingApi.getBrandingTheme(req.session.activeTenant, getBrandingThemesResponse.body.brandingThemes[0].brandingThemeID);
+        const getBrandingThemeResponse = await xero.accountingApi.getBrandingTheme(req.session.activeTenant.tenantId, getBrandingThemesResponse.body.brandingThemes[0].brandingThemeID);
 
         // CREATE BRANDING THEME PAYMENT SERVICE
-        // first we'll need a payment service
-        const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
-        const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant, paymentServices);
-        const createBrandingThemePaymentServicesResponse = await xero.accountingApi.createBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID, { paymentServiceID: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID });
+        // first we'll need a payment service - this will require a restricted scope 'paymentservices' - please contact api@xero.com to get access
+        // const paymentServices: PaymentServices = { paymentServices: [{ paymentServiceName: `PayUpNow ${Helper.getRandomNumber(1000)}`, paymentServiceUrl: "https://www.payupnow.com/?invoiceNo=[INVOICENUMBER]&currency=[CURRENCY]&amount=[AMOUNTDUE]&shortCode=[SHORTCODE]", payNowText: "Time To Pay" }] };
+        // const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant.tenantId, paymentServices);
+        // const createBrandingThemePaymentServicesResponse = await xero.accountingApi.createBrandingThemePaymentServices(req.session.activeTenant.tenantId, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID, { paymentServiceID: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID });
 
         // GET BRANDING THEME PAYMENT SERVICES
-        const getBrandingThemePaymentServicesResponse = await xero.accountingApi.getBrandingThemePaymentServices(req.session.activeTenant, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID);
+        // const getBrandingThemePaymentServicesResponse = await xero.accountingApi.getBrandingThemePaymentServices(req.session.activeTenant.tenantId, getBrandingThemeResponse.body.brandingThemes[0].brandingThemeID);
 
         res.render("brandingthemes", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           brandingThemesCount: getBrandingThemesResponse.body.brandingThemes.length,
           brandingTheme: getBrandingThemeResponse.body.brandingThemes[0].name,
-          createBrandingThemePaymentService: createBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceID,
-          getBrandingThemePaymentService: getBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceName
+          createBrandingThemePaymentService: 'createBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceID',
+          getBrandingThemePaymentService: 'getBrandingThemePaymentServicesResponse.body.paymentServices[0].paymentServiceName'
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -705,6 +716,7 @@ class App {
         const allContactGroups = await xero.accountingApi.getContactGroups(req.session.activeTenant.tenantId);
 
         res.render("contactgroups", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           createdContactGroupID: contactGroup.contactGroupID,
           getContactGroupName: getContactGroup.body.contactGroups[0].name,
@@ -879,6 +891,7 @@ class App {
         // GET CREDIT NOTE AS PDF
         const getCreditNoteAsPdfResponse = await xero.accountingApi.getCreditNoteAsPdf(req.session.activeTenant.tenantId, createCreditNotesResponse.body.creditNotes[0].creditNoteID);
         res.render("creditnotes", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getCreditNotesResponse.body.creditNotes.length,
           create: createCreditNotesResponse.body.creditNotes[0].creditNoteID,
@@ -903,6 +916,7 @@ class App {
     });
 
     router.get("/currencies", async (req: Request, res: Response) => {
+
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant.tenantId);
@@ -913,6 +927,7 @@ class App {
         // const createCurrencyResponse = await xero.accountingApi.createCurrency(req.session.activeTenant.tenantId, newCurrency);
 
         res.render("currencies", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           currencies: apiResponse.body.currencies
           // newCurrency: createCurrencyResponse.body.currencies[0].description
@@ -959,6 +974,7 @@ class App {
         }
         const updateEmployeeResponse = await xero.accountingApi.updateOrCreateEmployees(req.session.activeTenant.tenantId, updatedEmployees);
         res.render("employees", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getEmployeesResponse.body.employees.length,
           createdEmployeeId: createEmployeesResponse.body.employees[0].employeeID,
@@ -979,6 +995,7 @@ class App {
         //GET ALL
         const apiResponse = await xero.accountingApi.getInvoiceReminders(req.session.activeTenant.tenantId);
         res.render("invoicereminders", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.invoiceReminders.length,
           enabled: apiResponse.body.invoiceReminders[0].enabled
@@ -1101,6 +1118,7 @@ class App {
         const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId);
 
         res.render("invoices", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           invoiceId,
           email: req.session.decodedIdToken.email,
@@ -1147,6 +1165,7 @@ class App {
         const apiResponse = await xero.accountingApi.emailInvoice(req.session.activeTenant.tenantId, <string>invoiceID, {})
 
         res.render("invoices", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: apiResponse
         });
@@ -1181,6 +1200,7 @@ class App {
           }
         )
         res.render("invoices-filtered", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           filteredInvoices: filteredInvoices.body.invoices
         });
@@ -1211,6 +1231,7 @@ class App {
         });
 
         res.render("attachment-invoice", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           attachments: JSON.parse(fileAttached.response['body'])
         });
@@ -1294,6 +1315,7 @@ class App {
         const apiResponse = await xero.accountingApi.getJournals(req.session.activeTenant.tenantId);
 
         res.render("journals", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.journals.length
         });
@@ -1385,6 +1407,7 @@ class App {
         const deleteLinkedTransactionResponse = await xero.accountingApi.deleteLinkedTransaction(req.session.activeTenant.tenantId, createLinkedTransactionResponse.body.linkedTransactions[0].linkedTransactionID);
 
         res.render("linked-transactions", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getLinkedTransactionsResponse.body.linkedTransactions.length,
           create: createLinkedTransactionResponse.body.linkedTransactions[0].linkedTransactionID,
@@ -1465,6 +1488,7 @@ class App {
         // const updateManualJournalAttachmentByFileNameResponse = await xero.accountingApi.updateManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, journalId, fileName, body);
 
         res.render("manualjournals", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getManualJournalsResponse.body.manualJournals.length,
           create: createManualJournalResponse.body.manualJournals[0].manualJournalID,
@@ -1493,6 +1517,7 @@ class App {
         // const getOrgCISSettingsResponse = await xero.accountingApi.getOrganisationCISSettings(req.session.activeTenant.tenantId, getOrganizationsResponse.body.organisations[0].organisationID);
 
         res.render("organisations", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           orgs: getOrganizationsResponse.body.organisations
         });
@@ -1572,6 +1597,7 @@ class App {
         const getOverpaymentResponse = await xero.accountingApi.getOverpayment(req.session.activeTenant.tenantId, newBankTransactionResponse.body.bankTransactions[0].overpaymentID);
 
         res.render("overpayments", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getOverpaymentsResponse.body.overpayments.length,
           overpayment: newBankTransactionResponse.body.bankTransactions[0].overpaymentID,
@@ -1646,6 +1672,7 @@ class App {
         // spec needs to be updated, it's trying to modify a payment but that throws a validation error
 
         res.render("payments", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getPaymentsResponse.body.payments.length,
           newPayment: createPaymentResponse.body.payments[0].paymentID,
@@ -1671,6 +1698,7 @@ class App {
         const createPaymentServiceResponse = await xero.accountingApi.createPaymentService(req.session.activeTenant.tenantId, paymentServices);
 
         res.render("paymentservices", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getPaymentServicesResponse.body.paymentServices.length,
           create: createPaymentServiceResponse.body.paymentServices[0].paymentServiceID
@@ -1756,6 +1784,7 @@ class App {
         const getPrepaymentResponse = await xero.accountingApi.getPrepayment(req.session.activeTenant.tenantId, newBankTransactionResponse.body.bankTransactions[0].prepaymentID);
 
         res.render("prepayments", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getPrepaymentsResponse.body.prepayments.length,
           prepayment: newBankTransactionResponse.body.bankTransactions[0].prepaymentID,
@@ -1811,6 +1840,7 @@ class App {
         const updatePurchaseOrderResponse = await xero.accountingApi.updatePurchaseOrder(req.session.activeTenant.tenantId, getPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID, purchaseOrders);
 
         res.render("purchaseorders", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getPurchaseOrdersResponse.body.purchaseOrders.length,
           create: createPurchaseOrderResponse.body.purchaseOrders[0].purchaseOrderID,
@@ -1899,6 +1929,7 @@ class App {
         const updateReceiptResponse = await xero.accountingApi.updateReceipt(req.session.activeTenant.tenantId, getReceiptResponse.body.receipts[0].receiptID, updatedReceipts);
 
         res.render("receipts", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getReceiptsResponse.body.receipts.length,
           create: createReceiptResponse.body.receipts[0].reference,
@@ -2070,6 +2101,7 @@ class App {
         const updateResponse = await xero.accountingApi.updateTaxRate(req.session.activeTenant.tenantId, taxRates);
 
         res.render("taxrates", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getAllResponse.body.taxRates.length,
           created: createResponse.body.taxRates[0].name,
@@ -2115,6 +2147,7 @@ class App {
         const deleteResponse = await xero.accountingApi.deleteTrackingCategory(req.session.activeTenant.tenantId, createCategoryResponse.body.trackingCategories[0].trackingCategoryID);
 
         res.render("trackingcategories", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getAllResponse.body.trackingCategories.length,
           created: createCategoryResponse.body.trackingCategories[0].trackingCategoryID,
@@ -2139,6 +2172,7 @@ class App {
         // GET ONE USER
         const getUser = await xero.accountingApi.getUser(req.session.activeTenant.tenantId, getAllUsers.body.users[0].userID);
         res.render("users", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           user: getUser.body.users[0].emailAddress,
           count: getAllUsers.body.users.length
@@ -2197,6 +2231,7 @@ class App {
         // GET ONE
         const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant.tenantId, getAllQuotes.body.quotes[0].quoteID);
         res.render("quotes", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getAllQuotes.body.quotes.length,
           getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber,
@@ -2237,6 +2272,7 @@ class App {
         const getAssets = await xero.assetApi.getAssets(req.session.activeTenant.tenantId, AssetStatusQueryParam.DRAFT)
 
         res.render("assets", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           assetSettings: getAssetSettings.body,
           assetTypes: getAssetTypes.body,
@@ -2298,6 +2334,7 @@ class App {
         const patchResponse = await xero.projectApi.patchProject(req.session.activeTenant.tenantId, createResponse.body.projectId, patch);
 
         res.render("projects", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getAllResponse.body.pagination.itemCount,
           create: createResponse.body.projectId,
@@ -2321,6 +2358,7 @@ class App {
         const getProjectUsersResponse = await xero.projectApi.getProjectUsers(req.session.activeTenant.tenantId);
 
         res.render("project-users", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           users: getProjectUsersResponse.body.items,
         });
@@ -2345,6 +2383,7 @@ class App {
         const getTaskResponse = await xero.projectApi.getTask(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, getTasksResponse.body.items[0].taskId);
         // UPDATE
         res.render("tasks", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getTasksResponse.body.pagination.itemCount,
           get: getTaskResponse.body.name
@@ -2390,6 +2429,7 @@ class App {
         const deleteTimeEntryResponse = await xero.projectApi.deleteTimeEntry(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, createTimeEntryResponse.body.timeEntryId);
 
         res.render("time", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getTimeEntriesResponse.body.pagination.itemCount,
           create: createTimeEntryResponse.body.timeEntryId,
@@ -2436,6 +2476,7 @@ class App {
         const updateEmployee = await xero.payrollAUApi.updateEmployee(req.session.activeTenant.tenantId, getEmployees.body.employees[0].employeeID, [updatedEmployee])
         
         res.render("payroll-au-employee", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           getEmployees: getEmployees.body.employees,
           createdEmployee: createEmployee.body.employees[0],
@@ -2620,6 +2661,7 @@ class App {
         const getPayrollSettingsResponse = await xero.payrollAUApi.getSettings(req.session.activeTenant.tenantId);
 
         res.render("payroll-au-settings", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           payrollSettings: getPayrollSettingsResponse.body
         });
@@ -2673,6 +2715,7 @@ class App {
         const deleteBankfeedResponse = await xero.bankFeedsApi.deleteFeedConnections(req.session.activeTenant.tenantId, deleteConnection);
 
         res.render("bankfeed-connections", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           bankfeeds: getBankfeedsResponse.body.items.length,
           created: createBankfeedResponse.body.items[0].id,
@@ -2757,6 +2800,7 @@ class App {
         const getStatementResponse = await xero.bankFeedsApi.getStatement(req.session.activeTenant.tenantId, createStatementResponse.body.items[0].id);
 
         res.render("bankfeed-statements", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getStatementsResponse.body.items.length,
           created: createStatementResponse.body.items[0].id,
@@ -2771,16 +2815,17 @@ class App {
       }
     });
 
+    const fileStoreOptions = {}
 
     this.app.use(session({
       secret: "something crazy",
+      store: new FileStore(fileStoreOptions),
       resave: false,
-      saveUninitialized: true,
+      saveUninitialized: false,
       cookie: { secure: false },
     }));
 
     this.app.use("/", router);
-
   }
 }
 
