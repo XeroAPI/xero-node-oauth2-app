@@ -52,6 +52,8 @@ However, please be aware that based on the Organisation region, chart of account
 
 Since typescript will recompile each time the `src` directory is saved this can be challenging as the session is wiped out for each server change. To help with this we've set it up to store your previous session in a `/sessions/` file. This will enable you to persist the tokenSet, and other utilized data such as the `activeTenant` between sessions.
 
+Occasionaly the file based session storage can get out of whack -`UnhandledPromiseRejectionWarning: #<Object>` If you find node hanging on that you can simply delete the sessions in that `/sessions/` folder and start fresh.
+
 # Multiple Organisations
 
 Once you have connected to a Xero org, to connect to an additional simply click the Xero logo in the header. This will take you through the auth flow an additional time where you can select an additional org to authorize. This will then enable you to choose from a dropdown which tenantId you would like to pass to your api calls, and will also unlock some other functionality like the "/disconnect" route.

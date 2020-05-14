@@ -75,7 +75,7 @@ const mime = require("mime-types");
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
-const scopes = "openid profile email offline_access bankfeeds accounting.settings accounting.reports.read accounting.journals.read accounting.contacts accounting.attachments accounting.transactions assets assets.read projects projects.read payroll.employees payroll.employees.read payroll.payruns payroll.payruns.read payroll.payslip payroll.payslip.read payroll.timesheets payroll.timesheets.read payroll.settings payroll.settings.read";
+const scopes = "offline_access openid profile email accounting.transactions accounting.transactions.read accounting.reports.read accounting.journals.read accounting.settings accounting.settings.read accounting.contacts accounting.contacts.read accounting.attachments accounting.attachments.read files files.read assets assets.read projects projects.read payroll.employees payroll.payruns payroll.payslip payroll.timesheets payroll.settings";
 // bankfeeds
 
 const xero = new XeroClient({
@@ -530,10 +530,10 @@ class App {
           lineItems: [
             {
               description: "Consulting services",
-              taxType: "NONE",
+              taxType: "OUTPUT",
               quantity: 20,
               unitAmount: 100.00,
-              accountCode: "500"
+              accountCode: "200"
             }
           ],
           status: Invoice.StatusEnum.AUTHORISED
@@ -1046,14 +1046,14 @@ class App {
               taxType: "NONE",
               quantity: 20,
               unitAmount: 100.00,
-              accountCode: "500"
+              accountCode: "200"
             },
             {
               description: "Mega Consulting services",
               taxType: "NONE",
               quantity: 10,
               unitAmount: 500.00,
-              accountCode: "500"
+              accountCode: "200"
             }
           ]
         }
@@ -1550,8 +1550,8 @@ class App {
                   description: "Acme Tires",
                   quantity: 2.0,
                   unitAmount: 20.0,
-                  accountCode: "500",
-                  taxType: "NONE",
+                  accountCode: "200",
+                  taxType: "OUTPUT",
                   lineAmount: 40.0
                 }
               ],
@@ -1633,8 +1633,8 @@ class App {
                   description: "Acme Tires",
                   quantity: 2.0,
                   unitAmount: 20.0,
-                  accountCode: "500",
-                  taxType: "NONE",
+                  accountCode: "200",
+                  taxType: "OUTPUT",
                   lineAmount: 40.0
                 }
               ],
@@ -1732,8 +1732,8 @@ class App {
                   description: "Acme Tires",
                   quantity: 2.0,
                   unitAmount: 20.0,
-                  accountCode: "500",
-                  taxType: "NONE",
+                  accountCode: "200",
+                  taxType: "OUTPUT",
                   lineAmount: 40.0
                 }
               ],
@@ -1752,7 +1752,7 @@ class App {
           contact: {
             contactID: getContactsResponse.body.contacts[0].contactID
           },
-          lineItems: [{ description: "Acme Tires", quantity: 2.0, unitAmount: 20.0, accountCode: "500", taxType: "NONE", lineAmount: 40.0 }],
+          lineItems: [{ description: "Acme Tires", quantity: 2.0, unitAmount: 20.0, accountCode: "200", taxType: "OUTPUT", lineAmount: 40.0 }],
           bankAccount: {
             code: "090"
           }
@@ -1950,7 +1950,7 @@ class App {
         // GET 1099 REPORT
         // optional parameters
         const reportYear = "2019";
-        const getTenNinetyNineResponse = await xero.accountingApi.getReportTenNinetyNine(req.session.activeTenant.tenantId, reportYear);
+        // const getTenNinetyNineResponse = await xero.accountingApi.getReportTenNinetyNine(req.session.activeTenant.tenantId, reportYear);
 
         // getting a contact first
         const contactsGetResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
@@ -1992,7 +1992,6 @@ class App {
 
         // GET BAS REPORT LIST
         const getBASListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant.tenantId);
-        console.log(getBASListResponse.body.reports[0] || 'BAS REPORTS - This works for Australia based organisations only');
 
         // GET BAS REPORT - FOR AUSTRALIA ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
         // required parameters
@@ -2014,7 +2013,6 @@ class App {
 
         // GET GST REPORT LIST
         const getGSTListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant.tenantId);
-        console.log(getGSTListResponse.body.reports[0] || 'GST REPORTS - This currently works for New Zealand based organisations only. Published GST Reports before 11 Nov 2013 will also be returned');
 
         // GET GST REPORT - FOR NEW ZEALAND ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
         // required parameters
@@ -2046,7 +2044,7 @@ class App {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           bankSummaryReportTitle: getReportBankSummaryResponse.body.reports[0].reportTitles.join(' '),
-          tenNinetyNineReportTitle: `${getTenNinetyNineResponse.body.reports[0].reportName} ${getTenNinetyNineResponse.body.reports[0].reportDate}`,
+          tenNinetyNineReportTitle: "`${getTenNinetyNineResponse.body.reports[0].reportName} ${getTenNinetyNineResponse.body.reports[0].reportDate}`",
           agedPayablesByContactReportTitle: `${getAgedPayablesByContactResponse.body.reports[0].reportName} ${getAgedPayablesByContactResponse.body.reports[0].reportDate}`,
           agedReceivablesByContactReportTitle: `${getAgedReceivablesByContactResponse.body.reports[0].reportName} ${getAgedReceivablesByContactResponse.body.reports[0].reportDate}`,
           getBalanceSheetReportTitle: `${getBalanceSheetResponse.body.reports[0].reportName} ${getBalanceSheetResponse.body.reports[0].reportDate}`,
@@ -2069,10 +2067,11 @@ class App {
       try {
         //GET ALL
         const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant.tenantId);
-
+        
         const newTaxRate: TaxRate = {
           name: `Tax Rate Name ${Helper.getRandomNumber(1000000)}`,
-          reportTaxType: undefined,
+          reportTaxType: undefined, // Aus, Nz will require this to be set from: TaxRate.ReportTaxTypeEnum...
+          taxType: 'INPUT',
           taxComponents: [
             {
               name: "State Tax",
@@ -2093,19 +2092,12 @@ class App {
 
         // CREATE
         const createResponse = await xero.accountingApi.createTaxRates(req.session.activeTenant.tenantId, taxRates);
-        const updatedTaxRate: TaxRate = newTaxRate;
-        updatedTaxRate.status = TaxRate.StatusEnum.DELETED;
-        taxRates.taxRates = [updatedTaxRate];
-
-        // UPDATE
-        const updateResponse = await xero.accountingApi.updateTaxRate(req.session.activeTenant.tenantId, taxRates);
 
         res.render("taxrates", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getAllResponse.body.taxRates.length,
-          created: createResponse.body.taxRates[0].name,
-          updated: updateResponse.body.taxRates[0].status
+          created: createResponse.body.taxRates[0].name
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2203,10 +2195,10 @@ class App {
           lineItems: [
             {
               description: "Consulting services",
-              taxType: "NONE",
+              taxType: "OUTPUT",
               quantity: 20,
               unitAmount: 100.00,
-              accountCode: "500"
+              accountCode: "200"
             }
           ]
         }
@@ -2215,7 +2207,7 @@ class App {
             quote
           ]
         }
-        const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant.tenantId, quotes, true)
+        const createQuotes = await xero.accountingApi.updateOrCreateQuotes(req.session.activeTenant.tenantId, quotes)
         const quoteId = createQuotes.body.quotes[0].quoteID
 
         const filename = "xero-dev.png";
@@ -2494,13 +2486,15 @@ class App {
 
     router.get("/leave-application", async (req: Request, res: Response) => {
       try {
+        const leaveItems = await xero.payrollAUApi.getLeaveApplications(req.session.activeTenant.tenantId)
         // createLeaveApplication
         // getLeaveApplication
-        // getLeaveApplications
         // updateLeaveApplication
 
         res.render("leave-application", {
-          authenticated: this.authenticationData(req, res)
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          leaveItems: leaveItems.body.leaveApplications
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2514,10 +2508,12 @@ class App {
     router.get("/pay-item", async (req: Request, res: Response) => {
       try {
         // createPayItem
-        // getPayItems
+        const payItems = await xero.payrollAUApi.getPayItems(req.session.activeTenant.tenantId)
 
         res.render("pay-item", {
-          authenticated: this.authenticationData(req, res)
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          payItems: payItems.body.payItems
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2530,13 +2526,15 @@ class App {
 
     router.get("/pay-run", async (req: Request, res: Response) => {
       try {
+        const payRuns = await xero.payrollAUApi.getPayRuns(req.session.activeTenant.tenantId)
         // createPayRun
         // getPayRun
-        // getPayRuns
         // updatePayRun
 
         res.render("pay-run", {
-          authenticated: this.authenticationData(req, res)
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          payRuns: payRuns.body.payRuns
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2551,10 +2549,12 @@ class App {
       try {
         // createPayrollCalendar
         // getPayrollCalendar
-        // getPayrollCalendars
+        const getPayrollCalendars = await xero.payrollAUApi.getPayrollCalendars(req.session.activeTenant.tenantId)
 
         res.render("payroll-calendar", {
-          authenticated: this.authenticationData(req, res)
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          getPayrollCalendars: getPayrollCalendars.body.payrollCalendars
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2567,14 +2567,16 @@ class App {
 
     router.get("/superfund", async (req: Request, res: Response) => {
       try {
-        // createSuperfund
+        const getSuperfunds = await xero.payrollAUApi.getSuperfunds(req.session.activeTenant.tenantId)
         // getSuperfund
+        // createSuperfund
         // getSuperfundProducts
-        // getSuperfunds
         // updateSuperfund
 
         res.render("superfund", {
-          authenticated: this.authenticationData(req, res)
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          getSuperFunds: getSuperfunds.body.superFunds
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2589,12 +2591,13 @@ class App {
       try {
         // getTimesheets
         const response = await xero.payrollAUApi.getTimesheets(req.session.activeTenant.tenantId);
-        console.log(response.body);
+
         // createTimesheet
         // getTimesheet
         // updateTimesheet
 
         res.render("timesheet", {
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           timeSheets: response.body.timesheets
         });
@@ -2630,18 +2633,24 @@ class App {
           status: EmployeeStatus.ACTIVE,
           gender: AUPayrollEmployee.GenderEnum.M,
           email: 'first.last@acme.com',
-          dateOfBirth: '1990-04-20',
+          dateOfBirth: xero.formatMsDate('1990-04-20'),
           phone: '555-555-5555',
-          startDate: '2020-01-13',
+          startDate: xero.formatMsDate('2020-01-13'),
           ordinaryEarningsRateID: earningsRate[0].earningsRateID,
           payrollCalendarID: calendarResponse.body.payrollCalendars[0].payrollCalendarID,
           homeAddress: homeAddress,
         };
         const createEmployeeResponse = await xero.payrollAUApi.createEmployee(req.session.activeTenant.tenantId, [employee]);
-        console.log(createEmployeeResponse.body);
+
+        // @Rett 
+        // So there is no createPayslip function in the spec
+        // https://github.com/XeroAPI/Xero-OpenAPI/blob/master/payroll-au-yaml/xero-payroll-au.yaml#L875
+        // you mentioned Sid might have said thats not there for a reason?
+        // cus it looks like we are missing one: https://developer.xero.com/documentation/payroll-api/payslip#POST
 
         res.render("payslip", {
-          authenticated: this.authenticationData(req, res)
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
         });
       } catch (e) {
         res.status(res.statusCode);

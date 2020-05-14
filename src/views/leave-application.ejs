@@ -7,7 +7,13 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p><strong>Leave Items:</strong> <%= leaveItems %></p>
+          <p><strong>Leave Items:</strong>
+          <ul>
+            <% for(var i=0; i < leaveItems.length; i++) { %>
+              <li><%- JSON.stringify(leaveItems[i], null, 2).replace(/[{}]/g, '') %></li>
+              <br>
+            <% } %>
+          </ul>
         </div>
       </div>
     </div>

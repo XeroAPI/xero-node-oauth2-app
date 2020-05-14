@@ -7,7 +7,13 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p><strong>Payroll Calendar:</strong> <%= payrollCalendar %></p>
+          <p><strong>Pay Calendars:</strong>
+          <ul>
+            <% for(var i=0; i < getPayrollCalendars.length; i++) { %>
+              <li><%- JSON.stringify(getPayrollCalendars[i], null, 2).replace(/[{}]/g, '') %></li>
+              <br>
+            <% } %>
+          </ul>
         </div>
       </div>
     </div>
