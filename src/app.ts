@@ -2595,7 +2595,8 @@ class App {
         // updateTimesheet
 
         res.render("timesheet", {
-          authenticated: this.authenticationData(req, res)
+          authenticated: this.authenticationData(req, res),
+          timeSheets: response.body.timesheets
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2608,10 +2609,6 @@ class App {
 
     router.get("/payslip", async (req: Request, res: Response) => {
       try {
-        // getPayslip
-        // updatePayslipByID
-        // spec needs change to update payslip
-
         // we need an earnings rate
         const rateResponse = await xero.payrollAUApi.getPayItems(req.session.activeTenant.tenantId);
         const earningsRate = rateResponse.body.payItems.earningsRates.filter(x => x.earningsType === EarningsType.ORDINARYTIMEEARNINGS);
@@ -2657,7 +2654,6 @@ class App {
 
     router.get("/payroll-au-settings", async (req: Request, res: Response) => {
       try {
-        // getSettings
         const getPayrollSettingsResponse = await xero.payrollAUApi.getSettings(req.session.activeTenant.tenantId);
 
         res.render("payroll-au-settings", {
@@ -2679,11 +2675,8 @@ class App {
 
     router.get("/bankfeed-connections", async (req: Request, res: Response) => {
       try {
-        // getFeedConnections
         const getBankfeedsResponse = await xero.bankFeedsApi.getFeedConnections(req.session.activeTenant.tenantId);
 
-        // ID is not able to be passed into create POST
-        // need to update spec
         const feedConnections: any = {
           items: [
             {
@@ -2701,10 +2694,8 @@ class App {
         // DB needs a bit of time to persist creation
         await sleep(3000);
 
-        // getFeedConnection
         const getBankfeedResponse = await xero.bankFeedsApi.getFeedConnection(req.session.activeTenant.tenantId, createBankfeedResponse.body.items[0].id);
 
-        // deleteFeedConnections
         const deleteConnection: FeedConnections = {
           items: [
             {
@@ -2733,12 +2724,9 @@ class App {
 
     router.get("/bankfeed-statements", async (req: Request, res: Response) => {
       try {
-        // getStatements
         const getStatementsResponse = await xero.bankFeedsApi.getStatements(req.session.activeTenant.tenantId);
 
-        // createStatements
         // we're going to need a feed connection first
-        // createFeedConnections
         const feedConnections: FeedConnections = {
           items: [
             {
@@ -2794,9 +2782,8 @@ class App {
             }
           ]
         };
-        const createStatementResponse = await xero.bankFeedsApi.createStatements(req.session.activeTenant.tenantId, statements);
+        const createStatementResponse = await xero.bankFeedsApi.(req.session.activeTenant.tenantId, statements);
 
-        // getStatement
         const getStatementResponse = await xero.bankFeedsApi.getStatement(req.session.activeTenant.tenantId, createStatementResponse.body.items[0].id);
 
         res.render("bankfeed-statements", {

@@ -7,7 +7,7 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p><strong>TimeSheets:</strong> <%= timeSheets %></p>
+          <p><strong>TimeSheets:</strong><%- JSON.stringify(timeSheets, null, 2).replace(/[{}]/g, '') %></p>
         </div>
       </div>
     </div>
