@@ -2782,7 +2782,7 @@ class App {
             }
           ]
         };
-        const createStatementResponse = await xero.bankFeedsApi.(req.session.activeTenant.tenantId, statements);
+        const createStatementResponse = await xero.bankFeedsApi.createStatements(req.session.activeTenant.tenantId, statements);
 
         const getStatementResponse = await xero.bankFeedsApi.getStatement(req.session.activeTenant.tenantId, createStatementResponse.body.items[0].id);
 
