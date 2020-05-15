@@ -141,7 +141,8 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
-      if(req.session.tokenSet) { // if no tokenSet was set
+      if(req.session.tokenSet) {
+        // This reset the session and required data on the xero client after ts recompile
         await xero.setTokenSet(req.session.tokenSet)
         await xero.updateTenants()
       }
@@ -2439,8 +2440,8 @@ class App {
     });
 
     // ******************************************************************************************************************** payroll-au
-    router.get("/payroll-au-employees", async (req: Request, res: Response) => {
 
+    router.get("/payroll-au-employees", async (req: Request, res: Response) => {
       try {
         // since we already have an Employee model in the Accounting API scope, we've imported and renamed like so:
         // import { Employee as AUPayrollEmployee } from 'xero-node/dist/gen/model/payroll-au/models';
@@ -2487,9 +2488,10 @@ class App {
     router.get("/leave-application", async (req: Request, res: Response) => {
       try {
         const leaveItems = await xero.payrollAUApi.getLeaveApplications(req.session.activeTenant.tenantId)
-        // createLeaveApplication
-        // getLeaveApplication
-        // updateLeaveApplication
+        
+        // xero.payrollAUApi.createLeaveApplication
+        // xero.payrollAUApi.getLeaveApplication
+        // xero.payrollAUApi.updateLeaveApplication
 
         res.render("leave-application", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2497,6 +2499,7 @@ class App {
           leaveItems: leaveItems.body.leaveApplications
         });
       } catch (e) {
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2507,8 +2510,9 @@ class App {
 
     router.get("/pay-item", async (req: Request, res: Response) => {
       try {
-        // createPayItem
         const payItems = await xero.payrollAUApi.getPayItems(req.session.activeTenant.tenantId)
+
+        // xero.payrollAUApi.createPayItem
 
         res.render("pay-item", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2516,6 +2520,7 @@ class App {
           payItems: payItems.body.payItems
         });
       } catch (e) {
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2527,9 +2532,10 @@ class App {
     router.get("/pay-run", async (req: Request, res: Response) => {
       try {
         const payRuns = await xero.payrollAUApi.getPayRuns(req.session.activeTenant.tenantId)
-        // createPayRun
-        // getPayRun
-        // updatePayRun
+        
+        // xero.payrollAUApi.createPayRun
+        // xero.payrollAUApi.getPayRun
+        // xero.payrollAUApi.updatePayRun
 
         res.render("pay-run", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2537,6 +2543,7 @@ class App {
           payRuns: payRuns.body.payRuns
         });
       } catch (e) {
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2547,8 +2554,8 @@ class App {
 
     router.get("/payroll-calendar", async (req: Request, res: Response) => {
       try {
-        // createPayrollCalendar
-        // getPayrollCalendar
+        // xero.payrollAUApi.createPayrollCalendar
+        // xero.payrollAUApi.getPayrollCalendar
         const getPayrollCalendars = await xero.payrollAUApi.getPayrollCalendars(req.session.activeTenant.tenantId)
 
         res.render("payroll-calendar", {
@@ -2557,6 +2564,7 @@ class App {
           getPayrollCalendars: getPayrollCalendars.body.payrollCalendars
         });
       } catch (e) {
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2568,10 +2576,10 @@ class App {
     router.get("/superfund", async (req: Request, res: Response) => {
       try {
         const getSuperfunds = await xero.payrollAUApi.getSuperfunds(req.session.activeTenant.tenantId)
-        // getSuperfund
-        // createSuperfund
-        // getSuperfundProducts
-        // updateSuperfund
+        // xero.payrollAUApi.getSuperfund
+        // xero.payrollAUApi.createSuperfund
+        // xero.payrollAUApi.getSuperfundProducts
+        // xero.payrollAUApi.updateSuperfund
 
         res.render("superfund", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2579,6 +2587,7 @@ class App {
           getSuperFunds: getSuperfunds.body.superFunds
         });
       } catch (e) {
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2589,12 +2598,12 @@ class App {
 
     router.get("/timesheet", async (req: Request, res: Response) => {
       try {
-        // getTimesheets
+        // xero.payrollAUApi.getTimesheets
         const response = await xero.payrollAUApi.getTimesheets(req.session.activeTenant.tenantId);
 
-        // createTimesheet
-        // getTimesheet
-        // updateTimesheet
+        // xero.payrollAUApi.createTimesheet
+        // xero.payrollAUApi.getTimesheet
+        // xero.payrollAUApi.updateTimesheet
 
         res.render("timesheet", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2602,6 +2611,7 @@ class App {
           timeSheets: response.body.timesheets
         });
       } catch (e) {
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2612,47 +2622,15 @@ class App {
 
     router.get("/payslip", async (req: Request, res: Response) => {
       try {
-        // we need an earnings rate
-        const rateResponse = await xero.payrollAUApi.getPayItems(req.session.activeTenant.tenantId);
-        const earningsRate = rateResponse.body.payItems.earningsRates.filter(x => x.earningsType === EarningsType.ORDINARYTIMEEARNINGS);
-
-        // we need a payroll calendar
-        const calendarResponse = await xero.payrollAUApi.getPayrollCalendars(req.session.activeTenant.tenantId);
-
-        // we need to create an employee
-        const homeAddress: HomeAddress = {
-          addressLine1: "1",
-          city: "Island Bay",
-          region: State.QLD,
-          postalCode: "6023",
-          country: "AUSTRALIA"
-        };
-        const employee: AUPayrollEmployee = {
-          firstName: 'Bob',
-          lastName: `Smith ${Helper.getRandomNumber(1000)}`,
-          status: EmployeeStatus.ACTIVE,
-          gender: AUPayrollEmployee.GenderEnum.M,
-          email: 'first.last@acme.com',
-          dateOfBirth: xero.formatMsDate('1990-04-20'),
-          phone: '555-555-5555',
-          startDate: xero.formatMsDate('2020-01-13'),
-          ordinaryEarningsRateID: earningsRate[0].earningsRateID,
-          payrollCalendarID: calendarResponse.body.payrollCalendars[0].payrollCalendarID,
-          homeAddress: homeAddress,
-        };
-        const createEmployeeResponse = await xero.payrollAUApi.createEmployee(req.session.activeTenant.tenantId, [employee]);
-
-        // @Rett 
-        // So there is no createPayslip function in the spec
-        // https://github.com/XeroAPI/Xero-OpenAPI/blob/master/payroll-au-yaml/xero-payroll-au.yaml#L875
-        // you mentioned Sid might have said thats not there for a reason?
-        // cus it looks like we are missing one: https://developer.xero.com/documentation/payroll-api/payslip#POST
+        // xero.payrollAUApi.getPayslip
+        // xero.payrollAUApi.updatePayslipByID
 
         res.render("payslip", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
         });
       } catch (e) {
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2671,6 +2649,7 @@ class App {
           payrollSettings: getPayrollSettingsResponse.body
         });
       } catch (e) {
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2678,7 +2657,6 @@ class App {
         });
       }
     });
-
 
     // ******************************************************************************************************************** BANKFEEDS API
 
@@ -2723,6 +2701,7 @@ class App {
           deleted: deleteBankfeedResponse.response.statusCode
         });
       } catch (e) {
+        console.log('Do you have XeroAPI permissions to work with this endpoint? (https://developer.xero.com/documentation/bank-feeds-api/overview)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -2749,12 +2728,6 @@ class App {
           ]
         };
         const createBankfeedResponse = await xero.bankFeedsApi.createFeedConnections(req.session.activeTenant.tenantId, feedConnections);
-
-        const sleep = (ms) => {
-          return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-          });
-        };
 
         await sleep(3000);
 
@@ -2803,6 +2776,7 @@ class App {
           get: getStatementResponse.body
         });
       } catch (e) {
+        console.log('Do you have XeroAPI permissions to work with this endpoint? (https://developer.xero.com/documentation/bank-feeds-api/overview)')
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
