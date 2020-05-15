@@ -65,7 +65,6 @@ import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/ass
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
 import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, EarningsType } from 'xero-node/dist/gen/model/payroll-au/models';
 import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
-import { disconnect } from "cluster";
 
 const session = require("express-session");
 var FileStore = require('session-file-store')(session);
