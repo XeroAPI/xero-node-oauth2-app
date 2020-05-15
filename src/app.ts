@@ -181,7 +181,6 @@ class App {
         req.session.tokenSet = tokenSet
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
-        const authData = this.authenticationData(req, res)
 
         res.render("callback", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1318,7 +1317,7 @@ class App {
         res.render("journals", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          count: apiResponse.body.journals.length
+          journals: apiResponse.body.journals
         });
       } catch (e) {
         res.status(res.statusCode);
