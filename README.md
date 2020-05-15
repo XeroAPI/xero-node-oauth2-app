@@ -50,19 +50,18 @@ However, please be aware that based on the Organisation region, chart of account
 
 # Token Management
 
-Since typescript will recompile each time the `src` directory is saved this can be challenging as the session is wiped out for each server change. To help with this we've set it up to store your previous session in a `/sessions/` file. This will enable you to persist the tokenSet, and other utilized data such as the `activeTenant` between sessions.
+Since typescript will recompile each time the `src` directory is saved this can be a painpoint as the session is wiped out for each server change which includes the tokenSet. To help with this we've set it up to store your previous session in a `/sessions/` file as a low tech/dependency database for this repo. This will enable you to persist the tokenSet, and other utilized data such as the `activeTenant` between re-compiles.
 
 Occasionaly the file based session storage can get out of whack -`UnhandledPromiseRejectionWarning: #<Object>` If you find node hanging on that you can simply delete the sessions in that `/sessions/` folder and start fresh.
+
+### IMPORTANT
+**Between each session restart - you will need to visit the root route "/" in order to set the session back onto the XeroClient**
+
+We recommend setting up a proper datastore in your production usage of the `xero-node` project.
 
 # Multiple Organisations
 
 Once you have connected to a Xero org, to connect to an additional org by clicking the Xero logo in the header. This will take you through the auth flow where you can select additional orgs to authorize. You can then choose from a dropdown which tenant you would like to pass to your api calls. Having > 1 org authenticated will also unlock some functionality like the `/disconnect` route.
-
-### IMPORTANT
-However to reduce code complexity, **between each session restart - you will need to visit the root route "/" in order to set the session variables** needed on the XeroClient.
-
-We recommend setting up a proper datastore in your production usage of the `xero-node` project.
-
 
 ## Debugging
 
@@ -78,7 +77,6 @@ response.body.invoices[i].validationErrors
 ```
 
 Also be aware that due to the size of Xero's many API sets, return errors may be structured a bit differently depending on which API set you are working with.
-
 
 ## Contributing
 You are very welcome to add/improve functionality - we will continue to make improvements that show more complex API usage like filter/sorting, paginating, and will add more CRUD workflows as new API sets are added to the xero-node SDK. Please open an issue if something is not working correctly.
