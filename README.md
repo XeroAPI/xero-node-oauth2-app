@@ -56,7 +56,7 @@ Occasionaly the file based session storage can get out of whack -`UnhandledPromi
 
 # Multiple Organisations
 
-Once you have connected to a Xero org, to connect to an additional simply click the Xero logo in the header. This will take you through the auth flow an additional time where you can select an additional org to authorize. This will then enable you to choose from a dropdown which tenantId you would like to pass to your api calls, and will also unlock some other functionality like the "/disconnect" route.
+Once you have connected to a Xero org, to connect to an additional org by clicking the Xero logo in the header. This will take you through the auth flow where you can select additional orgs to authorize. You can then choose from a dropdown which tenant you would like to pass to your api calls. Having > 1 org authenticated will also unlock some functionality like the `/disconnect` route.
 
 ### IMPORTANT
 However to reduce code complexity, **between each session restart - you will need to visit the root route "/" in order to set the session variables** needed on the XeroClient.
