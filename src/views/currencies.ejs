@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <%- include('shared/head') -%>
+<<<<<<< HEAD
 
 <body>
   <%- include('shared/nav') -%>
@@ -16,4 +17,20 @@
     </div>
   </div>
 </body>
+=======
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <h4>Currencies:</h4>
+          <% for(var i=0; i < currencies.length; i++) { %>
+          <p><i><%= currencies[i].code %></i> - <%= currencies[i].description %></p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </body>
+>>>>>>> master
 </html>

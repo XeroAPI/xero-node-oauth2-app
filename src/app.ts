@@ -181,6 +181,15 @@ class App {
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
 
+        // TODO - persist token to a file, and read tokenSet from that if it is not expired
+
+        // fs.writeFile("/tokenSet.json", token, function(err) {
+        //     if(err) {
+        //         return console.log(err);
+        //     }
+        //     console.log("The file was saved!");
+        // }); 
+
         res.render("callback", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
@@ -494,7 +503,6 @@ class App {
         }
         const bankTransfers: BankTransfers = { bankTransfers: [bankTransfer] }
         const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant.tenantId, bankTransfers);
-
         // GET ONE
         const getBankTransfer = await xero.accountingApi.getBankTransfer(req.session.activeTenant.tenantId, createBankTransfer.body.bankTransfers[0].bankTransferID)
 
@@ -919,6 +927,7 @@ class App {
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant.tenantId);
+        
         // CREATE - only works once per currency code
         // const newCurrency: Currency = {
         //   code: CurrencyCode.GBP,
@@ -1020,6 +1029,9 @@ class App {
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
         const selfContact = contactsResponse.body.contacts.filter(contact => contact.emailAddress === req.session.decodedIdToken.email);
 
+        const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + AccountType.EXPENSE + '"';
+        const getAccountsResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId, null, where);
+
         const invoice1: Invoice = {
           type: Invoice.TypeEnum.ACCREC,
           contact: {
@@ -1045,14 +1057,14 @@ class App {
               taxType: "NONE",
               quantity: 20,
               unitAmount: 100.00,
-              accountCode: "200"
+              accountCode: getAccountsResponse.body.accounts[0].code
             },
             {
               description: "Mega Consulting services",
               taxType: "NONE",
               quantity: 10,
               unitAmount: 500.00,
-              accountCode: "200"
+              accountCode: getAccountsResponse.body.accounts[0].code
             }
           ]
         }
