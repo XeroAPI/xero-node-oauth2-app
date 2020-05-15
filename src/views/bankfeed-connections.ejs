@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p><strong>Bankfeeds: Count:</strong> <%= bankfeeds %></p>
+        <p><strong>Bankfeeds: Create:</strong> <%= created %></p>
+        <p><strong>Bankfeeds: Get:</strong> <%= get %></p>
+        <p><strong>Bankfeeds: Delete status code:</strong> <%= deleted %></p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

@@ -1,15 +1,19 @@
 <!doctype html>
 <html>
   <%- include('shared/head') -%>
-
   <body>
     <%- include('shared/nav') -%>
     <div class='core-content'>
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p>Payment Services success: Count: <%= count %></p>
-          <p>Payment Services success: Created: <%= create %></p>
+          <p><strong>Pay Runs:</strong>
+          <ul>
+            <% for(var i=0; i < payRuns.length; i++) { %>
+              <li><%- JSON.stringify(payRuns[i], null, 2).replace(/[{}]/g, '') %></li>
+              <br>
+            <% } %>
+          </ul>
         </div>
       </div>
     </div>

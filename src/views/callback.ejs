@@ -19,6 +19,7 @@
           <% if (authenticated.decodedIdToken && authenticated.decodedAccessToken) { %>
             <h4 id='authenticated'>You are authenticated with: <span><%= authenticated.activeTenant.orgData.name %></span></h4>
             <hr>
+            <h5>Token Expires: <span style='font-weight:normal;'><%= authenticated.accessTokenExpires %></span></h5>
             <h4>Active Tenant:</h2>
             <pre>
               <code class='language-javascript'>

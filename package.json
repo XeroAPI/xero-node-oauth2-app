@@ -38,6 +38,7 @@
     "module-alias": "^2.2.2",
     "nodemon": "^1.19.4",
     "path": "^0.12.7",
-    "xero-node": "^4.5.2"
+    "session-file-store": "^1.4.0",
+    "xero-node": "^4.6.0"
   }
 }
