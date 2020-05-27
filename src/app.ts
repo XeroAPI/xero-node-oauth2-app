@@ -217,9 +217,9 @@ class App {
     router.get("/refresh-token", async (req: Request, res: Response) => {
       try {
         const tokenSet = await xero.readTokenSet();
-        console.log('token expires in: ', tokenSet.expires_in / 60, ' minutes')
-        console.log('tokenSet.expires_at ',tokenSet.expires_at)
-        console.log('token expires at: ', new Date(tokenSet.expires_at * 1000).toLocaleString())
+        console.log('token expires in:', tokenSet.expires_in, 'seconds')
+        console.log('tokenSet.expires_at:',tokenSet.expires_at, 'milliseconds')
+        console.log('Readable expiration:', new Date(tokenSet.expires_at * 1000).toLocaleString())
         
         const now = new Date().getTime()
         if (tokenSet.expires_in > now) {
@@ -1798,30 +1798,6 @@ class App {
           allocation: prepaymentAllocationResponse.body.allocations[0].amount,
           remainingCredit: getPrepaymentResponse.body.prepayments[0].remainingCredit
         });
-      } catch (e) {
-        res.status(res.statusCode);
-        res.render("shared/error", {
-          consentUrl: await xero.buildConsentUrl(),
-          error: e
-        });
-      }
-    });
-
-    router.get("/prepayment-as-pdf", async (req: Request, res: Response) => {
-      try {
-        // GET ALL
-        const getPrepayments = await xero.accountingApi.getPrepayments(req.session.activeTenant.tenantId);
-        // GET one as PDF
-        const prepayid = getPrepayments.body.prepayments.pop().prepaymentID
-        console.log('prepayid: ',prepayid)
-        const getAsPdf = await xero.accountingApi.getPrepaymentAsPdf(
-          req.session.activeTenant.tenantId,
-          prepayid,
-          { headers: { accept: 'application/pdf' } }
-        )
-        res.setHeader('Content-Disposition', 'attachment; filename=prepayment-as-pdf.pdf');
-        res.contentType("application/pdf");
-        res.send(getAsPdf.body);
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
