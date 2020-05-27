@@ -181,15 +181,6 @@ class App {
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
 
-        // TODO - persist token to a file, and read tokenSet from that if it is not expired
-
-        // fs.writeFile("/tokenSet.json", token, function(err) {
-        //     if(err) {
-        //         return console.log(err);
-        //     }
-        //     console.log("The file was saved!");
-        // }); 
-
         res.render("callback", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
@@ -1802,6 +1793,30 @@ class App {
           allocation: prepaymentAllocationResponse.body.allocations[0].amount,
           remainingCredit: getPrepaymentResponse.body.prepayments[0].remainingCredit
         });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/prepayment-as-pdf", async (req: Request, res: Response) => {
+      try {
+        // GET ALL
+        const getPrepayments = await xero.accountingApi.getPrepayments(req.session.activeTenant.tenantId);
+        // GET one as PDF
+        const prepayid = getPrepayments.body.prepayments.pop().prepaymentID
+        console.log('prepayid: ',prepayid)
+        const getAsPdf = await xero.accountingApi.getPrepaymentAsPdf(
+          req.session.activeTenant.tenantId,
+          prepayid,
+          { headers: { accept: 'application/pdf' } }
+        )
+        res.setHeader('Content-Disposition', 'attachment; filename=prepayment-as-pdf.pdf');
+        res.contentType("application/pdf");
+        res.send(getAsPdf.body);
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
