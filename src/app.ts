@@ -65,6 +65,7 @@ import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/ass
 import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
 import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, EarningsType } from 'xero-node/dist/gen/model/payroll-au/models';
 import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
+import { Employee as UKPayrollEmployee } from 'xero-node/dist/gen/model/payroll-uk/models';
 
 const session = require("express-session");
 var FileStore = require('session-file-store')(session);
@@ -140,7 +141,7 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
-      if(req.session.tokenSet) {
+      if (req.session.tokenSet) {
         // This reset the session and required data on the xero client after ts recompile
         await xero.setTokenSet(req.session.tokenSet)
         await xero.updateTenants()
@@ -218,16 +219,16 @@ class App {
       try {
         const tokenSet = await xero.readTokenSet();
         console.log('token expires in:', tokenSet.expires_in, 'seconds')
-        console.log('tokenSet.expires_at:',tokenSet.expires_at, 'milliseconds')
+        console.log('tokenSet.expires_at:', tokenSet.expires_at, 'milliseconds')
         console.log('Readable expiration:', new Date(tokenSet.expires_at * 1000).toLocaleString())
-        
+
         const now = new Date().getTime()
         if (tokenSet.expires_in > now) {
           console.log('token is currently expired: ', tokenSet)
         } else {
           console.log('tokenSet is not expired!')
         }
-        
+
         // you can refresh the token using the fully initialized client levereging openid-client
         await xero.refreshToken()
 
@@ -495,7 +496,7 @@ class App {
             accountID: acc2.accountID,
             name: acc2.name
           },
-          amount: '1000'
+          amount: 1000
         }
         const bankTransfers: BankTransfers = { bankTransfers: [bankTransfer] }
         const createBankTransfer = await xero.accountingApi.createBankTransfer(req.session.activeTenant.tenantId, bankTransfers);
@@ -923,7 +924,7 @@ class App {
       try {
         //GET ALL
         const apiResponse = await xero.accountingApi.getCurrencies(req.session.activeTenant.tenantId);
-        
+
         // CREATE - only works once per currency code
         // const newCurrency: Currency = {
         //   code: CurrencyCode.GBP,
@@ -2074,7 +2075,7 @@ class App {
       try {
         //GET ALL
         const getAllResponse = await xero.accountingApi.getTaxRates(req.session.activeTenant.tenantId);
-        
+
         const newTaxRate: TaxRate = {
           name: `Tax Rate Name ${Helper.getRandomNumber(1000000)}`,
           reportTaxType: undefined, // Aus, Nz will require this to be set from: TaxRate.ReportTaxTypeEnum...
@@ -2464,7 +2465,7 @@ class App {
           dateOfBirth: xero.formatMsDate("1990-02-05"),
           homeAddress: homeAddress
         }
-        
+
         const createEmployee = await xero.payrollAUApi.createEmployee(req.session.activeTenant.tenantId, [employee])
 
         const getEmployees = await xero.payrollAUApi.getEmployees(req.session.activeTenant.tenantId)
@@ -2473,7 +2474,7 @@ class App {
         updatedEmployee.firstName = 'Chuck'
 
         const updateEmployee = await xero.payrollAUApi.updateEmployee(req.session.activeTenant.tenantId, getEmployees.body.employees[0].employeeID, [updatedEmployee])
-        
+
         res.render("payroll-au-employee", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
@@ -2494,7 +2495,7 @@ class App {
     router.get("/leave-application", async (req: Request, res: Response) => {
       try {
         const leaveItems = await xero.payrollAUApi.getLeaveApplications(req.session.activeTenant.tenantId)
-        
+
         // xero.payrollAUApi.createLeaveApplication
         // xero.payrollAUApi.getLeaveApplication
         // xero.payrollAUApi.updateLeaveApplication
@@ -2538,7 +2539,7 @@ class App {
     router.get("/pay-run", async (req: Request, res: Response) => {
       try {
         const payRuns = await xero.payrollAUApi.getPayRuns(req.session.activeTenant.tenantId)
-        
+
         // xero.payrollAUApi.createPayRun
         // xero.payrollAUApi.getPayRun
         // xero.payrollAUApi.updatePayRun
@@ -2783,6 +2784,436 @@ class App {
         });
       } catch (e) {
         console.log('Do you have XeroAPI permissions to work with this endpoint? (https://developer.xero.com/documentation/bank-feeds-api/overview)')
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    // ******************************************************************************************************************** payroll-uk
+
+    router.get("/payroll-au-employees", async (req: Request, res: Response) => {
+      try {
+        // since we already have an Employee model in the Accounting API scope, we've imported and renamed like so:
+        // import { Employee as AUPayrollEmployee } from 'xero-node/dist/gen/model/payroll-au/models';
+        const homeAddress: HomeAddress = {
+          addressLine1: "1",
+          city: "Island Bay",
+          region: State.QLD,
+          postalCode: "6023",
+          country: "AUSTRALIA"
+        }
+        const employee: AUPayrollEmployee = {
+          firstName: 'Charlie',
+          lastName: 'Chaplin',
+          dateOfBirth: xero.formatMsDate("1990-02-05"),
+          homeAddress: homeAddress
+        }
+
+        const createEmployee = await xero.payrollAUApi.createEmployee(req.session.activeTenant.tenantId, [employee])
+
+        const getEmployees = await xero.payrollAUApi.getEmployees(req.session.activeTenant.tenantId)
+
+        const updatedEmployee = employee
+        updatedEmployee.firstName = 'Chuck'
+
+        const updateEmployee = await xero.payrollAUApi.updateEmployee(req.session.activeTenant.tenantId, getEmployees.body.employees[0].employeeID, [updatedEmployee])
+
+        res.render("payroll-au-employee", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          getEmployees: getEmployees.body.employees,
+          createdEmployee: createEmployee.body.employees[0],
+          updateEmployee: updateEmployee.body.employees[0]
+        });
+      } catch (e) {
+        console.log('Are you using an Australia Org with the Payroll settings completed? (https://payroll.xero.com/Dashboard/Details)')
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/payroll-uk-employees", async (req: Request, res: Response) => {
+      try {
+        const getEmployeesResponse = await xero.payrollUKApi.getEmployees(req.session.activeTenant.tenantId);
+
+        const employee: UKPayrollEmployee = {
+          title: "Mr",
+          firstName: "Edgar",
+          lastName: "Allan Po",
+          dateOfBirth: "1985-03-24",
+          gender: UKPayrollEmployee.GenderEnum.M,
+          email: "tester@gmail.com",
+          phoneNumber: "0400123456",
+          address: {
+            "addressLine1": "171 Midsummer",
+            "city": "Milton Keyness",
+            "postCode": "MK9 1EB"
+          }
+        };
+
+        const createEmployeeResponse = await xero.payrollUKApi.createEmployee(req.session.activeTenant.tenantId, employee);
+
+        const getEmployeeResponse = await xero.payrollUKApi.getEmployee(req.session.activeTenant.tenantId, createEmployeeResponse.body.employee.employeeID);
+
+        const updatedEmployee = employee;
+        updatedEmployee.email = 'thetelltaleheart@gmail.com';
+
+        const updateEmployeeResponse = await xero.payrollUKApi.updateEmployee(req.session.activeTenant.tenantId, createEmployeeResponse.body.employee.employeeID, updatedEmployee);
+        console.log(updateEmployeeResponse.body);
+
+        res.render("payroll-uk-employees", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          employees: getEmployeesResponse.body
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employment", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.createEmployment
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employees-tax", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeeTax
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employee-opening-balances", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeeOpeningBalances
+        // xero.payrollUKApi.createEmployeeOpeningBalances
+        // xero.payrollUKApi.updateEmployeeOpeningBalances
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employees-leave", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeeLeaves
+        // xero.payrollUKApi.createEmployeeLeave
+        // xero.payrollUKApi.getEmployeeLeave
+        // xero.payrollUKApi.updateEmployeeLeave
+        // xero.payrollUKApi.deleteEmployeeLeave
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employees-leave-balances", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeeLeaveBalances
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employees-statutory-leave-balances", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeeStatutoryLeaveBalances
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employees-statutory-leave-summary", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getStatutoryLeaveSummary
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employees-statutory-sick-leave", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeeStatutorySickLeave
+        // xero.payrollUKApi.createEmployeeStatutorySickLeave
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employees-leave-periods", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeeLeavePeriods
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employees-leave-types", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeeLeaveTypes
+        // xero.payrollUKApi.createEmployeeLeaveType
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employees-pay-templates", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeePayTemplate
+        // xero.payrollUKApi.createEmployeeEarningsTemplate
+        // xero.payrollUKApi.updateEmployeeEarningsTemplate
+        // xero.payrollUKApi.createMultipleEmployeeEarningsTemplate
+        // xero.payrollUKApi.deleteEmployeeEarningsTemplate
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("employer-pensions", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getBenefits
+        // xero.payrollUKApi.createBenefit
+        // xero.payrollUKApi.getBenefit
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("deductions", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getDeductions
+        // xero.payrollUKApi.createDeduction
+        // xero.payrollUKApi.getDeduction
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("earnings-orders", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEarningsOrder
+        // xero.payrollUKApi.getEarningsOrders
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("earnings-rates", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.createEarningsRate
+        // xero.payrollUKApi.getEarningsRate
+        // xero.payrollUKApi.getEarningsRates
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("leave-types", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getLeaveType
+        // xero.payrollUKApi.getLeaveTypes
+        // xero.payrollUKApi.createLeaveType
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("reimbursements", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getReimbursement
+        // xero.payrollUKApi.getReimbursements
+        // xero.payrollUKApi.createReimbursement
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("timesheets", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getTimesheet
+        // xero.payrollUKApi.getTimesheets
+        // xero.payrollUKApi.createTimesheet
+        // xero.payrollUKApi.createTimesheetLine
+        // xero.payrollUKApi.updateTimesheetLine
+        // xero.payrollUKApi.approveTimesheet
+        // xero.payrollUKApi.revertTimesheet
+        // xero.payrollUKApi.deleteTimesheet
+        // xero.payrollUKApi.deleteTimesheetLine
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("payment-methods", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.createEmployeePaymentMethod
+        // xero.payrollUKApi.getEmployeePaymentMethod
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("pay-run-calendars", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getPayRunCalendar
+        // xero.payrollUKApi.getPayRunCalendars
+        // xero.payrollUKApi.createPayRunCalendar
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("salary-wages", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getEmployeeSalaryAndWages
+        // xero.payrollUKApi.getEmployeeSalaryAndWage
+        // xero.payrollUKApi.createEmployeeSalaryAndWage
+        // xero.payrollUKApi.updateEmployeeSalaryAndWage
+        // xero.payrollUKApi.deleteEmployeeSalaryAndWage
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("pay-runs", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getPayRuns
+        // xero.payrollUKApi.getPayRun
+        // xero.payrollUKApi.updatePayRun
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("payslips", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getPaySlip
+        // xero.payrollUKApi.getPayslips
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("settings", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getSettings
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("tracking-categories", async (req: Request, res: Response) => {
+      try {
+        // xero.payrollUKApi.getTrackingCategories
+      } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
