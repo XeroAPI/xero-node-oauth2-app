@@ -3150,11 +3150,16 @@ class App {
       }
     });
 
-    router.get("reimbursements", async (req: Request, res: Response) => {
+    router.get("/reimbursements", async (req: Request, res: Response) => {
       try {
+        const response = await xero.payrollUKApi.getReimbursements(req.session.activeTenant.tenantId);
         // xero.payrollUKApi.getReimbursement
-        // xero.payrollUKApi.getReimbursements
         // xero.payrollUKApi.createReimbursement
+        res.render("reimbursements", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          reimbursements: response.body.reimbursements
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -3164,10 +3169,10 @@ class App {
       }
     });
 
-    router.get("timesheets", async (req: Request, res: Response) => {
+    router.get("/timesheets", async (req: Request, res: Response) => {
       try {
+        const response = await xero.payrollUKApi.getTimesheets(req.session.activeTenant.tenantId);
         // xero.payrollUKApi.getTimesheet
-        // xero.payrollUKApi.getTimesheets
         // xero.payrollUKApi.createTimesheet
         // xero.payrollUKApi.createTimesheetLine
         // xero.payrollUKApi.updateTimesheetLine
@@ -3175,6 +3180,11 @@ class App {
         // xero.payrollUKApi.revertTimesheet
         // xero.payrollUKApi.deleteTimesheet
         // xero.payrollUKApi.deleteTimesheetLine
+        res.render("timesheets", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          timesheets: response.body.timesheets
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -3184,10 +3194,16 @@ class App {
       }
     });
 
-    router.get("payment-methods", async (req: Request, res: Response) => {
+    router.get("/payment-methods", async (req: Request, res: Response) => {
       try {
+        const getEmployeesResponse = await xero.payrollUKApi.getEmployees(req.session.activeTenant.tenantId);
+        const response = await xero.payrollUKApi.getEmployeePaymentMethod(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
         // xero.payrollUKApi.createEmployeePaymentMethod
-        // xero.payrollUKApi.getEmployeePaymentMethod
+        res.render("payment-methods", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          paymentMethod: response.body.paymentMethod
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -3197,11 +3213,16 @@ class App {
       }
     });
 
-    router.get("pay-run-calendars", async (req: Request, res: Response) => {
+    router.get("/pay-run-calendars", async (req: Request, res: Response) => {
       try {
+        const response = await xero.payrollUKApi.getPayRunCalendars(req.session.activeTenant.tenantId);
         // xero.payrollUKApi.getPayRunCalendar
-        // xero.payrollUKApi.getPayRunCalendars
         // xero.payrollUKApi.createPayRunCalendar
+        res.render("pay-run-calendars", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          payRunCalendars: response.body.payRunCalendars
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -3211,13 +3232,19 @@ class App {
       }
     });
 
-    router.get("salary-wages", async (req: Request, res: Response) => {
+    router.get("/salary-wages", async (req: Request, res: Response) => {
       try {
-        // xero.payrollUKApi.getEmployeeSalaryAndWages
+        const getEmployeesResponse = await xero.payrollUKApi.getEmployees(req.session.activeTenant.tenantId);
+        const response = await xero.payrollUKApi.getEmployeeSalaryAndWages(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
         // xero.payrollUKApi.getEmployeeSalaryAndWage
         // xero.payrollUKApi.createEmployeeSalaryAndWage
         // xero.payrollUKApi.updateEmployeeSalaryAndWage
         // xero.payrollUKApi.deleteEmployeeSalaryAndWage
+        res.render("salary-wages", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          salaryAndWages: response.body.salaryAndWages
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -3227,11 +3254,16 @@ class App {
       }
     });
 
-    router.get("pay-runs", async (req: Request, res: Response) => {
+    router.get("/pay-runs", async (req: Request, res: Response) => {
       try {
-        // xero.payrollUKApi.getPayRuns
+        const response = await xero.payrollUKApi.getPayRuns(req.session.activeTenant.tenantId);
         // xero.payrollUKApi.getPayRun
         // xero.payrollUKApi.updatePayRun
+        res.render("pay-runs", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          payRuns: response.body.payRuns
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -3241,10 +3273,16 @@ class App {
       }
     });
 
-    router.get("payslips", async (req: Request, res: Response) => {
+    router.get("/payslips", async (req: Request, res: Response) => {
       try {
+        const getPayRunsResponse = await xero.payrollUKApi.getPayRuns(req.session.activeTenant.tenantId);
+        const response = await xero.payrollUKApi.getPayslips(req.session.activeTenant.tenantId, getPayRunsResponse.body.payRuns[0].payRunID);
         // xero.payrollUKApi.getPaySlip
-        // xero.payrollUKApi.getPayslips
+        res.render("payslips", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          paySlips: response.body.paySlips
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -3254,9 +3292,14 @@ class App {
       }
     });
 
-    router.get("settings", async (req: Request, res: Response) => {
+    router.get("/settings", async (req: Request, res: Response) => {
       try {
-        // xero.payrollUKApi.getSettings
+        const response = await xero.payrollUKApi.getSettings(req.session.activeTenant.tenantId);
+        res.render("settings", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          settings: response.body.settings
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
@@ -3266,9 +3309,14 @@ class App {
       }
     });
 
-    router.get("tracking-categories", async (req: Request, res: Response) => {
+    router.get("/tracking-categories", async (req: Request, res: Response) => {
       try {
-        // xero.payrollUKApi.getTrackingCategories
+        const response = await xero.payrollUKApi.getTrackingCategories(req.session.activeTenant.tenantId);
+        res.render("tracking-categories", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          trackingCategories: response.body.trackingCategories
+        });
       } catch (e) {
         res.status(res.statusCode);
         res.render("shared/error", {
