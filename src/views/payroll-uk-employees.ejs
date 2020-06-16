@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p><strong>Get Payroll Employees:</strong> <%- JSON.stringify(employees, null, 2) %></p>
+        <p><strong>Create Payroll Employee:</strong> <%- JSON.stringify(created, null, 2) %></p>
+        <p><strong>Get Payroll Employee:</strong> <%- JSON.stringify(got, null, 2) %></p>
+        <p><strong>Update Payroll Employee:</strong> <%- JSON.stringify(updated, null, 2) %></p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
