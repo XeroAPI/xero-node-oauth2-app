@@ -172,11 +172,12 @@ class App {
 
         // this is where you can associate & save your
         // `tokenSet` to a user in your Database
-        const decodedIdToken: XeroIdToken = jwtDecode(tokenSet.id_token);
-        const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
-
         req.session.tokenSet = tokenSet
-        req.session.decodedIdToken = decodedIdToken
+        if (tokenSet.id_token) {
+          const decodedIdToken: XeroIdToken = jwtDecode(tokenSet.id_token)
+          req.session.decodedIdToken = decodedIdToken
+        }
+        const decodedAccessToken: XeroAccessToken = jwtDecode(tokenSet.access_token)
         req.session.decodedAccessToken = decodedAccessToken
         req.session.tokenSet = tokenSet
         req.session.allTenants = xero.tenants
