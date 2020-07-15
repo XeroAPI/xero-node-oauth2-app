@@ -303,17 +303,17 @@ class App {
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId);
 
         // CREATE
-        // const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
-        // const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account);
-        const accountId = accountsGetResponse.body.accounts[0].accountID;
+        const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
+        const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account);
+        const accountId = accountCreateResponse.body.accounts[0].accountID;
 
         // GET ONE
-        // const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant.tenantId, accountId);
+        const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant.tenantId, accountId);
 
         // UPDATE
-        // const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(1000000) };
-        // const accounts: Accounts = { accounts: [accountUp] };
-        // const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant.tenantId, accountId, accounts);
+        const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(1000000) };
+        const accounts: Accounts = { accounts: [accountUp] };
+        const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant.tenantId, accountId, accounts);
 
         // CREATE ATTACHMENT
         const filename = "xero-dev.png";
@@ -327,25 +327,25 @@ class App {
           }
         });
 
-        const attachment = JSON.parse(accountAttachmentsResponse.response['body'])
-        const attachmentId = attachment.Attachments[0].AttachmentID
+        const attachment = accountAttachmentsResponse.body
+        const attachmentId = attachment.attachments[0].attachmentID
 
         // GET ATTACHMENTS
-        // const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(req.session.activeTenant.tenantId, accountId);
+        const accountAttachmentsGetResponse = await xero.accountingApi.getAccountAttachments(req.session.activeTenant.tenantId, accountId);
 
         // GET ATTACHMENT BY ID
-        // const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant.tenantId, accountId, attachmentId, contentType);
-        // fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByIdResponse.body, (err) => {
-        //   if (err) { throw err; }
-        //   console.log("file written successfully");
-        // });
+        const accountAttachmentsGetByIdResponse = await xero.accountingApi.getAccountAttachmentById(req.session.activeTenant.tenantId, accountId, attachmentId, contentType);
+        fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByIdResponse.body, (err) => {
+          if (err) { throw err; }
+          console.log("file written successfully");
+        });
 
         // GET ATTACHMENT BY FILENAME
-        // const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(req.session.activeTenant.tenantId, accountId, filename, contentType);
-        // fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByFilenameResponse.body, (err) => {
-        //   if (err) { throw err; }
-        //   console.log("file written successfully");
-        // });
+        const accountAttachmentsGetByFilenameResponse = await xero.accountingApi.getAccountAttachmentByFileName(req.session.activeTenant.tenantId, accountId, filename, contentType);
+        fs.writeFile(`img-temp-${filename}`, accountAttachmentsGetByFilenameResponse.body, (err) => {
+          if (err) { throw err; }
+          console.log("file written successfully");
+        });
 
         // DELETE
         // let accountDeleteResponse = await xero.accountingApi.deleteAccount(req.session.activeTenant.tenantId, accountId);
@@ -354,10 +354,10 @@ class App {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           accountsCount: accountsGetResponse.body.accounts.length,
-          // getOneName: accountGetResponse.body.accounts[0].name,
-          // createName: accountCreateResponse.body.accounts[0].name,
-          // updateName: accountUpdateResponse.body.accounts[0].name,
-          // attachments: accountAttachmentsGetResponse.response['body'],
+          getOneName: accountGetResponse.body.accounts[0].name,
+          createName: accountCreateResponse.body.accounts[0].name,
+          updateName: accountUpdateResponse.body.accounts[0].name,
+          attachments: accountAttachmentsGetResponse.body,
           deleteName: 'un-comment to DELETE'
         });
       } catch (e) {
@@ -437,6 +437,18 @@ class App {
         // GET ONE
         const bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
         const bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(req.session.activeTenant.tenantId, bankTransactionId);
+
+        // CREATE ATTACHMENT
+        const filename = "xero-dev.png";
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
+        const readStream = fs.createReadStream(pathToUpload);
+        const contentType = mime.lookup(filename);
+
+        const bankTransactionAttachmentsResponse: any = await xero.accountingApi.createBankTransactionAttachmentByFileName(req.session.activeTenant.tenantId, bankTransactionId, filename, readStream, {
+          headers: {
+            'Content-Type': contentType
+          }
+        });
 
         // UPDATE status to deleted
         const bankTransactionUp = Object.assign({}, bankTransactionGetResponse.body.bankTransactions[0]);
@@ -881,7 +893,7 @@ class App {
         const getCreditNoteAttachmentByIdResponse = await xero.accountingApi.getCreditNoteAttachmentById(
           req.session.activeTenant.tenantId,
           createCreditNotesResponse.body.creditNotes[0].creditNoteID,
-          JSON.parse(getCreditNoteAttachmentsResponse.response['body']).Attachments[0].AttachmentID,
+          getCreditNoteAttachmentsResponse.body.attachments[0].attachmentID,
           contentType
         );
 
@@ -889,7 +901,7 @@ class App {
         const getCreditNoteAttachmentByFileNameResponse = await xero.accountingApi.getCreditNoteAttachmentByFileName(
           req.session.activeTenant.tenantId,
           createCreditNotesResponse.body.creditNotes[0].creditNoteID,
-          JSON.parse(getCreditNoteAttachmentsResponse.response['body']).Attachments[0].FileName,
+          getCreditNoteAttachmentsResponse.body.attachments[0].fileName,
           contentType
         );
 
@@ -903,10 +915,10 @@ class App {
           update: updateCreditNoteResponse.body.creditNotes[0].status,
           createHistoryRecord: createCreditNoteHistoryResponse.body.historyRecords[0].details,
           createAllocation: createCreditNoteAllocationResponse.body.allocations[0].amount,
-          createAttachmentByFileName: JSON.parse(createCreditNoteAttachmentByFileNameResponse.response['body']).Attachments[0].AttachmentID,
+          createAttachmentByFileName: createCreditNoteAttachmentByFileNameResponse.body.attachments[0].attachmentID,
           getOne: getCreditNoteResponse.body.creditNotes[0].contact.contactID,
           historyRecords: getCreditNoteHistoryResponse.body.historyRecords.length,
-          attachmentsCount: JSON.parse(getCreditNoteAttachmentsResponse.response['body']).Attachments.length,
+          attachmentsCount: getCreditNoteAttachmentsResponse.body.attachments.length,
           attachmentByID: getCreditNoteAttachmentByIdResponse.body,
           attachmentByFilName: getCreditNoteAttachmentByFileNameResponse.body,
           attachmentAsPDF: getCreditNoteAsPdfResponse.body
@@ -1242,7 +1254,7 @@ class App {
         res.render("attachment-invoice", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          attachments: JSON.parse(fileAttached.response['body'])
+          attachments: fileAttached.body
         });
 
       } catch (e) {
@@ -1501,11 +1513,11 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: getManualJournalsResponse.body.manualJournals.length,
           create: createManualJournalResponse.body.manualJournals[0].manualJournalID,
-          mjAttachmentByFileName: JSON.parse(createManualJournalAttachmentByFileNameResponse.response['body']),
+          mjAttachmentByFileName: createManualJournalAttachmentByFileNameResponse.body,
           getMJ: getManualJournalResponse.body.manualJournals[0].narration,
-          getMJAttachments: JSON.parse(getManualJournalAttachmentsResponse.response['body']),
-          getMJAttachmentByFileName: getManualJournalAttachmentByFileNameResponse.response['body'],
-          getMJAttachmentById: getManualJournalAttachmentByIdResponse.response['body'],
+          getMJAttachments: getManualJournalAttachmentsResponse.body,
+          getMJAttachmentByFileName: getManualJournalAttachmentByFileNameResponse.body,
+          getMJAttachmentById: getManualJournalAttachmentByIdResponse.body,
           updateMJ: updateManualJournalResponse.body.manualJournals[0].journalLines[0].description,
         });
       } catch (e) {
@@ -2237,7 +2249,7 @@ class App {
           count: getAllQuotes.body.quotes.length,
           getOneQuoteNumber: getOneQuote.body.quotes[0].quoteNumber,
           createdQuotesId: quoteId,
-          addQuoteAttachment: addQuoteAttachment.response['body']
+          addQuoteAttachment: addQuoteAttachment.body
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2822,7 +2834,6 @@ class App {
         updatedEmployee.email = 'thetelltaleheart@gmail.com';
 
         const updateEmployeeResponse = await xero.payrollUKApi.updateEmployee(req.session.activeTenant.tenantId, createEmployeeResponse.body.employee.employeeID, updatedEmployee);
-        console.log(updateEmployeeResponse.body);
 
         res.render("payroll-uk-employees", {
           consentUrl: await xero.buildConsentUrl(),
