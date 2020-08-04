@@ -223,7 +223,7 @@ class App {
         console.log('tokenSet.expires_at:', tokenSet.expires_at, 'milliseconds')
         console.log('Readable expiration:', new Date(tokenSet.expires_at * 1000).toLocaleString())
 
-        if (tokenSet.expires_at < Date.now()) {
+        if (tokenSet.expires_at * 1000 < Date.now()) {
           console.log('token is currently expired: ', tokenSet)
         } else {
           console.log('tokenSet is not expired!')
