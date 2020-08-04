@@ -223,8 +223,7 @@ class App {
         console.log('tokenSet.expires_at:', tokenSet.expires_at, 'milliseconds')
         console.log('Readable expiration:', new Date(tokenSet.expires_at * 1000).toLocaleString())
 
-        const now = new Date().getTime()
-        if (tokenSet.expires_in > now) {
+        if (tokenSet.expires_at < Date.now()) {
           console.log('token is currently expired: ', tokenSet)
         } else {
           console.log('tokenSet is not expired!')
@@ -1472,7 +1471,7 @@ class App {
         const createManualJournalResponse = await xero.accountingApi.createManualJournals(req.session.activeTenant.tenantId, manualJournals);
 
         // CREATE MANUAL JOARNAL ATTACHMENT BY FILENAME
-        const fileName = "xero-dev.png";  // {String} The name of the file being attached to a ManualJournal 
+        const fileName = "xero-dev.png";  // {String} The name of the file being attached to a ManualJournal
         const path = require("path");
         const mime = require("mime-types");
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png"); // determine the path to your file
