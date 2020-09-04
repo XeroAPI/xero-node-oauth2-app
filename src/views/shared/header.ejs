@@ -30,7 +30,7 @@
         <select name='active_org_id' class="select-box">
           <% for(var i=0; i < authenticated.allTenants.length; i++) { %>
             <% var selected = authenticated.allTenants[i].tenantId === authenticated.activeTenant.tenantId ? "selected" : "" %>
-            <option <%= selected %> value=<%= authenticated.allTenants[i].tenantId %>> <%= authenticated.allTenants[i].orgData.name %></option>
+            <option <%= selected %> value=<%= authenticated.allTenants[i].tenantId %>> <%= authenticated.allTenants[i].tenantName %></option>
             <% } %>
           </select>
           <input type="submit" class="select-input" value="Change Org">

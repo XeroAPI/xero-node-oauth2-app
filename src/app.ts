@@ -83,6 +83,8 @@ const xero = new XeroClient({
   clientSecret: client_secret,
   redirectUris: [redirectUrl],
   scopes: scopes.split(" "),
+  state: "imaParam=look-at-me-go",
+  httpTimeout: 2000
 });
 
 if (!client_id || !client_secret || !redirectUrl) {
@@ -144,7 +146,7 @@ class App {
       if (req.session.tokenSet) {
         // This reset the session and required data on the xero client after ts recompile
         await xero.setTokenSet(req.session.tokenSet)
-        await xero.updateTenants()
+        await xero.updateTenants(false)
       }
 
       try {
@@ -168,7 +170,10 @@ class App {
         // calling apiCallback will setup all the client with
         // and return the orgData of each authorized tenant
         const tokenSet: TokenSet = await xero.apiCallback(req.url);
-        await xero.updateTenants()
+        await xero.updateTenants(false)
+
+        console.log('xero: ',xero)
+        console.log('xero: ',xero['config'].state)
 
         // this is where you can associate & save your
         // `tokenSet` to a user in your Database
@@ -182,6 +187,8 @@ class App {
         req.session.tokenSet = tokenSet
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
+
+        console.log('xero.tenants: ',xero.tenants )
 
         res.render("callback", {
           consentUrl: await xero.buildConsentUrl(),
@@ -263,7 +270,7 @@ class App {
     router.get("/disconnect", async (req: Request, res: Response) => {
       try {
         const updatedTokenSet: TokenSet = await xero.disconnect(req.session.activeTenant.id)
-        await xero.updateTenants()
+        await xero.updateTenants(false)
 
         if (xero.tenants.length > 0) {
           const decodedIdToken: XeroIdToken = jwtDecode(updatedTokenSet.id_token);
