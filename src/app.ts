@@ -187,8 +187,6 @@ class App {
         req.session.allTenants = xero.tenants
         req.session.activeTenant = xero.tenants[0]
 
-        console.log('xero.tenants: ',xero.tenants )
-
         res.render("callback", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res)
