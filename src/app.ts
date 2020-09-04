@@ -172,8 +172,7 @@ class App {
         const tokenSet: TokenSet = await xero.apiCallback(req.url);
         await xero.updateTenants(false)
 
-        console.log('xero: ',xero)
-        console.log('xero: ',xero['config'].state)
+        console.log('xero.config.state: ', xero.config.state)
 
         // this is where you can associate & save your
         // `tokenSet` to a user in your Database
