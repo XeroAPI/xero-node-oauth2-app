@@ -2204,25 +2204,18 @@ class App {
 
     router.get("/quotes", async (req: Request, res: Response) => {
       try {
-        //GET ALL
-        const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant.tenantId)
-
         // CREATE QUOTE
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
-        const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
         // CREATE QUOTES
         const quote: Quote = {
           date: '2020-02-05',
-          quoteNumber: "QuoteNum:" + Helper.getRandomNumber(1000000),
-          contact: useContact,
+          contact: {
+            contactID: contactsResponse.body.contacts[0].contactID
+          },
           lineItems: [
             {
               description: "Consulting services",
-              taxType: "OUTPUT",
-              quantity: 20,
-              unitAmount: 100.00,
-              accountCode: "200"
             }
           ]
         }
@@ -2244,6 +2237,9 @@ class App {
           }
         });
 
+        //GET ALL
+        const getAllQuotes = await xero.accountingApi.getQuotes(req.session.activeTenant.tenantId);
+        console.log(getAllQuotes.body);
         // GET ONE
         const getOneQuote = await xero.accountingApi.getQuote(req.session.activeTenant.tenantId, getAllQuotes.body.quotes[0].quoteID);
         res.render("quotes", {
@@ -3291,7 +3287,7 @@ class App {
     router.get("/payslips", async (req: Request, res: Response) => {
       try {
         const getPayRunsResponse = await xero.payrollUKApi.getPayRuns(req.session.activeTenant.tenantId);
-        const response = await xero.payrollUKApi.getPayslips(req.session.activeTenant.tenantId, getPayRunsResponse.body.payRuns[0].payRunID);
+        const response = await xero.payrollUKApi.getPaySlips(req.session.activeTenant.tenantId, getPayRunsResponse.body.payRuns[0].payRunID);
         // xero.payrollUKApi.getPaySlip
         res.render("payslips", {
           consentUrl: await xero.buildConsentUrl(),
