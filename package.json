@@ -39,6 +39,6 @@
     "nodemon": "^1.19.4",
     "path": "^0.12.7",
     "session-file-store": "^1.4.0",
-    "xero-node": "^4.8.1"
+    "xero-node": "/Users/rett.behrens/Desktop/code/sdks/xero-node/xero-node-4.9.0.tgz"
   }
 }

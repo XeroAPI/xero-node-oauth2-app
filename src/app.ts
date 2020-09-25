@@ -3291,7 +3291,7 @@ class App {
     router.get("/payslips", async (req: Request, res: Response) => {
       try {
         const getPayRunsResponse = await xero.payrollUKApi.getPayRuns(req.session.activeTenant.tenantId);
-        const response = await xero.payrollUKApi.getPayslips(req.session.activeTenant.tenantId, getPayRunsResponse.body.payRuns[0].payRunID);
+        const response = await xero.payrollUKApi.getPaySlips(req.session.activeTenant.tenantId, getPayRunsResponse.body.payRuns[0].payRunID);
         // xero.payrollUKApi.getPaySlip
         res.render("payslips", {
           consentUrl: await xero.buildConsentUrl(),
@@ -3331,6 +3331,434 @@ class App {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           trackingCategories: response.body.trackingCategories
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    // ******************************************************************************************************************** payroll-nz
+
+    router.get("/deductions", async (req: Request, res: Response) => {
+      try {
+        createDeduction
+        getDeductions
+        getDeduction
+        res.render("deductions", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/earnings-rates", async (req: Request, res: Response) => {
+      try {
+        createEarningsRate
+        getEarningsRates
+        getEarningsRate
+        res.render("earnings-rates", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/employees", async (req: Request, res: Response) => {
+      try {
+        createEmployee
+        getEmployees
+        getEmployee
+        updateEmployee
+        res.render("employees", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/employment", async (req: Request, res: Response) => {
+      try {
+        createEmployment
+        res.render("employment", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/employees-leave", async (req: Request, res: Response) => {
+      try {
+        createEmployeeLeave
+        getEmployeeLeaves
+        deleteEmployeeLeave
+        updateEmployeeLeave
+        res.render("employees-leave", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/leave-balances", async (req: Request, res: Response) => {
+      try {
+        getEmployeeLeaveBalances
+        res.render("leave-balances", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/employees-leave-periods", async (req: Request, res: Response) => {
+      try {
+        getEmployeeLeavePeriods
+        res.render("employees-leave-periods", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/employees-leave-setup", async (req: Request, res: Response) => {
+      try {
+        createEmployeeLeaveSetup
+        res.render("employees-leave-setup", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/employees-leave-types", async (req: Request, res: Response) => {
+      try {
+        createEmployeeLeaveType
+        getEmployeeLeaveTypes
+        res.render("employees-leave-types", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/employees-opening-balances", async (req: Request, res: Response) => {
+      try {
+        createEmployeeOpeningBalances
+        getEmployeeOpeningBalances
+        res.render("employees-opening-balances", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/payment-methods", async (req: Request, res: Response) => {
+      try {
+        createEmployeePaymentMethod
+        getEmployeePaymentMethod
+        res.render("payment-methods", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/employees-pay-templates", async (req: Request, res: Response) => {
+      try {
+        createMultipleEmployeeEarningsTemplate
+        getEmployeePayTemplates
+        createEmployeeEarningsTemplate
+        deleteEmployeeEarningsTemplate
+        updateEmployeeEarningsTemplate
+        res.render("employees-pay-templates", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/salary-wages", async (req: Request, res: Response) => {
+      try {
+        createEmployeeSalaryAndWage
+        getEmployeeSalaryAndWages
+        deleteEmployeeSalaryAndWage
+        getEmployeeSalaryAndWage
+        updateEmployeeSalaryAndWage
+        res.render("salary-wages", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/employees-tax", async (req: Request, res: Response) => {
+      try {
+        getEmployeeTax
+        updateEmployeeTax
+        res.render("employees-tax", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/leave-types", async (req: Request, res: Response) => {
+      try {
+        createLeaveType
+        getLeaveTypes
+        getLeaveType
+        res.render("leave-types", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/pay-run-calendars", async (req: Request, res: Response) => {
+      try {
+        createPayRunCalendar
+        getPayRunCalendars
+        getPayRunCalendar
+        res.render("pay-run-calendars", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/pay-runs", async (req: Request, res: Response) => {
+      try {
+        createPayRun
+        getPayRuns
+        getPayRun
+        updatePayRun
+        res.render("pay-runs", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/pay-slips", async (req: Request, res: Response) => {
+      try {
+        getPaySlips
+        getPaySlip
+        updatePaySlipLineItems
+        res.render("pay-slips", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/reimbursements", async (req: Request, res: Response) => {
+      try {
+        createReimbursement
+        getReimbursements
+        getReimbursement
+        res.render("reimbursements", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/settings", async (req: Request, res: Response) => {
+      try {
+        getSettings
+        res.render("settings", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/tracking-categories", async (req: Request, res: Response) => {
+      try {
+        getTrackingCategories
+        res.render("tracking-categories", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/statutory-deductions", async (req: Request, res: Response) => {
+      try {
+        getStatutoryDeduction
+        res.render("statutory-deductions", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/superannuation", async (req: Request, res: Response) => {
+      try {
+        createSuperannuation
+        // missing GET
+        res.render("superannuation", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/timesheets", async (req: Request, res: Response) => {
+      try {
+        createTimesheet
+        getTimesheets
+        deleteTimesheet
+        getTimesheet
+        approveTimesheet
+        createTimesheetLine
+        deleteTimesheetLine
+        updateTimesheetLine
+        revertTimesheet
+        res.render("timesheets", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
         });
       } catch (e) {
         res.status(res.statusCode);
