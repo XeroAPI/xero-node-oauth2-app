@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p><strong>Get Employees Tax:</strong> <%- JSON.stringify(tax, null, 2) %></p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

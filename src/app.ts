@@ -66,6 +66,7 @@ import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry,
 import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, EarningsType } from 'xero-node/dist/gen/model/payroll-au/models';
 import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
 import { Employee as UKPayrollEmployee, Employment } from 'xero-node/dist/gen/model/payroll-uk/models';
+import { Employment as NZPayrollEmployment, EmployeeLeaveSetup as NZEmployeeLeaveSetup, Employee as NZEmployee } from 'xero-node/dist/gen/model/payroll-nz/models';
 
 const session = require("express-session");
 var FileStore = require('session-file-store')(session);
@@ -3343,14 +3344,15 @@ class App {
 
     // ******************************************************************************************************************** payroll-nz
 
-    router.get("/deductions", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-deductions", async (req: Request, res: Response) => {
       try {
+        const getDeductionsResponse = await xero.payrollNZApi.getDeductions(req.session.activeTenant.tenantId);
         // createDeduction
-        // getDeductions
         // getDeduction
-        res.render("deductions", {
+        res.render("payroll-nz-deductions", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          count: getDeductionsResponse.body.deductions.length
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3361,14 +3363,15 @@ class App {
       }
     });
 
-    router.get("/earnings-rates", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-earnings-rates", async (req: Request, res: Response) => {
       try {
+        const getEarningsRatesResponse = await xero.payrollNZApi.getEarningsRates(req.session.activeTenant.tenantId);
         // createEarningsRate
-        // getEarningsRates
         // getEarningsRate
-        res.render("earnings-rates", {
+        res.render("payroll-nz-earnings-rates", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          count: getEarningsRatesResponse.body.earningsRates.length
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3379,15 +3382,37 @@ class App {
       }
     });
 
-    router.get("/employees", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-employees", async (req: Request, res: Response) => {
       try {
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
         // createEmployee
-        // getEmployees
-        // getEmployee
-        // updateEmployee
-        res.render("employees", {
+        const employee: NZEmployee = {
+          title: "Mr.",
+          firstName: "Bob",
+          lastName: "Smith",
+          dateOfBirth: "1970-01-01",
+          gender: NZEmployee.GenderEnum.M,
+          email: "tested@gmail.com",
+          phoneNumber: "0400123456",
+          address: {
+            addressLine1: "123 test st",
+            addressLine2: "address line 2",
+            city: "Queanbeyan",
+            countryName: "New Zealand",
+            postCode: "1000"
+          }
+        };
+        const createEmployeeResponse = await xero.payrollNZApi.createEmployee(req.session.activeTenant.tenantId, employee);
+        employee.email = `tester${Helper.getRandomNumber(1000)}@gmail.com`;
+        const updateEmployeeResponse = await xero.payrollNZApi.updateEmployee(req.session.activeTenant.tenantId, createEmployeeResponse.body.employee.employeeID, employee);
+        const getEmployeeResponse = await xero.payrollNZApi.getEmployee(req.session.activeTenant.tenantId, updateEmployeeResponse.body.employee.employeeID);
+        res.render("payroll-nz-employees", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          count: getEmployeesResponse.body.employees.length,
+          create: createEmployeeResponse.body.employee.employeeID,
+          updated: updateEmployeeResponse.body.employee.email,
+          getOne: getEmployeeResponse.body.employee
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3398,12 +3423,21 @@ class App {
       }
     });
 
-    router.get("/employment", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-employment", async (req: Request, res: Response) => {
       try {
-        // createEmployment
-        res.render("employment", {
+        // need an employee ID
+        // const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        // need a payroll calendar ID
+        // const getPayRunCalendarsResponse = await xero.payrollNZApi.getPayRunCalendars(req.session.activeTenant.tenantId);
+        // CREATE Employment
+        // const employment: NZPayrollEmployment = {
+        //   payrollCalendarID: getPayRunCalendarsResponse.body.payRunCalendars[0].payrollCalendarID,
+        //   startDate: "2020-09-20",
+        // };
+        // const createEmploymentResponse = await xero.payrollNZApi.createEmployment(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID, employment);
+        res.render("payroll-nz-employment", {
           consentUrl: await xero.buildConsentUrl(),
-          authenticated: this.authenticationData(req, res),
+          authenticated: this.authenticationData(req, res)
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3414,13 +3448,80 @@ class App {
       }
     });
 
-    router.get("/employees-leave", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-employees-leave", async (req: Request, res: Response) => {
       try {
+        // need an employee ID
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeeLeavesResponse = await xero.payrollNZApi.getEmployeeLeaves(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
         // createEmployeeLeave
-        // getEmployeeLeaves
         // deleteEmployeeLeave
         // updateEmployeeLeave
-        res.render("employees-leave", {
+        res.render("payroll-nz-employees-leave", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          count: getEmployeeLeavesResponse.body.leave.length
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/payroll-nz-leave-balances", async (req: Request, res: Response) => {
+      try {
+        // need an employee ID
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeeLeaveBalancesResponse = await xero.payrollNZApi.getEmployeeLeaveBalances(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
+        res.render("payroll-nz-leave-balances", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          leaveBalances: getEmployeeLeaveBalancesResponse.body.leaveBalances
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/payroll-nz-employees-leave-periods", async (req: Request, res: Response) => {
+      try {
+        // need an employee ID
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeeLeavePeriodsResponse = await xero.payrollNZApi.getEmployeeLeavePeriods(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID, "2019-01-01", "2020-12-31");
+        res.render("payroll-nz-employees-leave-periods", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          periods: getEmployeeLeavePeriodsResponse.body.periods
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/payroll-nz-employees-leave-setup", async (req: Request, res: Response) => {
+      try {
+        // need an employee ID
+        // const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        // const leaveSetup: NZEmployeeLeaveSetup = {
+        //   includeHolidayPay: true,
+        //   holidayPayOpeningBalance: 3.50,
+        //   annualLeaveOpeningBalance: 7,
+        //   sickLeaveHoursToAccrueAnnually: 100,
+        //   sickLeaveMaximumHoursToAccrue: 200,
+        //   sickLeaveOpeningBalance: 13.25
+        // };
+        // const createEmployeeLeaveSetupResponse = await xero.payrollNZApi.createEmployeeLeaveSetup(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID, leaveSetup);
+        res.render("payroll-nz-employees-leave-setup", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
         });
@@ -3433,61 +3534,16 @@ class App {
       }
     });
 
-    router.get("/leave-balances", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-employees-leave-types", async (req: Request, res: Response) => {
       try {
-        // getEmployeeLeaveBalances
-        res.render("leave-balances", {
-          consentUrl: await xero.buildConsentUrl(),
-          authenticated: this.authenticationData(req, res),
-        });
-      } catch (e) {
-        res.status(res.statusCode);
-        res.render("shared/error", {
-          consentUrl: await xero.buildConsentUrl(),
-          error: e
-        });
-      }
-    });
-
-    router.get("/employees-leave-periods", async (req: Request, res: Response) => {
-      try {
-        // getEmployeeLeavePeriods
-        res.render("employees-leave-periods", {
-          consentUrl: await xero.buildConsentUrl(),
-          authenticated: this.authenticationData(req, res),
-        });
-      } catch (e) {
-        res.status(res.statusCode);
-        res.render("shared/error", {
-          consentUrl: await xero.buildConsentUrl(),
-          error: e
-        });
-      }
-    });
-
-    router.get("/employees-leave-setup", async (req: Request, res: Response) => {
-      try {
-        // createEmployeeLeaveSetup
-        res.render("employees-leave-setup", {
-          consentUrl: await xero.buildConsentUrl(),
-          authenticated: this.authenticationData(req, res),
-        });
-      } catch (e) {
-        res.status(res.statusCode);
-        res.render("shared/error", {
-          consentUrl: await xero.buildConsentUrl(),
-          error: e
-        });
-      }
-    });
-
-    router.get("/employees-leave-types", async (req: Request, res: Response) => {
-      try {
+        // need an employee ID
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeeLeaveTypesResponse = await xero.payrollNZApi.getEmployeeLeaveTypes(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
         // createEmployeeLeaveType
-        // getEmployeeLeaveTypes
-        res.render("employees-leave-types", {
+        res.render("payroll-nz-employees-leave-types", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          leaveTypes: getEmployeeLeaveTypesResponse.body.leaveTypes
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3498,13 +3554,16 @@ class App {
       }
     });
 
-    router.get("/employees-opening-balances", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-employees-opening-balances", async (req: Request, res: Response) => {
       try {
+        // need an employee ID
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeeOpeningBalancesResponse = await xero.payrollNZApi.getEmployeeOpeningBalances(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
         // createEmployeeOpeningBalances
-        // getEmployeeOpeningBalances
-        res.render("employees-opening-balances", {
+        res.render("payroll-nz-employees-opening-balances", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          openingBalances: getEmployeeOpeningBalancesResponse.body.openingBalances
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3515,13 +3574,16 @@ class App {
       }
     });
 
-    router.get("/payment-methods", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-payment-methods", async (req: Request, res: Response) => {
       try {
+        // need an employee ID
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeePaymentMethodResponse = await xero.payrollNZApi.getEmployeePaymentMethod(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
         // createEmployeePaymentMethod
-        // getEmployeePaymentMethod
-        res.render("payment-methods", {
+        res.render("payroll-nz-payment-methods", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          method: getEmployeePaymentMethodResponse.body.paymentMethod
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3532,16 +3594,19 @@ class App {
       }
     });
 
-    router.get("/employees-pay-templates", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-employees-pay-templates", async (req: Request, res: Response) => {
       try {
+        // need an employee ID
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeePayTemplatesResponse = await xero.payrollNZApi.getEmployeePayTemplates(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
         // createMultipleEmployeeEarningsTemplate
-        // getEmployeePayTemplates
         // createEmployeeEarningsTemplate
         // deleteEmployeeEarningsTemplate
         // updateEmployeeEarningsTemplate
-        res.render("employees-pay-templates", {
+        res.render("payroll-nz-employees-pay-templates", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          payTemplate: getEmployeePayTemplatesResponse.body.payTemplate
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3552,16 +3617,19 @@ class App {
       }
     });
 
-    router.get("/salary-wages", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-salary-wages", async (req: Request, res: Response) => {
       try {
+        // need an employee ID
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeeSalaryAndWagesResponse = await xero.payrollNZApi.getEmployeeSalaryAndWages(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
         // createEmployeeSalaryAndWage
-        // getEmployeeSalaryAndWages
         // deleteEmployeeSalaryAndWage
         // getEmployeeSalaryAndWage
         // updateEmployeeSalaryAndWage
-        res.render("salary-wages", {
+        res.render("payroll-nz-salary-wages", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          salaryAndWages: getEmployeeSalaryAndWagesResponse.body.salaryAndWages
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3572,13 +3640,16 @@ class App {
       }
     });
 
-    router.get("/employees-tax", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-employees-tax", async (req: Request, res: Response) => {
       try {
-        // getEmployeeTax
+        // need an employee ID
+        const getEmployeesResponse = await xero.payrollNZApi.getEmployees(req.session.activeTenant.tenantId);
+        const getEmployeeTaxResponse = await xero.payrollNZApi.getEmployeeTax(req.session.activeTenant.tenantId, getEmployeesResponse.body.employees[0].employeeID);
         // updateEmployeeTax
-        res.render("employees-tax", {
+        res.render("payroll-nz-employees-tax", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          tax: getEmployeeTaxResponse.body.employeeTax
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3589,14 +3660,15 @@ class App {
       }
     });
 
-    router.get("/leave-types", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-leave-types", async (req: Request, res: Response) => {
       try {
+        const getLeaveTypesResponse = await xero.payrollNZApi.getLeaveTypes(req.session.activeTenant.tenantId);
         // createLeaveType
-        // getLeaveTypes
         // getLeaveType
-        res.render("leave-types", {
+        res.render("payroll-nz-leave-types", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          leaveTypes: getLeaveTypesResponse.body.leaveTypes
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3607,14 +3679,15 @@ class App {
       }
     });
 
-    router.get("/pay-run-calendars", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-pay-run-calendars", async (req: Request, res: Response) => {
       try {
+        const getPayRunCalendarsResponse = await xero.payrollNZApi.getPayRunCalendars(req.session.activeTenant.tenantId);
         // createPayRunCalendar
-        // getPayRunCalendars
         // getPayRunCalendar
-        res.render("pay-run-calendars", {
+        res.render("payroll-nz-pay-run-calendars", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          calendars: getPayRunCalendarsResponse.body.payRunCalendars
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3625,15 +3698,16 @@ class App {
       }
     });
 
-    router.get("/pay-runs", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-pay-runs", async (req: Request, res: Response) => {
       try {
+        const getPayRunsResponse = await xero.payrollNZApi.getPayRuns(req.session.activeTenant.tenantId);
         // createPayRun
-        // getPayRuns
         // getPayRun
         // updatePayRun
-        res.render("pay-runs", {
+        res.render("payroll-nz-pay-runs", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          payRuns: getPayRunsResponse.body.payRuns
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3644,14 +3718,17 @@ class App {
       }
     });
 
-    router.get("/pay-slips", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-pay-slips", async (req: Request, res: Response) => {
       try {
-        // getPaySlips
+        // need a payrun ID
+        const getPayRunsResponse = await xero.payrollNZApi.getPayRuns(req.session.activeTenant.tenantId);
+        const getPaySlipsResponse = await xero.payrollNZApi.getPaySlips(req.session.activeTenant.tenantId, getPayRunsResponse.body.payRuns[0].payRunID);
         // getPaySlip
         // updatePaySlipLineItems
-        res.render("pay-slips", {
+        res.render("payroll-nz-pay-slips", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          slips: getPaySlipsResponse.body.paySlips
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3662,14 +3739,15 @@ class App {
       }
     });
 
-    router.get("/reimbursements", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-reimbursements", async (req: Request, res: Response) => {
       try {
+        const getReimbursementsResponse = await xero.payrollNZApi.getReimbursements(req.session.activeTenant.tenantId);
         // createReimbursement
-        // getReimbursements
         // getReimbursement
-        res.render("reimbursements", {
+        res.render("payroll-nz-reimbursements", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          reimbursements: getReimbursementsResponse.body.reimbursements
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3680,12 +3758,13 @@ class App {
       }
     });
 
-    router.get("/settings", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-settings", async (req: Request, res: Response) => {
       try {
-        // getSettings
-        res.render("settings", {
+        const getSettingsResponse = await xero.payrollNZApi.getSettings(req.session.activeTenant.tenantId);
+        res.render("payroll-nz-settings", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          settings: getSettingsResponse.body.settings
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3696,12 +3775,13 @@ class App {
       }
     });
 
-    router.get("/tracking-categories", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-tracking-categories", async (req: Request, res: Response) => {
       try {
-        // getTrackingCategories
-        res.render("tracking-categories", {
+        const getTrackingCategoriesResponse = await xero.payrollNZApi.getTrackingCategories(req.session.activeTenant.tenantId);
+        res.render("payroll-nz-tracking-categories", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          categories: getTrackingCategoriesResponse.body.trackingCategories
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -3712,10 +3792,11 @@ class App {
       }
     });
 
-    router.get("/statutory-deductions", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-statutory-deductions", async (req: Request, res: Response) => {
       try {
-        // getStatutoryDeduction
-        res.render("statutory-deductions", {
+        // missing GET plural
+        // const getStatutoryDeductionResponse = await xero.payrollNZApi.getStatutoryDeduction(req.session.activeTenant.tenantId,);
+        res.render("payroll-nz-statutory-deductions", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
         });
@@ -3728,11 +3809,11 @@ class App {
       }
     });
 
-    router.get("/superannuation", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-superannuation", async (req: Request, res: Response) => {
       try {
         // createSuperannuation
         // missing GET
-        res.render("superannuation", {
+        res.render("payroll-nz-superannuation", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
         });
@@ -3745,10 +3826,10 @@ class App {
       }
     });
 
-    router.get("/timesheets", async (req: Request, res: Response) => {
+    router.get("/payroll-nz-timesheets", async (req: Request, res: Response) => {
       try {
+        const getTimesheetsResponse = await xero.payrollNZApi.getTimesheets(req.session.activeTenant.tenantId);
         // createTimesheet
-        // getTimesheets
         // deleteTimesheet
         // getTimesheet
         // approveTimesheet
@@ -3756,9 +3837,10 @@ class App {
         // deleteTimesheetLine
         // updateTimesheetLine
         // revertTimesheet
-        res.render("timesheets", {
+        res.render("payroll-nz-timesheets", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
+          timesheets: getTimesheetsResponse.body.timesheets
         });
       } catch (e) {
         res.status(res.statusCode);
