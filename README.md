@@ -15,7 +15,7 @@ Create an API app in Xero to get a *CLIENT_ID* and *CLIENT_SECRET*.
 * Create a free Xero user account (if you don't have one) 
 * Login to Xero Developer center https://developer.xero.com/myapps
 * Click "New App"
-* Enter your app details (your redirect URI: `http://localhost:${PORT}/your-callback-route`)
+* Enter your app details (the redirect URI for this app is: `http://localhost:5000/callback`)  This URI does not need to be Internet-accessible.
 * Click "Create App"
 * Click "Generate a secret"
 * Create a `.env` file in the root of your project or rename & replace the vars in the provided `sample.env` file
@@ -23,8 +23,10 @@ Create an API app in Xero to get a *CLIENT_ID* and *CLIENT_SECRET*.
 ```
 CLIENT_ID=...
 CLIENT_SECRET=...
-REDIRECT_URI=...
+REDIRECT_URI=http://localhost:5000/callback
 ```
+
+The redirect URI configured for the app created at https://developer.xero.com/myapps must match the REDIRECT_URI variable otherwise an "Invalid URI" error will be reported when attempting the initial connection to Xero.
 
 ### Build and run
 
