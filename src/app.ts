@@ -1,5 +1,6 @@
 require("dotenv").config();
 import * as bodyParser from "body-parser";
+import * as crypto from 'crypto';
 import express from "express";
 import { Request, Response } from "express";
 import { TokenSet } from 'openid-client';
@@ -92,12 +93,6 @@ if (!client_id || !client_secret || !redirectUrl) {
   throw Error('Environment Variables not all set - please check your .env file in the project root or create one!')
 }
 
-const sleep = (ms) => {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-};
-
 class App {
   public app: express.Application;
   public consentUrl: Promise<string>
@@ -114,8 +109,9 @@ class App {
   }
 
   private config(): void {
-    this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
+    this.app.use('/webhooks', bodyParser.raw({ type: 'application/json' }));
+    this.app.use(bodyParser.json());
   }
 
   // helpers
@@ -139,6 +135,27 @@ class App {
       return ''
     }
   }
+
+  sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  };
+
+  verifyWebhookEventSignature(req: Request) {
+    let computedSignature = crypto.createHmac('sha256', process.env.WEBHOOK_KEY).update(req.body.toString()).digest('base64');
+    let xeroSignature = req.headers['x-xero-signature'];
+
+    if (xeroSignature === computedSignature) {
+      console.log('Signature passed! This is from Xero!');
+      return true;
+    } else {
+      // If this happens someone who is not Xero is sending you a webhook
+      console.log('Signature failed. Webhook might not be from Xero or you have misconfigured something...');
+      console.log(`Got {${computedSignature}} when we were expecting {${xeroSignature}}`);
+      return false;
+    }
+  };
 
   private routes(): void {
     const router = express.Router();
@@ -297,6 +314,11 @@ class App {
           error: e
         });
       }
+    });
+
+    router.post("/webhooks", async (req: Request, res: Response) => {
+      console.log("webhook event received!", req.headers, req.body, JSON.parse(req.body));
+      this.verifyWebhookEventSignature(req) ? res.status(200).send() : res.status(401).send();
     });
 
     // ******************************************************************************************************************** ACCOUNTING API
@@ -2329,7 +2351,7 @@ class App {
 
         const createResponse = await xero.projectApi.createProject(req.session.activeTenant.tenantId, newProject);
         // Projects API DB transaction intermittently needs a few seconds to persist record in the database
-        await sleep(3000);
+        await this.sleep(3000);
 
         // GET ONE
         const getResponse = await xero.projectApi.getProject(req.session.activeTenant.tenantId, createResponse.body.projectId);
@@ -2433,7 +2455,7 @@ class App {
 
         const createTimeEntryResponse = await xero.projectApi.createTimeEntry(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, timeEntry);
 
-        await sleep(3000);
+        await this.sleep(3000);
 
         // GET ONE
         const getTimeEntryResponse = await xero.projectApi.getTimeEntry(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, createTimeEntryResponse.body.timeEntryId);
@@ -2703,7 +2725,7 @@ class App {
         const createBankfeedResponse = await xero.bankFeedsApi.createFeedConnections(req.session.activeTenant.tenantId, feedConnections);
 
         // DB needs a bit of time to persist creation
-        await sleep(3000);
+        await this.sleep(3000);
 
         const getBankfeedResponse = await xero.bankFeedsApi.getFeedConnection(req.session.activeTenant.tenantId, createBankfeedResponse.body.items[0].id);
 
@@ -2753,7 +2775,7 @@ class App {
         };
         const createBankfeedResponse = await xero.bankFeedsApi.createFeedConnections(req.session.activeTenant.tenantId, feedConnections);
 
-        await sleep(3000);
+        await this.sleep(3000);
 
         const statements: Statements = {
           items: [
