@@ -68,6 +68,7 @@ import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, Earn
 import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
 import { Employee as UKPayrollEmployee, Employment } from 'xero-node/dist/gen/model/payroll-uk/models';
 import { Employment as NZPayrollEmployment, EmployeeLeaveSetup as NZEmployeeLeaveSetup, Employee as NZEmployee } from 'xero-node/dist/gen/model/payroll-nz/models';
+import { Folder } from "xero-node/dist/gen/model/files/folder";
 
 const session = require("express-session");
 var FileStore = require('session-file-store')(session);
@@ -3863,6 +3864,50 @@ class App {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           timesheets: getTimesheetsResponse.body.timesheets
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    // ******************************************************************************************************************** FILES API
+
+    router.get("/folders", async (req: Request, res: Response) => {
+      try {
+        const folder: Folder = {
+          name: `Folder Name ${Helper.getRandomNumber(1000)}`
+        }
+        const createFolder = await xero.filesApi.createFolder(req.session.activeTenant.tenantId, folder);
+
+        const getFolders = await xero.filesApi.getFolders(req.session.activeTenant.tenantId);
+
+        res.render("folders", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          folders: getFolders.body,
+          createFolder: createFolder.body.name
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/files", async (req: Request, res: Response) => {
+      try {
+        const getFiles = await xero.filesApi.getFiles(req.session.activeTenant.tenantId);
+
+        res.render("files", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          files: getFiles.body.items
         });
       } catch (e) {
         res.status(res.statusCode);
