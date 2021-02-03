@@ -399,9 +399,11 @@ class App {
     router.get("/banktransactions", async (req: Request, res: Response) => {
       try {
         // GET ALL
+        console.log('GET ALL:')
         const bankTransactionsGetResponse = await xero.accountingApi.getBankTransactions(req.session.activeTenant.tenantId);
 
         // CREATE ONE OR MORE BANK TRANSACTION
+        console.log('CREATE ONE OR MORE BANK TRANSACTION:')
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
         const useContact: Contact = { contactID: contactsResponse.body.contacts[0].contactID };
 
@@ -427,11 +429,13 @@ class App {
         };
 
         // Add bank transaction objects to array
+        console.log('Add bank transaction objects to array:')
         const newBankTransactions: BankTransactions = new BankTransactions();
         newBankTransactions.bankTransactions = [newBankTransaction, newBankTransaction];
         const bankTransactionCreateResponse = await xero.accountingApi.createBankTransactions(req.session.activeTenant.tenantId, newBankTransactions, false);
 
         // UPDATE OR CREATE ONE OR MORE BANK TRANSACTION
+        console.log('UPDATE OR CREATE ONE OR MORE BANK TRANSACTION:')
         const newBankTransaction2: BankTransaction = {
           type: BankTransaction.TypeEnum.SPEND,
           contact: useContact,
@@ -441,6 +445,7 @@ class App {
         };
 
         // Swap in this lineItem arry to force an ERROR with an invalid account code
+        console.log('Swap in this lineItem arry to force an ERROR with an invalid account code:')
         const lineItems2: LineItem[] = [{
           description: "consulting",
           quantity: 1.0,
@@ -462,10 +467,12 @@ class App {
         const bankTransactionUpdateOrCreateResponse = await xero.accountingApi.updateOrCreateBankTransactions(req.session.activeTenant.tenantId, upBankTransactions, false);
 
         // GET ONE
+        console.log('GET ONE:')
         const bankTransactionId = bankTransactionCreateResponse.body.bankTransactions[0].bankTransactionID;
-        const bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(req.session.activeTenant.tenantId, bankTransactionId);
+        const bankTransactionGetResponse = await xero.accountingApi.getBankTransaction(req.session.activeTenant.tenantId, 'bankTransactionId');
 
         // CREATE ATTACHMENT
+        console.log('CREATE ATTACHMENT:')
         const filename = "xero-dev.png";
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
         const readStream = fs.createReadStream(pathToUpload);
@@ -478,12 +485,14 @@ class App {
         });
 
         // UPDATE status to deleted
+        console.log('// UPDATE status to deleted')
         const bankTransactionUp = Object.assign({}, bankTransactionGetResponse.body.bankTransactions[0]);
         delete bankTransactionUp.updatedDateUTC;
         delete bankTransactionUp.contact; // also has an updatedDateUTC
         bankTransactionUp.status = BankTransaction.StatusEnum.DELETED;
         const bankTransactions: BankTransactions = { bankTransactions: [bankTransactionUp] };
         const bankTransactionUpdateResponse = await xero.accountingApi.updateBankTransaction(req.session.activeTenant.tenantId, bankTransactionId, bankTransactions);
+        console.log('// iupdated')
 
         res.render("banktransactions", {
           consentUrl: await xero.buildConsentUrl(),
@@ -3900,9 +3909,73 @@ class App {
       }
     });
 
+
     router.get("/files", async (req: Request, res: Response) => {
       try {
         const getFiles = await xero.filesApi.getFiles(req.session.activeTenant.tenantId);
+
+        const filename = "xero-dev.png";
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
+        const readStream = fs.createReadStream(pathToUpload);
+        const contentType = mime.lookup(filename);
+
+        const getFolders = await xero.filesApi.getFolders(req.session.activeTenant.tenantId);
+     
+        const uploadedFileResponse = await xero.filesApi.uploadFile(req.session.activeTenant.tenantId, getFolders.body[0].id, readStream, filename, filename, contentType, {
+          headers: {
+            'Content-Disposition': 'attachment; filename=' + filename
+          }
+        });
+        console.log('uploadedFileResponse: ',uploadedFileResponse)
+        
+        const file = await xero.filesApi.getFile(req.session.activeTenant.tenantId, uploadedFileResponse.body.id);
+
+        // console.log('file: ',file)
+
+        // createFileAssociation
+        // createFolder
+        // deleteFile
+        // deleteFileAssociation
+        // deleteFolder
+        // getAssociationsByObject
+        // // getFile
+        // getFileAssociations
+        // // getFileContent
+        // // getFiles
+        // getFolder
+        // getFolders
+        // getInbox
+        // updateFile
+        // updateFolder
+
+      
+
+        res.render("files", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          files: getFiles.body.items,
+          file: file.body
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/files-download", async (req: Request, res: Response) => {
+      try {
+        const getFiles = await xero.filesApi.getFiles(req.session.activeTenant.tenantId);
+
+        const fileObj = getFiles.body.items[0]
+
+        const fileData = await xero.filesApi.getFileContent(req.session.activeTenant.tenantId, fileObj.id);
+
+        res.setHeader('Content-Disposition', 'attachment; filename=' + fileObj.name);
+        res.contentType(fileObj.mimeType);
+        res.send(fileData.body);
 
         res.render("files", {
           consentUrl: await xero.buildConsentUrl(),
