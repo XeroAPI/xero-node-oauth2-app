@@ -255,12 +255,18 @@ class App {
         // you can refresh the token using the fully initialized client levereging openid-client
         await xero.refreshToken()
 
+        console.log('await xero.refreshToken()!')
+
+
         // or if you already generated a tokenSet and have a valid (< 60 days refresh token),
         // you can initialize an empty client and refresh by passing the client, secret, and refresh_token
         const newXeroClient = new XeroClient()
         const newTokenSet = await newXeroClient.refreshWithRefreshToken(client_id, client_secret, tokenSet.refresh_token)
+        console.log('newTokenSet: ',newTokenSet)
         const decodedIdToken: XeroIdToken = jwtDecode(newTokenSet.id_token);
         const decodedAccessToken: XeroAccessToken = jwtDecode(newTokenSet.access_token)
+
+        console.log('decoded')
 
         req.session.decodedIdToken = decodedIdToken
         req.session.decodedAccessToken = decodedAccessToken
@@ -330,8 +336,6 @@ class App {
         console.log('start')
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId);
 
-        console.log('accountsGetResponse: ',accountsGetResponse)
-
         console.log('CREATE')
         // CREATE
         const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
@@ -360,6 +364,8 @@ class App {
             'Content-Type': contentType
           }
         });
+
+        console.log('accountAttachmentsResponse: ',accountAttachmentsResponse)
 
         const attachment = accountAttachmentsResponse.body
         const attachmentId = attachment.attachments[0].attachmentID
