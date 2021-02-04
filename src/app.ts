@@ -188,6 +188,7 @@ class App {
         // calling apiCallback will setup all the client with
         // and return the orgData of each authorized tenant
         const tokenSet: TokenSet = await xero.apiCallback(req.url);
+        console.log('hi mom!')
         await xero.updateTenants(false)
 
         console.log('xero.config.state: ', xero.config.state)
@@ -326,21 +327,28 @@ class App {
     router.get("/accounts", async (req: Request, res: Response) => {
       try {
         // GET ALL
+        console.log('start')
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId);
 
+        console.log('accountsGetResponse: ',accountsGetResponse)
+
+        console.log('CREATE')
         // CREATE
         const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
+        console.log('GET ONE')
         // GET ONE
         const accountGetResponse = await xero.accountingApi.getAccount(req.session.activeTenant.tenantId, accountId);
 
+        console.log('UPDATE')
         // UPDATE
         const accountUp: Account = { name: "Bar" + Helper.getRandomNumber(1000000) };
         const accounts: Accounts = { accounts: [accountUp] };
         const accountUpdateResponse = await xero.accountingApi.updateAccount(req.session.activeTenant.tenantId, accountId, accounts);
 
+        console.log('CREATE ATTACHMENT')
         // CREATE ATTACHMENT
         const filename = "xero-dev.png";
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
