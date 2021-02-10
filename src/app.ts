@@ -68,6 +68,7 @@ import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, Earn
 import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
 import { Employee as UKPayrollEmployee, Employment } from 'xero-node/dist/gen/model/payroll-uk/models';
 import { Employment as NZPayrollEmployment, EmployeeLeaveSetup as NZEmployeeLeaveSetup, Employee as NZEmployee } from 'xero-node/dist/gen/model/payroll-nz/models';
+import { ObjectGroup } from "xero-node/dist/gen/model/files/models";
 
 const session = require("express-session");
 var FileStore = require('session-file-store')(session);
@@ -3863,6 +3864,76 @@ class App {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           timesheets: getTimesheetsResponse.body.timesheets
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/folders", async (req: Request, res: Response) => {
+      try {
+        const getFolders = await xero.filesApi.getFolders(req.session.activeTenant.tenantId);
+        res.render("folders", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          folders: getFolders.body
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/files", async (req: Request, res: Response) => {
+      try {
+        const getFiles = await xero.filesApi.getFiles(req.session.activeTenant.tenantId);
+        const getFolders = await xero.filesApi.getFolders(req.session.activeTenant.tenantId);
+        const folderId = getFolders.body[0].id
+        const filename = "xero-dev.png";
+        const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
+        const readStream = fs.createReadStream(pathToUpload);
+        const contentType = mime.lookup(filename);
+
+        const uploadFile = await xero.filesApi.uploadFile(req.session.activeTenant.tenantId, folderId, readStream, filename, contentType);
+
+        res.render("files", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          files: getFiles.body.items,
+          uploadFile: uploadFile.body
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/files-associations", async (req: Request, res: Response) => {
+      try {
+        const getFiles = await xero.filesApi.getFiles(req.session.activeTenant.tenantId);
+        const fileId = getFiles.body.items[0].id
+        const getInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId);
+
+        const association = {
+          objectId: getInvoices.body.invoices[0].invoiceID,
+          objectGroup: ObjectGroup.Invoice
+        }
+        const createAssociation = await xero.filesApi.createFileAssociation(req.session.activeTenant.tenantId, fileId, association);
+
+        res.render("files-association", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          createAssociation: createAssociation.body
         });
       } catch (e) {
         res.status(res.statusCode);

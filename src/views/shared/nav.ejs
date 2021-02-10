@@ -3,8 +3,8 @@
     <h2><img style='width: 30px; margin-right: 10px;'
         src="https://cdn.iconscout.com/icon/free/png-512/typescript-1174965.png" /><a href="/">Home</a></h2>
     <hr>
-    <div class='nav-section toggle-accounting'>
-      <h4>ACCOUNTING:</h4>
+    <h4 class='api-section' data-api='accounting-api'>Accounting <span class='open-caret'>></span><span class='closed-caret'>^</span></h4>
+    <div class='nav-section' id='accounting-api'>
       <li><a href="/accounts">Accounts</a></li>
       <li><a href="/banktransactions">Bank Transactions</a></li>
       <li><a href="/banktranfers">Bank Transfers</a></li>
@@ -39,21 +39,21 @@
       <li><a href="/users">Users</a></li>
     </div>
     <hr>
-    <h4>ASSETS:</h4>
-    <div class='nav-section'>
+    <h4 class='api-section' data-api='assets-api'>Assets <span class='open-caret'>></span><span class='closed-caret'>^</span></h4>
+    <div class='nav-section' id='assets-api'>
       <li><a href="/assets">Assets</a></li>
     </div>
     <hr>
-    <h4>PROJECTS:</h4>
-    <div class='nav-section'>
+    <h4 class='api-section' data-api='projects-api'>Projects <span class='open-caret'>></span><span class='closed-caret'>^</span></h4>
+    <div class='nav-section' id='projects-api'>
       <li><a href="/projects">Projects</a></li>
       <li><a href="/project-users">Users</a></li>
       <li><a href="/tasks">Tasks</a></li>
       <li><a href="/time">Time</a></li>
     </div>
     <hr>
-    <h4>PAYROLL (AU):</h4>
-    <div class='nav-section'>
+    <h4 class='api-section' data-api='payroll-au-api'>Payroll (AU) <span class='open-caret'>></span><span class='closed-caret'>^</span></h4>
+    <div class='nav-section' id='payroll-au-api'>
       <li><a href="/payroll-au-employees">Employees</a></li>
       <li><a href="/leave-application">Leave Application</a></li>
       <li><a href="/pay-item">Pay Item</a></li>
@@ -65,8 +65,8 @@
       <li><a href="/payroll-au-settings">Payroll Settings</a></li>
     </div>
     <hr>
-    <h4>PAYROLL (NZ):</h4>
-    <div class='nav-section'>
+    <h4 class='api-section' data-api='payroll-nz-api'>Payroll (NZ) <span class='open-caret'>></span><span class='closed-caret'>^</span></h4>
+    <div class='nav-section' id='payroll-nz-api'>
       <li><a href="/payroll-nz-deductions">Deductions</a></li>
       <li><a href="/payroll-nz-earnings-rates">Earnings Rates</a></li>
       <li><a href="/payroll-nz-employees">Employees</a></li>
@@ -91,8 +91,8 @@
       <li><a href="/payroll-nz-timesheets">Timesheets</a></li>
     </div>
     <hr>
-    <h4>PAYROLL (UK):</h4>
-    <div class='nav-section'>
+    <h4 class='api-section' data-api='payroll-uk-api'>Payroll (UK) <span class='open-caret'>></span><span class='closed-caret'>^</span></h4>
+    <div class='nav-section' id='payroll-uk-api'>
       <li><a href="/payroll-uk-employees">Employees</a></li>
       <li><a href="/employment">Employment</a></li>
       <li><a href="/employees-tax">Employees Tax</a></li>
@@ -121,10 +121,28 @@
       <li><a href="/tracking-categories">Tracking Categories</a></li>
     </div>
     <hr>
-    <h4>BANKFEEDS (Restricted):</h4>
-    <div class='nav-section'>
+    <h4 class='api-section' data-api='files-api'>Files <span class='open-caret'>></span><span class='closed-caret'>^</span></h4>
+    <div class='nav-section' id='files-api'>
+      <li><a href="/folders">Folders</a></li>
+      <li><a href="/files">Files</a></li>
+      <li><a href="/files-associations">Associations</a></li>
+    </div>
+    <hr>
+    <h4 class='api-section' data-api='bankfeeds-api'>Bankfeeds (private) <span class='open-caret'>></span><span class='closed-caret'>^</span></h4>
+    <div class='nav-section' id='bankfeeds-api'>
       <li><a href="/bankfeed-connections">Connections</a></li>
       <li><a href="/bankfeed-statements">Statements</a></li>
     </div>
   </ul>
 </nav>
+
+
+<script>
+  $(document).ready(function(){
+    $(".api-section").click(function(e) {   
+      e.target.classList.toggle("checked");
+      $('#' + e.target.getAttribute('data-api')).toggleClass("open-nav");
+      e.stopPropagation();
+    });
+  });
+</script>
