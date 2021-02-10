@@ -2,6 +2,7 @@
 <link rel="shortcut icon" href="https://www.xero.com/etc/designs/xero-cms/clientlib/assets/img/favicon.ico"/>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css">
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs=" crossorigin="anonymous"></script>
 <script>hljs.initHighlightingOnLoad();</script>
 <head>
   <style>
@@ -117,6 +118,33 @@
     }
     .disconnected {
       color: red;
+    }
+
+    .api-section {
+      cursor: pointer;
+    }
+    .nav-section {
+      display: none;
+    }
+    .open-nav {
+      display: block;
+    }
+    .open-caret {
+      display: none;
+      cursor: default;
+      float: right;
+    }
+    .closed-caret {
+      float: right;
+      cursor: default;
+    }
+
+    .checked .open-caret {
+      display: block;
+    }
+
+    .checked .closed-caret {
+      display: none;
     }
     
     @media only screen and (max-width: 600px) {

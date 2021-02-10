@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <h4>Folders:</h4>
+          <% for(var i=0; i < folders.length; i++) { %>
+          <p><i><strong><%= folders[i].name %></strong></i> - <%= folders[i].id %></p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
