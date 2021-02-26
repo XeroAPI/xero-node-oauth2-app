@@ -1,40 +1,49 @@
 <header>
-  <% const loggedIn = typeof(authenticated) !== 'undefined' && typeof(authenticated.allTenants) !== 'undefined' && authenticated.allTenants && authenticated.allTenants.length %>
+  <% const loggedIn=typeof(authenticated) !=='undefined' && typeof(authenticated.allTenants) !=='undefined' &&
+    authenticated.allTenants && authenticated.allTenants.length %>
 
-  <% if ((typeof(consentUrl) !== 'undefined' && consentUrl && typeof(authenticated) !== 'undefined') && !loggedIn) { %>
-    <a href="<%= consentUrl %>">
-      <img src='https://developer.xero.com/static/images/documentation/ConnectToXero2019/connect-blue.svg'>
-    </a>
-  <% } else { %>  
-    <a href="<%= consentUrl %>">
-      <img src='https://www.xero.com/etc/designs/xero-cms/clientlib/assets/img/logo/logo-xero-blue.svg'>
-    </a>
-  <% } %>
-
-
-  <% if (loggedIn) { %>
-    <div class='nav-settings'>
-      <% if (authenticated.allTenants.length > 1) { %>
-        <a href="/disconnect">
-          <input type="submit" class="select-input" value="Disconnect Tenant">
-        </a>
-      <% } %>
-    </div>
-    <div class='nav-settings'>
-      <a href="/refresh-token">
-        <input type="submit" class="select-input" value="Refresh Token">
+    <% if ((typeof(consentUrl) !=='undefined' && consentUrl && typeof(authenticated) !=='undefined' ) && !loggedIn) { %>
+      <a href="<%= consentUrl %>">
+        <img src='https://developer.xero.com/static/images/documentation/ConnectToXero2019/connect-blue.svg'>
       </a>
-    </div>
-    <div class='nav-settings'>
-      <form method='POST' action="/change_organisation">
-        <select name='active_org_id' class="select-box">
-          <% for(var i=0; i < authenticated.allTenants.length; i++) { %>
-            <% var selected = authenticated.allTenants[i].tenantId === authenticated.activeTenant.tenantId ? "selected" : "" %>
-            <option <%= selected %> value=<%= authenticated.allTenants[i].tenantId %>> <%= authenticated.allTenants[i].tenantName %></option>
+      <% } else { %>
+        <a href="<%= consentUrl %>">
+          <img src='https://www.xero.com/etc/designs/xero-cms/clientlib/assets/img/logo/logo-xero-blue.svg'>
+        </a>
+        <% } %>
+
+
+          <% if (loggedIn) { %>
+            <div class='nav-settings'>
+              <a href="/revoke-token">
+                <input type="submit" class="select-input" value="Revoke Token">
+              </a>
+            </div>
+            <div class='nav-settings'>
+              <% if (authenticated.allTenants.length> 1) { %>
+                <a href="/disconnect">
+                  <input type="submit" class="select-input" value="Disconnect Tenant">
+                </a>
+                <% } %>
+            </div>
+            <div class='nav-settings'>
+              <a href="/refresh-token">
+                <input type="submit" class="select-input" value="Refresh Token">
+              </a>
+            </div>
+            <div class='nav-settings'>
+              <form method='POST' action="/change_organisation">
+                <select name='active_org_id' class="select-box">
+                  <% for(var i=0; i < authenticated.allTenants.length; i++) { %>
+                    <% var selected=authenticated.allTenants[i].tenantId===authenticated.activeTenant.tenantId
+                      ? "selected" : "" %>
+                      <option <%=selected %> value=<%= authenticated.allTenants[i].tenantId %>> <%=
+                            authenticated.allTenants[i].tenantName %>
+                      </option>
+                      <% } %>
+                </select>
+                <input type="submit" class="select-input" value="Change Org">
+              </form>
+            </div>
             <% } %>
-          </select>
-          <input type="submit" class="select-input" value="Change Org">
-      </form>
-    </div>
-  <% } %>
 </header>
