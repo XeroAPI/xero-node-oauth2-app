@@ -317,6 +317,28 @@ class App {
       }
     });
 
+    router.get("/revoke-token", async (req: Request, res: Response) => {
+      try {
+        await xero.revokeToken();
+        req.session.decodedIdToken = undefined
+        req.session.decodedAccessToken = undefined
+        req.session.tokenSet = undefined
+        req.session.allTenants = undefined
+        req.session.activeTenant = undefined
+
+        res.render("home", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res)
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    })
+
     router.post("/webhooks", async (req: Request, res: Response) => {
       console.log("webhook event received!", req.headers, req.body, JSON.parse(req.body));
       this.verifyWebhookEventSignature(req) ? res.status(200).send() : res.status(401).send();
