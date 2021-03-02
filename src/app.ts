@@ -242,14 +242,15 @@ class App {
     router.get("/refresh-token", async (req: Request, res: Response) => {
       try {
         const tokenSet = await xero.readTokenSet();
-        console.log('token expires in:', tokenSet.expires_in, 'seconds')
-        console.log('tokenSet.expires_at:', tokenSet.expires_at, 'milliseconds')
-        console.log('Readable expiration:', new Date(tokenSet.expires_at * 1000).toLocaleString())
+        console.log('tokenSet.expires_in: ', tokenSet.expires_in, ' seconds')
+        console.log('tokenSet.expires_at: ', tokenSet.expires_at, ' milliseconds')
+        console.log('Readable expiration: ', new Date(tokenSet.expires_at * 1000).toLocaleString())
+        console.log('tokenSet.expired(): ', tokenSet.expired());
 
-        if (tokenSet.expires_at * 1000 < Date.now()) {
-          console.log('token is currently expired: ', tokenSet)
+        if (tokenSet.expired()) {
+          console.log('tokenSet is currently expired: ', tokenSet)
         } else {
-          console.log('tokenSet is not expired!')
+          console.log('tokenSet is not expired: ', tokenSet)
         }
 
         // you can refresh the token using the fully initialized client levereging openid-client
