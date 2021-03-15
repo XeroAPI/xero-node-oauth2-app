@@ -7,6 +7,8 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
+          <h4>Uploaded:</h4>
+          <code class='language-javascript'><%- JSON.stringify(uploadFile, null, 2) %></code>
           <h4>Files:</h4>
           <% for(var i=0; i < files.length; i++) { %>
           <p><i><strong><%= files[i].name %></strong></i> - <%= files[i].id %></p>
