@@ -86,6 +86,9 @@ const xero = new XeroClient({
   clientSecret: client_secret,
   redirectUris: [redirectUrl],
   scopes: scopes.split(" "),
+  // include a state param to protect against CSRF
+  // for more information on how xero-node library leverages openid-client library check out the README
+  // https://github.com/XeroAPI/xero-node
   state: "imaParam=look-at-me-go",
   httpTimeout: 2000
 });
