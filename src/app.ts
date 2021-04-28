@@ -161,8 +161,6 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
-      console.log('get /')
-
       if (req.session.tokenSet) {
         // This reset the session and required data on the xero client after ts recompile
         await xero.setTokenSet(req.session.tokenSet)
@@ -171,10 +169,9 @@ class App {
 
       try {
         const authData = this.authenticationData(req, res)
-        const url = await xero.buildConsentUrl()
 
         res.render("home", {
-          consentUrl: url,
+          consentUrl: await xero.buildConsentUrl(),
           authenticated: authData
         });
       } catch (e) {
