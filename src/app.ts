@@ -86,8 +86,7 @@ const xero = new XeroClient({
   clientSecret: client_secret,
   redirectUris: [redirectUrl],
   scopes: scopes.split(" "),
-  state: "imaParam=look-at-me-go",
-  httpTimeout: 2000
+  httpTimeout: 3000
 });
 
 if (!client_id || !client_secret || !redirectUrl) {
@@ -162,6 +161,8 @@ class App {
     const router = express.Router();
 
     router.get("/", async (req: Request, res: Response) => {
+      console.log('get /')
+
       if (req.session.tokenSet) {
         // This reset the session and required data on the xero client after ts recompile
         await xero.setTokenSet(req.session.tokenSet)
@@ -170,9 +171,10 @@ class App {
 
       try {
         const authData = this.authenticationData(req, res)
+        const url = await xero.buildConsentUrl()
 
         res.render("home", {
-          consentUrl: await xero.buildConsentUrl(),
+          consentUrl: url,
           authenticated: authData
         });
       } catch (e) {
@@ -353,7 +355,8 @@ class App {
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId);
 
         // CREATE
-        const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
+        // const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
+        const account: Account = { name: "Foo", code: "c:", type: AccountType.EXPENSE, hasAttachments: true };
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
@@ -1067,6 +1070,25 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: apiResponse.body.invoiceReminders.length,
           enabled: apiResponse.body.invoiceReminders[0].enabled
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/invoice-attachments", async (req: Request, res: Response) => {
+      try {
+        const invoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId);
+        const attachments = await xero.accountingApi.getInvoiceAttachments(req.session.activeTenant.tenantId, invoices.body.invoices[0].invoiceID);
+        
+        res.render("invoice-attachments", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          attachments: attachments.body.attachments.length
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2366,10 +2388,7 @@ class App {
         // we'll need a contact first
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
 
-        const newProject: ProjectCreateOrUpdate = {
-          contactId: contactsResponse.body.contacts[0].contactID,
-          name: 'New Project ' + Helper.getRandomNumber(1000),
-          deadlineUtc: new Date(),
+        const newProject: any = {
           estimateAmount: 3.50
         };
 
@@ -2522,9 +2541,7 @@ class App {
           postalCode: "6023",
           country: "AUSTRALIA"
         }
-        const employee: AUPayrollEmployee = {
-          firstName: 'Charlie',
-          lastName: 'Chaplin',
+        const employee: any = {
           dateOfBirth: xero.formatMsDate("1990-02-05"),
           homeAddress: homeAddress
         }
