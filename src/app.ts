@@ -86,7 +86,9 @@ const xero = new XeroClient({
   clientSecret: client_secret,
   redirectUris: [redirectUrl],
   scopes: scopes.split(" "),
-  httpTimeout: 3000
+  
+  state: "imaParam=look-at-me-go",
+  httpTimeout: 2000
 });
 
 if (!client_id || !client_secret || !redirectUrl) {
