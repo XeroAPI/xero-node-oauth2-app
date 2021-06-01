@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <a href='https://developer.xero.com/documentation/api/budgets' target='_blank'>
+            <h4>Budgets</h4>
+          </a>
+          <h4>Get single Budget</h4>
+          <pre>
+            <code class='language-javascript'><%- JSON.stringify(budget, null, 2) %></code>
+          </pre>
+          <pre>
+            <code class='language-javascript'><%- JSON.stringify(budgets, null, 2) %></code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
