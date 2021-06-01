@@ -2107,16 +2107,6 @@ class App {
         const banksumToDate = "2019-12-31";
         const getReportBankSummaryResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant.tenantId, banksumFromDate, banksumToDate);
 
-        // GET BAS REPORT - FOR AUSTRALIA ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
-        // required parameters
-        // const BASReportID: string = "00000000-0000-0000-0000-000000000000";
-        // const getBASResponse = await xero.accountingApi.getReportBASorGST(req.session.activeTenant.tenantId, BASReportID);
-        // console.log(getBASResponse.body.reports[0] || 'This works for Australia based organisations only');
-
-        // GET BAS REPORT LIST
-        // const getReports = await xero.accountingApi.getReports(req.session.activeTenant.tenantId);
-        // const getBASListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant.tenantId);
-
         // GET BUDGET SUMMARY REPORT
         // optional parameters
         const bsDate = "2019-04-22"
@@ -2129,15 +2119,9 @@ class App {
         const esDate = "2019-04-22";
         const getExecutiveSummaryResponse = await xero.accountingApi.getReportExecutiveSummary(req.session.activeTenant.tenantId, esDate);
 
-        // GET GST REPORT LIST
+        // GET OTHER REPORT - FOR NEW ZEALAND/AUS ORGS GST/BAS
         const getReportsList = await xero.accountingApi.getReportsList(req.session.activeTenant.tenantId);
-        const getReportFromId = await xero.accountingApi.getReportFromId(req.session.activeTenant.tenantId, getReportsList.body.reports[0].reportID);
-
-        // GET GST REPORT - FOR NEW ZEALAND ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
-        // required parameters
-        // const GSTReportID: string = "00000000-0000-0000-0000-000000000000";
-        // const getGSTResponse = await xero.accountingApi.getReportBASorGST(req.session.activeTenant.tenantId, GSTReportID);
-        // console.log(getGSTResponse.body.reports[0] || 'This works for NEW ZEALAND based organisations only');
+        const getReportFromId = await xero.accountingApi.getReportFromId(req.session.activeTenant.tenantId, getReportsList.body.reports[0].reportID);      
 
         // GET PROFIT AND LOSS REPORT
         // optional parameters
