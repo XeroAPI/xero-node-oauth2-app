@@ -1,26 +1,25 @@
 <!doctype html>
 <html>
-<%- include('shared/head') -%>
-
-<body>
-  <%- include('shared/nav') -%>
-  <div class='core-content'>
-    <%- include('shared/header') -%>
-    <div class='body-wrapper'>
-      <div class='body-content'>
-        <p>Bank Summary Report Title: <%= bankSummaryReportTitle %></p>
-        <p>1099 Report Title: <%= tenNinetyNineReportTitle %></p>
-        <p>Aged Payables by Contact Report Title & Date: <%= agedPayablesByContactReportTitle %></p>
-        <p>Aged Receivables by Contact Report Title & Date: <%= agedReceivablesByContactReportTitle %></p>
-        <p>Balance Sheet Report Title & Date: <%= getBalanceSheetReportTitle %></p>
-        <p>Bank Summary Report Title & Date: <%= getReportBankSummaryReportTitle %></p>
-        <p>Budget Summary Report Title & Date: <%= getBudgetSummaryReportTitle %></p>
-        <p>Executive Summary Report Title & Date: <%= getExecutiveSummaryReportTitle %></p>
-        <p>Profit and Loss Report Title & Date: <%= getProfitAndLossReportTitle %></p>
-        <p>Trial Balance Report Title & Date: <%= getTrialBalanceReportTitle %></p>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <p>Bank Summary Report Title: <%= bankSummaryReportTitle %></p>
+          <p>1099 Report Title: <%= tenNinetyNineReportTitle %></p>
+          <p>Aged Payables by Contact Report Title & Date: <%= agedPayablesByContactReportTitle %></p>
+          <p>Aged Receivables by Contact Report Title & Date: <%= agedReceivablesByContactReportTitle %></p>
+          <p>Balance Sheet Report Title & Date: <%= getBalanceSheetReportTitle %></p>
+          <p>Bank Summary Report Title & Date: <%= getReportBankSummaryReportTitle %></p>
+          <p>Budget Summary Report Title & Date: <%= getBudgetSummaryReportTitle %></p>
+          <p>Executive Summary Report Title & Date: <%= getExecutiveSummaryReportTitle %></p>
+          <p>Profit and Loss Report Title & Date: <%= getProfitAndLossReportTitle %></p>
+          <p>Trial Balance Report Title & Date: <%= getTrialBalanceReportTitle %></p>
+          <p>Get Rport from List -> ID Title & Date: <%= getReportFromId %></p>
+        </div>
       </div>
     </div>
-  </div>
-</body>
-
+  </body>
 </html>

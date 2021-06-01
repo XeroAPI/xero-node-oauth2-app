@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import * as crypto from 'crypto';
 import express from "express";
 import { Request, Response } from "express";
-import { TokenSet } from 'openid-client';
+import { TokenSetParameters } from 'xero-node'
 import * as fs from "fs";
 import {
   Account,
@@ -78,7 +78,7 @@ const mime = require("mime-types");
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
-const scopes = "offline_access openid profile email accounting.transactions accounting.transactions.read accounting.reports.read accounting.journals.read accounting.settings accounting.settings.read accounting.contacts accounting.contacts.read accounting.attachments accounting.attachments.read files files.read assets assets.read projects projects.read payroll.employees payroll.payruns payroll.payslip payroll.timesheets payroll.settings";
+const scopes = "offline_access openid profile email accounting.transactions accounting.budgets.read accounting.reports.read accounting.journals.read accounting.settings accounting.settings.read accounting.contacts accounting.contacts.read accounting.attachments accounting.attachments.read files files.read assets assets.read projects projects.read payroll.employees payroll.payruns payroll.payslip payroll.timesheets payroll.settings";
 // bankfeeds
 
 const xero = new XeroClient({
@@ -189,7 +189,7 @@ class App {
       try {
         // calling apiCallback will setup all the client with
         // and return the orgData of each authorized tenant
-        const tokenSet: TokenSet = await xero.apiCallback(req.url);
+        const tokenSet: TokenSetParameters = await xero.apiCallback(req.url);
         await xero.updateTenants(false)
 
         console.log('xero.config.state: ', xero.config.state)
@@ -287,7 +287,7 @@ class App {
 
     router.get("/disconnect", async (req: Request, res: Response) => {
       try {
-        const updatedTokenSet: TokenSet = await xero.disconnect(req.session.activeTenant.id)
+        const updatedTokenSet: TokenSetParameters = await xero.disconnect(req.session.activeTenant.id)
         await xero.updateTenants(false)
 
         if (xero.tenants.length > 0) {
@@ -413,6 +413,30 @@ class App {
           deleteName: 'un-comment to DELETE'
         });
       } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/budgets", async (req: Request, res: Response) => {
+      try {
+        // GET ALL
+        const getBudgetsResponse = await xero.accountingApi.getBudgets(req.session.activeTenant.tenantId);
+
+        // GET ONE
+        const getBudgetResponse = await xero.accountingApi.getBudget(req.session.activeTenant.tenantId, getBudgetsResponse.body.budgets[0].budgetID);
+
+        res.render("budgets", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          budgets: getBudgetsResponse.body.budgets,
+          budget: getBudgetResponse.body.budgets
+        });
+      } catch (e) {
+        console.error(e);
         res.status(res.statusCode);
         res.render("shared/error", {
           consentUrl: await xero.buildConsentUrl(),
@@ -1284,6 +1308,7 @@ class App {
           0,
           true,
           false,
+          true,
           4,
           {
             headers: {
@@ -2082,14 +2107,15 @@ class App {
         const banksumToDate = "2019-12-31";
         const getReportBankSummaryResponse = await xero.accountingApi.getReportBankSummary(req.session.activeTenant.tenantId, banksumFromDate, banksumToDate);
 
-        // GET BAS REPORT LIST
-        const getBASListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant.tenantId);
-
         // GET BAS REPORT - FOR AUSTRALIA ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
         // required parameters
         // const BASReportID: string = "00000000-0000-0000-0000-000000000000";
         // const getBASResponse = await xero.accountingApi.getReportBASorGST(req.session.activeTenant.tenantId, BASReportID);
         // console.log(getBASResponse.body.reports[0] || 'This works for Australia based organisations only');
+
+        // GET BAS REPORT LIST
+        // const getReports = await xero.accountingApi.getReports(req.session.activeTenant.tenantId);
+        // const getBASListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant.tenantId);
 
         // GET BUDGET SUMMARY REPORT
         // optional parameters
@@ -2104,7 +2130,8 @@ class App {
         const getExecutiveSummaryResponse = await xero.accountingApi.getReportExecutiveSummary(req.session.activeTenant.tenantId, esDate);
 
         // GET GST REPORT LIST
-        const getGSTListResponse = await xero.accountingApi.getReportBASorGSTList(req.session.activeTenant.tenantId);
+        const getReportsList = await xero.accountingApi.getReportsList(req.session.activeTenant.tenantId);
+        const getReportFromId = await xero.accountingApi.getReportFromId(req.session.activeTenant.tenantId, getReportsList.body.reports[0].reportID);
 
         // GET GST REPORT - FOR NEW ZEALAND ORGS ONLY, WILL NOT WORK WITH US DEMO COMPANY
         // required parameters
@@ -2144,7 +2171,8 @@ class App {
           getBudgetSummaryReportTitle: `${getBudgetSummaryResponse.body.reports[0].reportName} ${getBudgetSummaryResponse.body.reports[0].reportDate}`,
           getExecutiveSummaryReportTitle: `${getExecutiveSummaryResponse.body.reports[0].reportName} ${getExecutiveSummaryResponse.body.reports[0].reportDate}`,
           getProfitAndLossReportTitle: `${getProfitAndLossResponse.body.reports[0].reportName} ${getProfitAndLossResponse.body.reports[0].reportDate}`,
-          getTrialBalanceReportTitle: `${getTrialBalanceResponse.body.reports[0].reportName} ${getTrialBalanceResponse.body.reports[0].reportDate}`
+          getTrialBalanceReportTitle: `${getTrialBalanceResponse.body.reports[0].reportName} ${getTrialBalanceResponse.body.reports[0].reportDate}`,
+          getReportFromId: `${getReportFromId.body.reports[0].reportName} ${getReportFromId.body.reports[0].reportDate}`
         });
       } catch (e) {
         res.status(res.statusCode);
