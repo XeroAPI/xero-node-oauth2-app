@@ -86,7 +86,6 @@ const xero = new XeroClient({
   clientSecret: client_secret,
   redirectUris: [redirectUrl],
   scopes: scopes.split(" "),
-  
   state: "imaParam=look-at-me-go",
   httpTimeout: 2000
 });
@@ -1107,7 +1106,7 @@ class App {
       try {
         const invoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId);
         const attachments = await xero.accountingApi.getInvoiceAttachments(req.session.activeTenant.tenantId, invoices.body.invoices[0].invoiceID);
-        
+
         res.render("invoice-attachments", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
@@ -2121,7 +2120,7 @@ class App {
 
         // GET OTHER REPORT - FOR NEW ZEALAND/AUS ORGS GST/BAS
         const getReportsList = await xero.accountingApi.getReportsList(req.session.activeTenant.tenantId);
-        const getReportFromId = await xero.accountingApi.getReportFromId(req.session.activeTenant.tenantId, getReportsList.body.reports[0].reportID);      
+        const getReportFromId = await xero.accountingApi.getReportFromId(req.session.activeTenant.tenantId, getReportsList.body.reports[0].reportID);
 
         // GET PROFIT AND LOSS REPORT
         // optional parameters
