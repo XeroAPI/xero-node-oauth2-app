@@ -3951,7 +3951,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const uploadFile = await xero.filesApi.uploadFile(req.session.activeTenant.tenantId, folderId, readStream, filename, contentType);
+        const uploadFile = await xero.filesApi.uploadFile(req.session.activeTenant.tenantId, readStream, filename, contentType);
 
         res.render("files", {
           consentUrl: await xero.buildConsentUrl(),
