@@ -78,7 +78,7 @@ const mime = require("mime-types");
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
-const scopes = "offline_access openid profile email accounting.transactions accounting.budgets.read accounting.reports.read accounting.journals.read accounting.settings accounting.settings.read accounting.contacts accounting.contacts.read accounting.attachments accounting.attachments.read files files.read assets assets.read projects projects.read payroll.employees payroll.payruns payroll.payslip payroll.timesheets payroll.settings";
+const scopes = "offline_access openid profile email accounting.transactions accounting.budgets.read accounting.reports.read accounting.journals.read accounting.settings accounting.settings.read accounting.contacts accounting.contacts.read accounting.attachments accounting.attachments.read files files.read assets assets.read projects projects.read payroll.employees payroll.payruns payroll.payslip payroll.timesheets payroll.settings finance.accountingactivity.read finance.cashvalidation.read finance.statements.read";
 // bankfeeds
 
 const xero = new XeroClient({
@@ -3993,6 +3993,72 @@ class App {
         });
       }
     });
+
+    router.get("/accounting-activity", async (req: Request, res: Response) => {
+      try {
+        const getAccountingActivityAccountUsage = await xero.financeApi.getAccountingActivityAccountUsage(req.session.activeTenant.tenantId);
+        const getAccountingActivityLockHistory = await xero.financeApi.getAccountingActivityLockHistory(req.session.activeTenant.tenantId);
+        const getAccountingActivityReportHistory = await xero.financeApi.getAccountingActivityReportHistory(req.session.activeTenant.tenantId);
+        const getAccountingActivityUserActivities = await xero.financeApi.getAccountingActivityUserActivities(req.session.activeTenant.tenantId);
+
+        res.render("accounting-activity", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          getAccountingActivityAccountUsage: getAccountingActivityAccountUsage.body,
+          getAccountingActivityLockHistory: getAccountingActivityLockHistory.body,
+          getAccountingActivityReportHistory: getAccountingActivityReportHistory.body,
+          getAccountingActivityUserActivities: getAccountingActivityUserActivities.body
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });  
+
+    router.get("/cash-validation", async (req: Request, res: Response) => {
+      try {
+        const getCashValidation = await xero.financeApi.getCashValidation(req.session.activeTenant.tenantId);
+
+        res.render("cash-validation", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          getCashValidation: getCashValidation.body
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });  
+
+    router.get("/financial-statement", async (req: Request, res: Response) => {
+      try {
+        const getFinancialStatementBalanceSheet = await xero.financeApi.getFinancialStatementBalanceSheet(req.session.activeTenant.tenantId);
+        const getFinancialStatementCashflow = await xero.financeApi.getFinancialStatementCashflow(req.session.activeTenant.tenantId);
+        const getFinancialStatementProfitAndLoss = await xero.financeApi.getFinancialStatementProfitAndLoss(req.session.activeTenant.tenantId);
+        const getFinancialStatementTrialBalance = await xero.financeApi.getFinancialStatementTrialBalance(req.session.activeTenant.tenantId);
+
+        res.render("financial-statement", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          getFinancialStatementBalanceSheet: getFinancialStatementBalanceSheet.body,
+          getFinancialStatementCashflow: getFinancialStatementCashflow.body,
+          getFinancialStatementProfitAndLoss: getFinancialStatementProfitAndLoss.body,
+          getFinancialStatementTrialBalance: getFinancialStatementTrialBalance.body
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    }); 
 
     const fileStoreOptions = {}
 
