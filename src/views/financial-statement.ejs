@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <h4>Financial Statement Balance Sheet:</h4>
+          <p><%= JSON.stringify(getFinancialStatementBalanceSheet, null, 2) %></p>
+          <h4>Financial Statement Cashflow:</h4>
+          <p><%= JSON.stringify(getFinancialStatementCashflow, null, 2) %></p>
+          <h4>Financial Statement Profit And Loss:</h4>
+          <p><%= JSON.stringify(getFinancialStatementProfitAndLoss, null, 2) %></p>
+          <h4>Financial Statement Trial Balance:</h4>
+          <p><%= JSON.stringify(getFinancialStatementTrialBalance, null, 2) %></p>
+          <h4>Financial Statement Contacts Expense:</h4>
+          <p><%= JSON.stringify(getFinancialStatementContactsExpense, null, 2) %></p>
+          <h4>Financial Statement Contacts Revenue:</h4>
+          <p><%= JSON.stringify(getFinancialStatementContactsRevenue, null, 2) %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
