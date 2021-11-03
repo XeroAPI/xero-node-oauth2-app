@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <h4>Accounting Activity Account Usage:</h4>
+          <p><%= JSON.stringify(getAccountingActivityAccountUsage, null, 2) %></p>
+          <h4>Accounting Activity Lock History:</h4>
+          <p><%= JSON.stringify(getAccountingActivityLockHistory, null, 2) %></p>
+          <h4>Accounting Activity Report History:</h4>
+          <p><%= JSON.stringify(getAccountingActivityReportHistory, null, 2) %></p>
+          <h4>Accounting Activity User Activities:</h4>
+          <p><%= JSON.stringify(getAccountingActivityUserActivities, null, 2) %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
