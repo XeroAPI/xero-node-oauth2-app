@@ -4042,6 +4042,8 @@ class App {
         const getFinancialStatementCashflow = await xero.financeApi.getFinancialStatementCashflow(req.session.activeTenant.tenantId);
         const getFinancialStatementProfitAndLoss = await xero.financeApi.getFinancialStatementProfitAndLoss(req.session.activeTenant.tenantId);
         const getFinancialStatementTrialBalance = await xero.financeApi.getFinancialStatementTrialBalance(req.session.activeTenant.tenantId);
+        const getFinancialStatementContactsExpense = await xero.financeApi.getFinancialStatementContactsExpense(req.session.activeTenant.tenantId);
+        const getFinancialStatementContactsRevenue = await xero.financeApi.getFinancialStatementContactsRevenue(req.session.activeTenant.tenantId);
 
         res.render("financial-statement", {
           consentUrl: await xero.buildConsentUrl(),
@@ -4049,7 +4051,9 @@ class App {
           getFinancialStatementBalanceSheet: getFinancialStatementBalanceSheet.body,
           getFinancialStatementCashflow: getFinancialStatementCashflow.body,
           getFinancialStatementProfitAndLoss: getFinancialStatementProfitAndLoss.body,
-          getFinancialStatementTrialBalance: getFinancialStatementTrialBalance.body
+          getFinancialStatementTrialBalance: getFinancialStatementTrialBalance.body,
+          getFinancialStatementContactsExpense: getFinancialStatementContactsExpense.body,
+          getFinancialStatementContactsRevenue: getFinancialStatementContactsRevenue.body
         });
       } catch (e) {
         res.status(res.statusCode);
