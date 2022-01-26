@@ -69,7 +69,6 @@ import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, Cr
 import { Employee as UKPayrollEmployee, Employment } from 'xero-node/dist/gen/model/payroll-uk/models';
 import { Employment as NZPayrollEmployment, EmployeeLeaveSetup as NZEmployeeLeaveSetup, Employee as NZEmployee } from 'xero-node/dist/gen/model/payroll-nz/models';
 import { ObjectGroup } from "xero-node/dist/gen/model/files/models";
-import helper from './helper';
 
 const session = require("express-session");
 var FileStore = require('session-file-store')(session);
@@ -2553,8 +2552,8 @@ class App {
           country: "AUSTRALIA"
         }
         const employee: AUPayrollEmployee = {
-          firstName: `first ${helper.getRandomNumber(100)}`,
-          lastName: `last ${helper.getRandomNumber(100)}`,
+          firstName: `first ${Helper.getRandomNumber(100)}`,
+          lastName: `last ${Helper.getRandomNumber(100)}`,
           dateOfBirth: xero.formatMsDate("1990-02-05"),
           homeAddress: homeAddress
         }
