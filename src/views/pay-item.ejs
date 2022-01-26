@@ -7,13 +7,10 @@
       <%- include('shared/header') -%>
       <div class='body-wrapper'>
         <div class='body-content'>
-          <p><strong>Pay Items:</strong>
-          <ul>
-            <% for(var i=0; i < payItems.length; i++) { %>
-              <li><%- JSON.stringify(payItems[i], null, 2).replace(/[{}]/g, '') %></li>
-              <br>
-            <% } %>
-          </ul>
+          <p><strong>Pay Items:</strong></p>
+        <pre>
+            <code class='language-javascript'><%- JSON.stringify(payItems, null, 2) %></code>
+          </pre>
         </div>
       </div>
     </div>
