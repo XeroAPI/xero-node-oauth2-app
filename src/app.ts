@@ -2610,7 +2610,6 @@ class App {
     router.get("/pay-item", async (req: Request, res: Response) => {
       try {
         const payItems = await xero.payrollAUApi.getPayItems(req.session.activeTenant.tenantId)
-        console.log(payItems.body)
 
         // xero.payrollAUApi.createPayItem
 
