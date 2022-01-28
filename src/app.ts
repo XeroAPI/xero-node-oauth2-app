@@ -2551,7 +2551,9 @@ class App {
           postalCode: "6023",
           country: "AUSTRALIA"
         }
-        const employee: any = {
+        const employee: AUPayrollEmployee = {
+          firstName: `first ${Helper.getRandomNumber(100)}`,
+          lastName: `last ${Helper.getRandomNumber(100)}`,
           dateOfBirth: xero.formatMsDate("1990-02-05"),
           homeAddress: homeAddress
         }
