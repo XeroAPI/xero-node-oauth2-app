@@ -80,6 +80,7 @@ const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
 const scopes = "offline_access openid profile email accounting.transactions accounting.budgets.read accounting.reports.read accounting.journals.read accounting.settings accounting.settings.read accounting.contacts accounting.contacts.read accounting.attachments accounting.attachments.read files files.read assets assets.read projects projects.read payroll.employees payroll.payruns payroll.payslip payroll.timesheets payroll.settings";
 // bankfeeds
+//  finance.accountingactivity.read finance.bankstatementsplus.read finance.cashvalidation.read finance.statements.read
 
 const xero = new XeroClient({
   clientId: client_id,
@@ -4056,6 +4057,29 @@ class App {
           getFinancialStatementTrialBalance: getFinancialStatementTrialBalance.body,
           getFinancialStatementContactsExpense: getFinancialStatementContactsExpense.body,
           getFinancialStatementContactsRevenue: getFinancialStatementContactsRevenue.body
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    }); 
+
+    router.get("/bank-statements-plus", async (req: Request, res: Response) => {
+      try {
+        const where = 'Status=="' + Account.StatusEnum.ACTIVE + '" AND Type=="' + Account.BankAccountTypeEnum.BANK + '"';
+        const accounts = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId, null, where);
+        const accountId = accounts.body.accounts[0].accountID;
+        const fromDate = "2021-04-01";
+        const toDate = "2022-03-01";
+        const getBankStatementsPlus = await xero.financeApi.getBankStatementAccounting(req.session.activeTenant.tenantId, accountId, fromDate, toDate);
+
+        res.render("bank-statements-plus", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          getBankStatementsPlus: getBankStatementsPlus.body
         });
       } catch (e) {
         res.status(res.statusCode);
