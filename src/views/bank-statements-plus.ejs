@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <%- include('shared/head') -%>
+  <body>
+    <%- include('shared/nav') -%>
+    <div class='core-content'>
+      <%- include('shared/header') -%>
+      <div class='body-wrapper'>
+        <div class='body-content'>
+          <h4>Bank Statements Plus:</h4>
+          <p><%= JSON.stringify(getBankStatementsPlus, null, 2) %></p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
