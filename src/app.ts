@@ -80,7 +80,7 @@ const client_secret = process.env.CLIENT_SECRET;
 const redirectUrl = process.env.REDIRECT_URI;
 const scopes = "offline_access openid profile email accounting.transactions accounting.budgets.read accounting.reports.read accounting.journals.read accounting.settings accounting.settings.read accounting.contacts accounting.contacts.read accounting.attachments accounting.attachments.read files files.read assets assets.read projects projects.read payroll.employees payroll.payruns payroll.payslip payroll.timesheets payroll.settings";
 // bankfeeds
-//  finance.accountingactivity.read finance.bankstatementsplus.read finance.cashvalidation.read finance.statements.read
+// finance.accountingactivity.read finance.bankstatementsplus.read finance.cashvalidation.read finance.statements.read
 
 const xero = new XeroClient({
   clientId: client_id,
@@ -1429,12 +1429,14 @@ class App {
     router.get("/journals", async (req: Request, res: Response) => {
       try {
         //GET ALL
-        const apiResponse = await xero.accountingApi.getJournals(req.session.activeTenant.tenantId);
-
+        const getAllResponse = await xero.accountingApi.getJournals(req.session.activeTenant.tenantId);
+        const journalNumber = getAllResponse.body.journals[0].journalNumber;
+        const getByNumberResponse = await xero.accountingApi.getJournalByNumber(req.session.activeTenant.tenantId, journalNumber);
         res.render("journals", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          journals: apiResponse.body.journals
+          journals: getAllResponse.body.journals,
+          journal: getByNumberResponse.body.journals[0]
         });
       } catch (e) {
         res.status(res.statusCode);
