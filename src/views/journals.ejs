@@ -11,6 +11,8 @@
           <% for(var i=0; i < journals.length; i++) { %>
             <p><i><%= JSON.stringify(journals[i]) %></i></p>
           <% } %>
+          <p>Journal by number:</p>
+          <p><%= JSON.stringify(journal, null, 2) %></p>
         </div>
       </div>
     </div>
