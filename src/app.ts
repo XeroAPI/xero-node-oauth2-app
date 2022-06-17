@@ -63,7 +63,7 @@ import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
-import { Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
+import { Amount, ChargeType, CurrencyCode as ProjectCurrencyCode, Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TaskCreateOrUpdate, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
 import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, EarningsType } from 'xero-node/dist/gen/model/payroll-au/models';
 import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
 import { Employee as UKPayrollEmployee, Employment } from 'xero-node/dist/gen/model/payroll-uk/models';
@@ -2401,7 +2401,9 @@ class App {
         // we'll need a contact first
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
 
-        const newProject: any = {
+        const newProject: ProjectCreateOrUpdate = {
+          name: "foobar",
+          contactId: contactsResponse.body.contacts[0].contactID,
           estimateAmount: 3.50
         };
 
@@ -2474,14 +2476,37 @@ class App {
 
         const getTasksResponse = await xero.projectApi.getTasks(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId);
         // CREATE
+        const rate: Amount = {
+          currency: ProjectCurrencyCode.USD,
+          value: 99.99
+        };
+        const newTask: TaskCreateOrUpdate = {
+          name: "Deep Fryer",
+          rate: rate,
+          chargeType: ChargeType.TIME,
+          estimateMinutes: 120
+        };
+        const createTaskResponse = await xero.projectApi.createTask(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, newTask);
         // GET ONE
         const getTaskResponse = await xero.projectApi.getTask(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, getTasksResponse.body.items[0].taskId);
         // UPDATE
+        const updateTask: TaskCreateOrUpdate = {
+          name: getTaskResponse.body.name,
+          rate: getTaskResponse.body.rate,
+          chargeType: getTaskResponse.body.chargeType,
+          estimateMinutes: getTaskResponse.body.estimateMinutes + 90
+        };
+        const updateTaskResponse = await xero.projectApi.updateTask(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, getTasksResponse.body.items[0].taskId, updateTask);
+        // DELETE
+        const deleteTaskResponse = await xero.projectApi.deleteTask(req.session.activeTenant.tenantId, projectsResponse.body.items[0].projectId, getTasksResponse.body.items[0].taskId);
         res.render("tasks", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
           count: getTasksResponse.body.pagination.itemCount,
-          get: getTaskResponse.body.name
+          get: getTaskResponse.body.name,
+          create: createTaskResponse.response.statusCode,
+          update: updateTaskResponse.response.statusCode,
+          deleted: deleteTaskResponse.response.statusCode
         });
       } catch (e) {
         res.status(res.statusCode);
