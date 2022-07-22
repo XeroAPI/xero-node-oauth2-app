@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import * as crypto from 'crypto';
 import express from "express";
 import { Request, Response } from "express";
-import { TokenSetParameters } from 'xero-node'
+import { RepeatingInvoices, Schedule, TokenSetParameters } from 'xero-node'
 import * as fs from "fs";
 import {
   Account,
@@ -46,6 +46,7 @@ import {
   Quotes,
   Receipt,
   Receipts,
+  RepeatingInvoice,
   TaxRate,
   TaxRates,
   TaxType,
@@ -2054,6 +2055,77 @@ class App {
           create: createReceiptResponse.body.receipts[0].reference,
           getOne: getReceiptResponse.body.receipts[0].reference,
           update: updateReceiptResponse.body.receipts[0].lineItems[0].description
+        });
+      } catch (e) {
+        res.status(res.statusCode);
+        res.render("shared/error", {
+          consentUrl: await xero.buildConsentUrl(),
+          error: e
+        });
+      }
+    });
+
+    router.get("/repeating-invoices", async (req: Request, res: Response) => {
+      try {
+        //GET ALL
+        const getRepeatingInvoices = await xero.accountingApi.getRepeatingInvoices(req.session.activeTenant.tenantId);
+
+        // GET BY ID
+        const getRepeatingInvoice = await xero.accountingApi.getRepeatingInvoice(req.session.activeTenant.tenantId, getRepeatingInvoices.body.repeatingInvoices[0].repeatingInvoiceID);
+
+        // CREATE
+        // we'll need a contact ID
+        const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
+        
+        const repeatingInvoice: RepeatingInvoice = {
+            type: RepeatingInvoice.TypeEnum.ACCREC,
+            contact: {
+              contactID: contactsResponse.body.contacts[0].contactID
+            },
+            schedule: {
+              period: 1,
+              unit: Schedule.UnitEnum.MONTHLY,
+              dueDate: 31,
+              dueDateType: Schedule.DueDateTypeEnum.OFCURRENTMONTH,
+              startDate: "2022-07-04",
+              nextScheduledDate: "2022-07-06"
+            },
+            lineItems: [
+              {
+                description: "Monthly Subscription Premium",
+                quantity: 2.0,
+                unitAmount: 21.50,
+                accountCode: "600",
+                
+              }
+            ],
+            
+            reference: "Nuts45600",
+            approvedForSending: false,
+            status: RepeatingInvoice.StatusEnum.DRAFT
+        };
+
+        const repeatingInvoices: RepeatingInvoices = {
+          repeatingInvoices: [
+            repeatingInvoice
+          ]
+        };
+
+        const createRepeatingInvoices = await xero.accountingApi.createRepeatingInvoices(req.session.activeTenant.tenantId, repeatingInvoices);
+
+        const repeatingInvoiceToUpdate: RepeatingInvoice = createRepeatingInvoices.body.repeatingInvoices[0];
+
+        repeatingInvoiceToUpdate.status = RepeatingInvoice.StatusEnum.DELETED;
+
+        const updateRepeatingInvoices = await xero.accountingApi.updateRepeatingInvoice(req.session.activeTenant.tenantId, repeatingInvoiceToUpdate.repeatingInvoiceID, {repeatingInvoices: [repeatingInvoiceToUpdate]});
+        
+        res.render("repeating-invoices", {
+          consentUrl: await xero.buildConsentUrl(),
+          authenticated: this.authenticationData(req, res),
+          count: getRepeatingInvoices.body.repeatingInvoices.length,
+          getOne: getRepeatingInvoice.body.repeatingInvoices[0].total,
+          created: createRepeatingInvoices.body.repeatingInvoices[0].repeatingInvoiceID,
+          updated: updateRepeatingInvoices.body.repeatingInvoices[0].status
         });
       } catch (e) {
         res.status(res.statusCode);

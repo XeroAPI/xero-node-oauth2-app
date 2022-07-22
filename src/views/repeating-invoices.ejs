@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<%- include('shared/head') -%>
+
+<body>
+  <%- include('shared/nav') -%>
+  <div class='core-content'>
+    <%- include('shared/header') -%>
+    <div class='body-wrapper'>
+      <div class='body-content'>
+        <p>Get Repeating Invoices: Count: <%= count %></p>
+        <p>Get Repeating Invoice by ID: Total: <%= getOne %></p>
+        <p>Create Repeating Invoice: ID: <%= created %></p>
+        <p>Update Repeating Invoice by ID: status: <%= updated %></p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
