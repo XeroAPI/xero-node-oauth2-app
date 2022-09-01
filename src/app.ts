@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import * as crypto from 'crypto';
 import express from "express";
 import { Request, Response } from "express";
-import { RepeatingInvoices, Schedule, TokenSetParameters } from 'xero-node'
+import { BatchPaymentDelete, BatchPaymentDeleteByUrlParam, HistoryRecord, RepeatingInvoices, Schedule, TokenSetParameters } from 'xero-node'
 import * as fs from "fs";
 import {
   Account,
@@ -70,6 +70,7 @@ import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, Cr
 import { Employee as UKPayrollEmployee, Employment } from 'xero-node/dist/gen/model/payroll-uk/models';
 import { Employment as NZPayrollEmployment, EmployeeLeaveSetup as NZEmployeeLeaveSetup, Employee as NZEmployee } from 'xero-node/dist/gen/model/payroll-nz/models';
 import { ObjectGroup } from "xero-node/dist/gen/model/files/models";
+import { create } from "domain";
 
 const session = require("express-session");
 var FileStore = require('session-file-store')(session);
@@ -627,7 +628,7 @@ class App {
               taxType: "OUTPUT",
               quantity: 20,
               unitAmount: 100.00,
-              accountCode: "200"
+              accountCode: "400"
             }
           ],
           status: Invoice.StatusEnum.AUTHORISED
@@ -664,19 +665,55 @@ class App {
 
         const batchPayments: BatchPayments = { // BatchPayments - the account is not typed correctly in ts BatchPayment to accept an accountID
           batchPayments: [
+            payments,
             payments
           ]
         }
         const createBatchPayment = await xero.accountingApi.createBatchPayment(req.session.activeTenant.tenantId, batchPayments);
 
+        const createdBatchPaymentID = createBatchPayment.body.batchPayments[0].batchPaymentID;
+        const createdBatchPaymentID1 = createBatchPayment.body.batchPayments[1].batchPaymentID;
+
         // GET
         const apiResponse = await xero.accountingApi.getBatchPayments(req.session.activeTenant.tenantId);
+
+        // GET BY ID
+        const getByIDResponse = await xero.accountingApi.getBatchPayment(req.session.activeTenant.tenantId, createdBatchPaymentID)
+
+        // CREATE HISTORY RECORD
+        const historyRecords : HistoryRecords = {
+          historyRecords : [
+            {details: "New note added"}
+          ]
+        }
+        const createHistoryRecordResponse = await xero.accountingApi.createBatchPaymentHistoryRecord(req.session.activeTenant.tenantId, createdBatchPaymentID, historyRecords);
+
+        // GET HISTORY RECORD
+        const getHistoryRecordResponse = await xero.accountingApi.getBatchPaymentHistory(req.session.activeTenant.tenantId, createdBatchPaymentID);
+        
+        // DELETE
+        const batchPaymentDelete : BatchPaymentDelete = {
+          batchPaymentID: createdBatchPaymentID,
+          status: "DELETED"
+        }
+        const deleteBatchPaymentResponse = await xero.accountingApi.deleteBatchPayment(req.session.activeTenant.tenantId, batchPaymentDelete);
+
+        // DELETE BATCH PAYMENT BY URL PARAM 
+        const batchPaymentDeleteByURLParam : BatchPaymentDeleteByUrlParam = {
+          status: "DELETED"
+        }
+        const batchPaymentDeleteByURLParamResponse = await xero.accountingApi.deleteBatchPaymentByUrlParam(req.session.activeTenant.tenantId, createdBatchPaymentID1, batchPaymentDeleteByURLParam);
 
         res.render("batchpayments", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
-          createBatchPayment: createBatchPayment.body.batchPayments[0].batchPaymentID,
-          count: apiResponse.body.batchPayments.length
+          createBatchPayment: `${createdBatchPaymentID}, ${createdBatchPaymentID1}`,
+          getByBatchPaymentID: JSON.stringify(getByIDResponse.body.batchPayments[0], null, 2),
+          createdHistoryRecord: JSON.stringify(createHistoryRecordResponse.body.historyRecords[0], null, 2),
+          getHistoryRecord: JSON.stringify(getHistoryRecordResponse.body.historyRecords[0], null, 2),
+          count: apiResponse.body.batchPayments.length,
+          deletedBatchPayment: JSON.stringify(deleteBatchPaymentResponse.body.batchPayments[0], null, 2),
+          deletedBatchPaymentByURLParam: JSON.stringify(batchPaymentDeleteByURLParamResponse.body.batchPayments[0], null, 2)
         });
       } catch (e) {
         res.status(res.statusCode);

@@ -10,7 +10,34 @@
           <a href='https://developer.xero.com/documentation/api/batch-payments' target='_blank'>
             <h4>Batch Payments</h4>
           </a>
+          <hr>
           <p><strong>Created Batch Payments:</strong> <%= createBatchPayment %></p>
+          <hr>
+          <p><strong>Get Batch Payment by ID: </strong></p>
+          <pre>
+            <code class="language-javascript"><%= getByBatchPaymentID %></code>
+          </pre>
+          <p><strong>Created History Record for Batch Payment:</strong></p>
+          <hr>
+          <pre>
+            <code class="language-javascript"><%= createdHistoryRecord %></code>
+          </pre>
+          <hr>
+          <p><strong>Get History Record for Batch Payment:</strong></p>
+          <pre>
+            <code class="language-javascript"><%= getHistoryRecord %></code>
+          </pre>
+          <hr>
+          <p><strong>Deleted Batch Payments:</strong></p>
+          <pre>
+            <code class="language-javascript"><%= deletedBatchPayment %></code>
+          </pre>
+          <hr>
+          <p><strong>Delete Batch Payments by ID:</strong></p>
+          <pre>
+            <code class="language-javascript"><%= deletedBatchPaymentByURLParam %></code>
+          </pre>
+          <hr>
           <p><strong>Total Batch Payments:</strong> <%= count %></p>
         </div>
       </div>
