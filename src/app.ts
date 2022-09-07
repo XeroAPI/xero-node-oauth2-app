@@ -3,7 +3,7 @@ import * as bodyParser from "body-parser";
 import * as crypto from 'crypto';
 import express from "express";
 import { Request, Response } from "express";
-import { BatchPaymentDelete, BatchPaymentDeleteByUrlParam, HistoryRecord, RepeatingInvoices, Schedule, TokenSetParameters } from 'xero-node'
+import { RepeatingInvoices, Schedule, TokenSetParameters } from 'xero-node'
 import * as fs from "fs";
 import {
   Account,
@@ -16,14 +16,13 @@ import {
   BankTransfer,
   BankTransfers,
   BatchPayment,
+  BatchPaymentDelete,
+  BatchPaymentDeleteByUrlParam,
   BatchPayments,
   Contact,
-  ContactGroup,
   ContactGroups,
   ContactPerson,
   Contacts,
-  Currency,
-  CurrencyCode,
   Employees,
   HistoryRecords,
   Invoice,
@@ -36,10 +35,8 @@ import {
   LinkedTransactions,
   ManualJournal,
   ManualJournals,
-  Payment,
   Payments,
   PaymentServices,
-  Prepayment,
   PurchaseOrder,
   PurchaseOrders,
   Quote,
@@ -49,8 +46,6 @@ import {
   RepeatingInvoice,
   TaxRate,
   TaxRates,
-  TaxType,
-  TrackingCategories,
   TrackingCategory,
   TrackingOption,
   XeroAccessToken,
@@ -58,19 +53,17 @@ import {
   XeroIdToken,
   CreditNotes,
   CreditNote,
-  Employee,
 } from "xero-node";
 import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
-import { Amount, ChargeType, CurrencyCode as ProjectCurrencyCode, Project, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TaskCreateOrUpdate, TimeEntry, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
-import { Employee as AUPayrollEmployee, HomeAddress, State, EmployeeStatus, EarningsType } from 'xero-node/dist/gen/model/payroll-au/models';
-import { FeedConnections, FeedConnection, CountryCode, Statements, Statement, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
-import { Employee as UKPayrollEmployee, Employment } from 'xero-node/dist/gen/model/payroll-uk/models';
-import { Employment as NZPayrollEmployment, EmployeeLeaveSetup as NZEmployeeLeaveSetup, Employee as NZEmployee } from 'xero-node/dist/gen/model/payroll-nz/models';
+import { Amount, ChargeType, CurrencyCode as ProjectCurrencyCode, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TaskCreateOrUpdate, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
+import { Employee as AUPayrollEmployee, HomeAddress, State } from 'xero-node/dist/gen/model/payroll-au/models';
+import { FeedConnections, FeedConnection, CountryCode, Statements, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
+import { Employee as UKPayrollEmployee } from 'xero-node/dist/gen/model/payroll-uk/models';
+import { Employee as NZEmployee } from 'xero-node/dist/gen/model/payroll-nz/models';
 import { ObjectGroup } from "xero-node/dist/gen/model/files/models";
-import { create } from "domain";
 
 const session = require("express-session");
 var FileStore = require('session-file-store')(session);
