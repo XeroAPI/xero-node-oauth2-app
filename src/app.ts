@@ -23,6 +23,8 @@ import {
   ContactGroups,
   ContactPerson,
   Contacts,
+  Currency,         // Used for creating new currency from /currencies endpoint
+  CurrencyCode,     // Used for creating new currency from /currencies endpoint
   Employees,
   HistoryRecords,
   Invoice,
@@ -58,11 +60,38 @@ import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
-import { Amount, ChargeType, CurrencyCode as ProjectCurrencyCode, ProjectCreateOrUpdate, ProjectPatch, ProjectStatus, TaskCreateOrUpdate, TimeEntryCreateOrUpdate } from 'xero-node/dist/gen/model/projects/models';
-import { Employee as AUPayrollEmployee, HomeAddress, State } from 'xero-node/dist/gen/model/payroll-au/models';
-import { FeedConnections, FeedConnection, CountryCode, Statements, CreditDebitIndicator, CurrencyCode as BankfeedsCurrencyCode } from 'xero-node/dist/gen/model/bankfeeds/models';
-import { Employee as UKPayrollEmployee } from 'xero-node/dist/gen/model/payroll-uk/models';
-import { Employee as NZEmployee } from 'xero-node/dist/gen/model/payroll-nz/models';
+import { 
+  Amount, 
+  ChargeType, 
+  CurrencyCode as ProjectCurrencyCode, 
+  ProjectCreateOrUpdate, 
+  ProjectPatch, 
+  ProjectStatus, 
+  TaskCreateOrUpdate, 
+  TimeEntryCreateOrUpdate 
+} from 'xero-node/dist/gen/model/projects/models';
+import { 
+  Employee as AUPayrollEmployee, 
+  HomeAddress, 
+  State 
+} from 'xero-node/dist/gen/model/payroll-au/models';
+import { 
+  FeedConnections, 
+  FeedConnection, 
+  CountryCode, 
+  Statements, 
+  CreditDebitIndicator, 
+  CurrencyCode as BankfeedsCurrencyCode 
+} from 'xero-node/dist/gen/model/bankfeeds/models';
+import { 
+  Employee as UKPayrollEmployee, 
+  Employment                                    // Used for getting employment from /employment endpoint
+} from 'xero-node/dist/gen/model/payroll-uk/models';
+import { 
+  Employment as NZPayrollEmployment,            // Used for getting employment from /payroll-nz-employment endpoint
+  EmployeeLeaveSetup as NZEmployeeLeaveSetup,   // Used for getting leave setup from /payroll-nz-employees-leave-setup endpoint
+  Employee as NZEmployee  
+} from 'xero-node/dist/gen/model/payroll-nz/models';
 import { ObjectGroup } from "xero-node/dist/gen/model/files/models";
 
 const session = require("express-session");
@@ -1606,8 +1635,6 @@ class App {
         const mime = require("mime-types");
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png"); // determine the path to your file
 
-        // You'll need to add the import below to read your file
-        // import * as fs from "fs";
         const body = fs.createReadStream(pathToUpload); // {fs.ReadStream} read the file
         const contentType = mime.lookup(fileName);
         const journalId = createManualJournalResponse.body.manualJournals[0].manualJournalID;
