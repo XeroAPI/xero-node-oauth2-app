@@ -60,37 +60,37 @@ import Helper from "./helper";
 import jwtDecode from 'jwt-decode';
 import { Asset } from "xero-node/dist/gen/model/assets/asset";
 import { AssetStatus, AssetStatusQueryParam } from "xero-node/dist/gen/model/assets/models";
-import { 
-  Amount, 
-  ChargeType, 
-  CurrencyCode as ProjectCurrencyCode, 
-  ProjectCreateOrUpdate, 
-  ProjectPatch, 
-  ProjectStatus, 
-  TaskCreateOrUpdate, 
-  TimeEntryCreateOrUpdate 
+import {
+  Amount,
+  ChargeType,
+  CurrencyCode as ProjectCurrencyCode,
+  ProjectCreateOrUpdate,
+  ProjectPatch,
+  ProjectStatus,
+  TaskCreateOrUpdate,
+  TimeEntryCreateOrUpdate
 } from 'xero-node/dist/gen/model/projects/models';
-import { 
-  Employee as AUPayrollEmployee, 
-  HomeAddress, 
-  State 
+import {
+  Employee as AUPayrollEmployee,
+  HomeAddress,
+  State
 } from 'xero-node/dist/gen/model/payroll-au/models';
-import { 
-  FeedConnections, 
-  FeedConnection, 
-  CountryCode, 
-  Statements, 
-  CreditDebitIndicator, 
-  CurrencyCode as BankfeedsCurrencyCode 
+import {
+  FeedConnections,
+  FeedConnection,
+  CountryCode,
+  Statements,
+  CreditDebitIndicator,
+  CurrencyCode as BankfeedsCurrencyCode
 } from 'xero-node/dist/gen/model/bankfeeds/models';
-import { 
-  Employee as UKPayrollEmployee, 
+import {
+  Employee as UKPayrollEmployee,
   Employment                                    // Used for getting employment from /employment endpoint
 } from 'xero-node/dist/gen/model/payroll-uk/models';
-import { 
+import {
   Employment as NZPayrollEmployment,            // Used for getting employment from /payroll-nz-employment endpoint
   EmployeeLeaveSetup as NZEmployeeLeaveSetup,   // Used for getting leave setup from /payroll-nz-employees-leave-setup endpoint
-  Employee as NZEmployee  
+  Employee as NZEmployee
 } from 'xero-node/dist/gen/model/payroll-nz/models';
 import { ObjectGroup } from "xero-node/dist/gen/model/files/models";
 
@@ -397,7 +397,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const accountAttachmentsResponse: any = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant.tenantId, accountId, filename, readStream, {
+        const accountAttachmentsResponse: any = await xero.accountingApi.createAccountAttachmentByFileName(req.session.activeTenant.tenantId, accountId, filename, readStream, null, {
           headers: {
             'Content-Type': contentType
           }
@@ -544,7 +544,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const bankTransactionAttachmentsResponse: any = await xero.accountingApi.createBankTransactionAttachmentByFileName(req.session.activeTenant.tenantId, bankTransactionId, filename, readStream, {
+        const bankTransactionAttachmentsResponse: any = await xero.accountingApi.createBankTransactionAttachmentByFileName(req.session.activeTenant.tenantId, bankTransactionId, filename, readStream, null, {
           headers: {
             'Content-Type': contentType
           }
@@ -712,7 +712,7 @@ class App {
 
         // GET HISTORY RECORD
         const getHistoryRecordResponse = await xero.accountingApi.getBatchPaymentHistory(req.session.activeTenant.tenantId, createdBatchPaymentID);
-        
+
         // DELETE
         const batchPaymentDelete : BatchPaymentDelete = {
           batchPaymentID: createdBatchPaymentID,
@@ -720,7 +720,7 @@ class App {
         }
         const deleteBatchPaymentResponse = await xero.accountingApi.deleteBatchPayment(req.session.activeTenant.tenantId, batchPaymentDelete);
 
-        // DELETE BATCH PAYMENT BY URL PARAM 
+        // DELETE BATCH PAYMENT BY URL PARAM
         const batchPaymentDeleteByURLParam : BatchPaymentDeleteByUrlParam = {
           status: "DELETED"
         }
@@ -863,7 +863,7 @@ class App {
 
         // DELETE
         const deletedContactGroupContact = await xero.accountingApi.deleteContactGroupContact(req.session.activeTenant.tenantId, contactGroup.contactGroupID, createdContact.contactID)
-        const deleted = deletedContactGroupContact.response.statusCode === 204
+        const deleted = deletedContactGroupContact.response.status === 204
 
         // GET ALL
         const allContactGroups = await xero.accountingApi.getContactGroups(req.session.activeTenant.tenantId);
@@ -1005,6 +1005,7 @@ class App {
           filename,
           readStream,
           true,
+          null,
           { headers: { 'Content-Type': contentType } }
         );
 
@@ -1401,7 +1402,7 @@ class App {
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
 
-        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant.tenantId, totalInvoices.body.invoices[0].invoiceID, filename, readStream, true, {
+        const fileAttached = await xero.accountingApi.createInvoiceAttachmentByFileName(req.session.activeTenant.tenantId, totalInvoices.body.invoices[0].invoiceID, filename, readStream, true, null,{
           headers: {
             "Content-Type": contentType,
           },
@@ -1475,7 +1476,7 @@ class App {
           createName: itemCreateResponse.body.items[0].name,
           getOneName: itemGetResponse.body.items[0].name,
           updateName: itemUpdateResponse.body.items[0].name,
-          deleteResponse: itemDeleteResponse.response.statusCode
+          deleteResponse: itemDeleteResponse.response.status
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1592,7 +1593,7 @@ class App {
           create: createLinkedTransactionResponse.body.linkedTransactions[0].linkedTransactionID,
           get: getLinkedTransactionResponse.body.linkedTransactions[0],
           update: updateLinkedTransactionResponse.body.linkedTransactions[0],
-          deleted: deleteLinkedTransactionResponse.response.statusCode
+          deleted: deleteLinkedTransactionResponse.response.status
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -1638,7 +1639,7 @@ class App {
         const body = fs.createReadStream(pathToUpload); // {fs.ReadStream} read the file
         const contentType = mime.lookup(fileName);
         const journalId = createManualJournalResponse.body.manualJournals[0].manualJournalID;
-        const createManualJournalAttachmentByFileNameResponse: any = await xero.accountingApi.createManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, journalId, fileName, body, {
+        const createManualJournalAttachmentByFileNameResponse: any = await xero.accountingApi.createManualJournalAttachmentByFileName(req.session.activeTenant.tenantId, journalId, fileName, body, null,{
           headers: {
             "Content-Type": contentType,
           }
@@ -2133,7 +2134,7 @@ class App {
         // CREATE
         // we'll need a contact ID
         const contactsResponse = await xero.accountingApi.getContacts(req.session.activeTenant.tenantId);
-        
+
         const repeatingInvoice: RepeatingInvoice = {
             type: RepeatingInvoice.TypeEnum.ACCREC,
             contact: {
@@ -2153,10 +2154,10 @@ class App {
                 quantity: 2.0,
                 unitAmount: 21.50,
                 accountCode: "600",
-                
+
               }
             ],
-            
+
             reference: "Nuts45600",
             approvedForSending: false,
             status: RepeatingInvoice.StatusEnum.DRAFT
@@ -2175,7 +2176,7 @@ class App {
         repeatingInvoiceToUpdate.status = RepeatingInvoice.StatusEnum.DELETED;
 
         const updateRepeatingInvoices = await xero.accountingApi.updateRepeatingInvoice(req.session.activeTenant.tenantId, repeatingInvoiceToUpdate.repeatingInvoiceID, {repeatingInvoices: [repeatingInvoiceToUpdate]});
-        
+
         res.render("repeating-invoices", {
           consentUrl: await xero.buildConsentUrl(),
           authenticated: this.authenticationData(req, res),
@@ -2305,8 +2306,8 @@ class App {
 
         const newTaxRate: TaxRate = {
           name: `Tax Rate Name ${Helper.getRandomNumber(1000000)}`,
-          reportTaxType: undefined, // Aus, Nz will require this to be set from: TaxRate.ReportTaxTypeEnum...
-          taxType: 'INPUT',
+          reportTaxType: TaxRate.ReportTaxTypeEnum.INPUT, // Aus, Nz will require this to be set from: TaxRate.ReportTaxTypeEnum...
+          taxType: 'INPUT2',
           taxComponents: [
             {
               name: "State Tax",
@@ -2449,7 +2450,7 @@ class App {
         const pathToUpload = path.resolve(__dirname, "../public/images/xero-dev.png");
         const readStream = fs.createReadStream(pathToUpload);
         const contentType = mime.lookup(filename);
-        const addQuoteAttachment = await xero.accountingApi.createQuoteAttachmentByFileName(req.session.activeTenant.tenantId, quoteId, filename, readStream, {
+        const addQuoteAttachment = await xero.accountingApi.createQuoteAttachmentByFileName(req.session.activeTenant.tenantId, quoteId, filename, readStream, null, {
           headers: {
             'Content-Type': contentType
           }
@@ -2565,8 +2566,8 @@ class App {
           count: getAllResponse.body.pagination.itemCount,
           create: createResponse.body.projectId,
           get: getResponse.body.name,
-          update: updateResponse.response.statusCode,
-          patch: patchResponse.response.statusCode
+          update: updateResponse.response.status,
+          patch: patchResponse.response.status
 
         });
       } catch (e) {
@@ -2633,9 +2634,9 @@ class App {
           authenticated: this.authenticationData(req, res),
           count: getTasksResponse.body.pagination.itemCount,
           get: getTaskResponse.body.name,
-          create: createTaskResponse.response.statusCode,
-          update: updateTaskResponse.response.statusCode,
-          deleted: deleteTaskResponse.response.statusCode
+          create: createTaskResponse.response.status,
+          update: updateTaskResponse.response.status,
+          deleted: deleteTaskResponse.response.status
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2683,8 +2684,8 @@ class App {
           count: getTimeEntriesResponse.body.pagination.itemCount,
           create: createTimeEntryResponse.body.timeEntryId,
           get: getTimeEntryResponse.body.description,
-          update: updateTimeEntryResponse.response.statusCode,
-          deleted: deleteTimeEntryResponse.response.statusCode
+          update: updateTimeEntryResponse.response.status,
+          deleted: deleteTimeEntryResponse.response.status
         });
       } catch (e) {
         res.status(res.statusCode);
@@ -2954,7 +2955,7 @@ class App {
           bankfeeds: getBankfeedsResponse.body.items.length,
           created: createBankfeedResponse.body.items[0].id,
           get: getBankfeedResponse.body.accountName,
-          deleted: deleteBankfeedResponse.response.statusCode
+          deleted: deleteBankfeedResponse.response.status
         });
       } catch (e) {
         console.log('Do you have XeroAPI permissions to work with this endpoint? (https://developer.xero.com/documentation/bank-feeds-api/overview)')
@@ -4175,7 +4176,7 @@ class App {
           error: e
         });
       }
-    });  
+    });
 
     router.get("/cash-validation", async (req: Request, res: Response) => {
       try {
@@ -4193,7 +4194,7 @@ class App {
           error: e
         });
       }
-    });  
+    });
 
     router.get("/financial-statement", async (req: Request, res: Response) => {
       try {
@@ -4221,7 +4222,7 @@ class App {
           error: e
         });
       }
-    }); 
+    });
 
     router.get("/bank-statements-plus", async (req: Request, res: Response) => {
       try {
@@ -4244,7 +4245,7 @@ class App {
           error: e
         });
       }
-    }); 
+    });
 
     const fileStoreOptions = {}
 
