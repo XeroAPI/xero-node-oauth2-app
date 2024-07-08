@@ -378,8 +378,8 @@ class App {
         const accountsGetResponse = await xero.accountingApi.getAccounts(req.session.activeTenant.tenantId);
 
         // CREATE
-        // const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
-        const account: Account = { name: "Foo", code: "c:", type: AccountType.EXPENSE, hasAttachments: true };
+        const account: Account = { name: "Foo" + Helper.getRandomNumber(1000000), code: "c:" + Helper.getRandomNumber(1000000), type: AccountType.EXPENSE, hasAttachments: true };
+        // const account: Account = { name: "Foo", code: "c:", type: AccountType.EXPENSE, hasAttachments: true };
         const accountCreateResponse = await xero.accountingApi.createAccount(req.session.activeTenant.tenantId, account);
         const accountId = accountCreateResponse.body.accounts[0].accountID;
 
@@ -1360,17 +1360,18 @@ class App {
         const filteredInvoices = await xero.accountingApi.getInvoices(
           req.session.activeTenant.tenantId,
           new Date(2018),
-          'Type=="ACCREC"',
-          'reference DESC',
+          null,
+          null,
           undefined,
           undefined,
           undefined,
-          ['PAID', 'DRAFT'],
+          null,
           0,
           true,
           false,
           4,
           true,
+          null,
           {
             headers: {
               'contentType': 'application/json'
@@ -1393,7 +1394,7 @@ class App {
 
     router.get("/attachment-invoice", async (req: Request, res: Response) => {
       try {
-        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId, undefined, undefined, undefined, undefined, undefined, undefined, ['PAID']);
+        const totalInvoices = await xero.accountingApi.getInvoices(req.session.activeTenant.tenantId);
 
         // Attachments need to be uploaded to associated objects https://developer.xero.com/documentation/api/attachments
         // CREATE ATTACHMENT
